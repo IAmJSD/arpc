@@ -43,7 +43,7 @@ let http: typeof httpTypes | undefined;
 let https: typeof httpsTypes | undefined;
 async function doHttpRequest(
     url: string, method: string, headers: {[key: string]: string},
-    body: ArrayBuffer | undefined, signal: AbortSignal | null,
+    body: ArrayBuffer | undefined, signal: AbortSignal | undefined,
 ) {
     // @ts-ignore: In some TS environments, fetch is always defined.
     if (globalThis.fetch) {
@@ -151,14 +151,14 @@ type Request = {
 
 // Defines the interface for a request doer.
 interface ReqDoer {
-    _doRequest(request: Request): Promise<any>;
-    _doRequest(request: Request[]): Promise<any[]>;
+    _doRequest(request: Request, signal: AbortSignal | undefined): Promise<any>;
+    _doRequest(request: Request[], signal: AbortSignal | undefined): Promise<any[]>;
 }
 
 // Defines the base batcher.
 abstract class BaseBatcher {
     protected _client: ReqDoer;
-    private _batch: Request[] = [];
+    protected _batch: Request[] = [];
 
     constructor(client: ReqDoer) {
         this._client = client;
@@ -166,8 +166,8 @@ abstract class BaseBatcher {
 
     // Execute the batch. The returned promise resolves to an array of responses
     // in the same order as the requests were added.
-    execute() {
-        return this._client._doRequest(this._batch);
+    execute(signal?: AbortSignal) {
+        return this._client._doRequest(this._batch, signal);
     }
 }
 
@@ -230,9 +230,9 @@ abstract class BaseClient<Batcher extends BaseBatcher> {
     }
 
     // Defines the request doer.
-    private _doRequest(request: Request, signal: AbortSignal): Promise<any>
-    private _doRequest(request: Request[], signal: AbortSignal): Promise<any[]>
-    private async _doRequest(request: Request | Request[], signal: AbortSignal) {
+    protected _doRequest(request: Request, signal: AbortSignal | undefined): Promise<any>
+    protected _doRequest(request: Request[], signal: AbortSignal | undefined): Promise<any[]>
+    protected async _doRequest(request: Request | Request[], signal: AbortSignal | undefined) {
         let body: ArrayBuffer | undefined;
         let url = this._url;
         const headers = {...this._baseHeaders};
@@ -295,7 +295,7 @@ abstract class BaseClient<Batcher extends BaseBatcher> {
 
     // Defines the batcher for the API client.
     batcher() {
-        // @ts-expect-error: _doRequest is private.
+        // @ts-expect-error: _doRequest is protected.
         return new this._batcherConstructor(this);
     }
 }

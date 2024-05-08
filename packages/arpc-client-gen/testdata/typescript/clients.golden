@@ -43,7 +43,7 @@ let http: typeof httpTypes | undefined;
 let https: typeof httpsTypes | undefined;
 async function doHttpRequest(
     url: string, method: string, headers: {[key: string]: string},
-    body: ArrayBuffer | undefined, signal: AbortSignal | null,
+    body: ArrayBuffer | undefined, signal: AbortSignal | undefined,
 ) {
     // @ts-ignore: In some TS environments, fetch is always defined.
     if (globalThis.fetch) {
@@ -151,14 +151,14 @@ type Request = {
 
 // Defines the interface for a request doer.
 interface ReqDoer {
-    _doRequest(request: Request): Promise<any>;
-    _doRequest(request: Request[]): Promise<any[]>;
+    _doRequest(request: Request, signal: AbortSignal | undefined): Promise<any>;
+    _doRequest(request: Request[], signal: AbortSignal | undefined): Promise<any[]>;
 }
 
 // Defines the base batcher.
 abstract class BaseBatcher {
     protected _client: ReqDoer;
-    private _batch: Request[] = [];
+    protected _batch: Request[] = [];
 
     constructor(client: ReqDoer) {
         this._client = client;
@@ -166,8 +166,8 @@ abstract class BaseBatcher {
 
     // Execute the batch. The returned promise resolves to an array of responses
     // in the same order as the requests were added.
-    execute() {
-        return this._client._doRequest(this._batch);
+    execute(signal?: AbortSignal) {
+        return this._client._doRequest(this._batch, signal);
     }
 }
 
@@ -230,9 +230,9 @@ abstract class BaseClient<Batcher extends BaseBatcher> {
     }
 
     // Defines the request doer.
-    private _doRequest(request: Request, signal: AbortSignal): Promise<any>
-    private _doRequest(request: Request[], signal: AbortSignal): Promise<any[]>
-    private async _doRequest(request: Request | Request[], signal: AbortSignal) {
+    protected _doRequest(request: Request, signal: AbortSignal | undefined): Promise<any>
+    protected _doRequest(request: Request[], signal: AbortSignal | undefined): Promise<any[]>
+    protected async _doRequest(request: Request | Request[], signal: AbortSignal | undefined) {
         let body: ArrayBuffer | undefined;
         let url = this._url;
         const headers = {...this._baseHeaders};
@@ -295,25 +295,25 @@ abstract class BaseClient<Batcher extends BaseBatcher> {
 
     // Defines the batcher for the API client.
     batcher() {
-        // @ts-expect-error: _doRequest is private.
+        // @ts-expect-error: _doRequest is protected.
         return new this._batcherConstructor(this);
     }
 }
 
-class APIV1EchoHelloWorldClient {
-    constructor(private _batch: Batch[]) {}
+class APIV1EchoHelloWorldBatcher {
+    constructor(private _batch: Request[]) {}
 
     // Void function.
     test(): void {
         this._batch.push({
             method: "echo.hello.world.test",
-            mutation: true,
+            arg: null, mutation: true,
         });
     }
 }
 
-class APIV1EchoHelloClient {
-    constructor(private _batch: Batch[]) {}
+class APIV1EchoHelloBatcher {
+    constructor(private _batch: Request[]) {}
 
     // This is a echo function with hello returning a string.
     string(value: string): void {
@@ -323,13 +323,13 @@ class APIV1EchoHelloClient {
         });
     }
 
-    get world(): APIV1EchoHelloWorld {
-        return new APIV1EchoHelloWorld(this._batch);
+    get world(): APIV1EchoHelloWorldBatcher {
+        return new APIV1EchoHelloWorldBatcher(this._batch);
     }
 }
 
-class APIV1EchoClient {
-    constructor(private _batch: Batch[]) {}
+class APIV1EchoBatcher {
+    constructor(private _batch: Request[]) {}
 
     // This is a echo function with a boolean returning a boolean.
     boolean(value: boolean): void {
@@ -339,8 +339,8 @@ class APIV1EchoClient {
         });
     }
 
-    get hello(): APIV1EchoHello {
-        return new APIV1EchoHello(this._batch);
+    get hello(): APIV1EchoHelloBatcher {
+        return new APIV1EchoHelloBatcher(this._batch);
     }
 
     // This is a echo function with a number returning a string.
@@ -361,15 +361,15 @@ class APIV1EchoClient {
 }
 
 class APIV1Batcher extends BaseBatcher {
-    get echo(): APIV1Echo {
-        return new APIV1Echo(this._batch);
+    get echo(): APIV1EchoBatcher {
+        return new APIV1EchoBatcher(this._batch);
     }
 
     // This is a inputless function returning a void.
     inputless(): void {
         this._batch.push({
             method: "inputless",
-            mutation: false,
+            arg: null, mutation: false,
         });
     }
 
@@ -386,11 +386,11 @@ class APIV1EchoHelloWorldClient {
     constructor(private _client: ReqDoer) {}
 
     // Void function.
-    async test(): Promise<null> {
-        return this._client.doRequest({
-            method: "echo.hello.world.test",
+    async test(abortSignal?: AbortSignal): Promise<null> {
+        return this._client._doRequest({
+            arg: null, method: "echo.hello.world.test",
             mutation: true,
-        });
+        }, abortSignal);
     }
 }
 
@@ -398,15 +398,15 @@ class APIV1EchoHelloClient {
     constructor(private _client: ReqDoer) {}
 
     // This is a echo function with hello returning a string.
-    async string(value: string): Promise<string> {
-        return this._client.doRequest({
+    async string(value: string, abortSignal?: AbortSignal): Promise<string> {
+        return this._client._doRequest({
             arg: value, method: "echo.hello.string",
             mutation: true,
-        });
+        }, abortSignal);
     }
 
-    get world(): APIV1EchoHelloWorld {
-        return new APIV1EchoHelloWorld(this._client);
+    get world(): APIV1EchoHelloWorldClient {
+        return new APIV1EchoHelloWorldClient(this._client);
     }
 }
 
@@ -414,64 +414,108 @@ class APIV1EchoClient {
     constructor(private _client: ReqDoer) {}
 
     // This is a echo function with a boolean returning a boolean.
-    async boolean(value: boolean): Promise<boolean> {
-        return this._client.doRequest({
+    async boolean(value: boolean, abortSignal?: AbortSignal): Promise<boolean> {
+        return this._client._doRequest({
             arg: value, method: "echo.boolean",
             mutation: false,
-        });
+        }, abortSignal);
     }
 
-    get hello(): APIV1EchoHello {
-        return new APIV1EchoHello(this._client);
+    get hello(): APIV1EchoHelloClient {
+        return new APIV1EchoHelloClient(this._client);
     }
 
     // This is a echo function with a number returning a string.
-    async itoa(value: number): Promise<string> {
-        return this._client.doRequest({
+    async itoa(value: number, abortSignal?: AbortSignal): Promise<string> {
+        return this._client._doRequest({
             arg: value, method: "echo.itoa",
             mutation: false,
-        });
+        }, abortSignal);
     }
 
     // This is a echo function with a number returning a number.
-    async number(value: number): Promise<number> {
-        return this._client.doRequest({
+    async number(value: number, abortSignal?: AbortSignal): Promise<number> {
+        return this._client._doRequest({
             arg: value, method: "echo.number",
             mutation: false,
-        });
+        }, abortSignal);
     }
 }
 
 // This is API V1. Hello World!
 export class APIV1Client extends BaseClient<APIV1Batcher> {
-    get echo(): APIV1Echo {
-        // @ts-expect-error: The request method on this client is private.
-        return new APIV1Echo(this);
+    constructor(hostname?: string) {
+        const headers = {};
+        if (!hostname) {
+            hostname = "https://example.com/";
+        }
+        
+        super(hostname, "version=v1", headers, APIV1Batcher);
+    }
+
+    get echo(): APIV1EchoClient {
+        // @ts-expect-error: The request method on this client is protected.
+        return new APIV1EchoClient(this);
     }
 
     // This is a inputless function returning a void.
-    async inputless(): Promise<null> {
-        return this.doRequest({
-            method: "inputless",
+    async inputless(abortSignal?: AbortSignal): Promise<null> {
+        return this._doRequest({
+            arg: null, method: "inputless",
             mutation: false,
-        });
+        }, abortSignal);
     }
 
     // This is a root function with a string returning a void.
-    async root(name: string): Promise<null> {
-        return this.doRequest({
+    async root(name: string, abortSignal?: AbortSignal): Promise<null> {
+        return this._doRequest({
             arg: name, method: "root",
             mutation: false,
-        });
+        }, abortSignal);
     }
 }
 
 class APIV2Batcher extends BaseBatcher {}
 
 // This is authentication without a default.
-export class APIV2Client extends BaseClient<APIV2Batcher> {}
+export class APIV2Client extends BaseClient<APIV2Batcher> {
+    constructor(auth?: {token: string; tokenType: "BEARER" | "BOT"}, hostname?: string) {
+        const types = {
+            "BEARER": "Bearer",
+            "BOT": "Bot",
+        };
+        const headers: {[key: string]: string} = {};
+        if (auth) {
+            headers.Authorization = types[auth.tokenType] + " " + auth.token;
+        }
+        if (!hostname) {
+            hostname = "http://memes.com/";
+        }
+        
+        super(hostname, "version=v2", headers, APIV2Batcher);
+    }
+}
 
 class APIV3Batcher extends BaseBatcher {}
 
 // This is authentication with a default.
-export class APIV3Client extends BaseClient<APIV3Batcher> {}
+export class APIV3Client extends BaseClient<APIV3Batcher> {
+    constructor(token?: string, tokenType?: "BEARER" | "BOT", hostname?: string) {
+        const types = {
+            "BEARER": "Bearer",
+            "BOT": "Bot",
+        };
+        if (!tokenType) {
+            tokenType = "BEARER";
+        }
+        const headers: {[key: string]: string} = {};
+        if (token) {
+            headers.Authorization = types[tokenType] + " " + token;
+        }
+        if (!hostname) {
+            hostname = "http://memes.com/";
+        }
+        
+        super(hostname, "version=v3", headers, APIV3Batcher);
+    }
+}

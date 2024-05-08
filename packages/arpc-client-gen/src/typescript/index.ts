@@ -137,7 +137,7 @@ function categoryConstructor(typeOf: ClientClassType) {
     switch (typeOf) {
     case "batcherCat":
     case "batcher":
-        return singleArgConstructor("private _batch: Batch[]");
+        return singleArgConstructor("private _batch: Request[]");
     case "rootCat":
     case "root":
         return singleArgConstructor("private _client: ReqDoer");
@@ -159,6 +159,7 @@ function makeClientClass(
     const cls = new ClassGenerator();
     constructorBuilder(cls);
 
+    const suffix = typeOf.startsWith("batcher") ? "Batcher" : "Client";
     const keys = Object.keys(methods).sort();
     for (const key of keys) {
         const methodOrCat = methods[key];
@@ -167,34 +168,34 @@ function makeClientClass(
             const clsName = `${name}${upperFirst(key)}`;
             cats.push(
                 makeClientClass(clsName, null, methodOrCat as Methods,
-                    typeOf === "batcher" || typeOf === "batcherCat" ? "batcherCat" : "rootCat",
+                    (typeOf === "batcher" || typeOf === "batcherCat") ? "batcherCat" : "rootCat",
                     categoryConstructor(typeOf), `${namespace === "" ? "" : `${namespace}.`}${key}`),
             );
             const arg = typeOf === "root" ? "this" : `this.${typeOf.startsWith("batcher") ? "_batch" : "_client"}`;
 
             let ignore = "";
-            if (typeOf === "root") ignore = "// @ts-expect-error: The request method on this client is private.\n";
+            if (typeOf === "root") ignore = "// @ts-expect-error: The request method on this client is protected.\n";
 
-            cls.addMethod(`get ${key}`, "", clsName, `${ignore}return new ${clsName}(${arg});`, null);
+            cls.addMethod(`get ${key}`, "", `${clsName}${suffix}`, `${ignore}return new ${clsName}${suffix}(${arg});`, null);
         } else {
             const description = (methodOrCat as Method).description;    
             let input = "";
-            let arg = "";
+            let arg = "arg: null, ";
 
             if ((methodOrCat as Method).input !== null) {
                 const i = (methodOrCat as Method).input!;
-                input = `${i.name}: ${renderSignature(i.signature)}`;
+                input = `${i.name}: ${renderSignature(i.signature)}, `;
                 arg = `arg: ${i.name}, `;
             }
         
             // Handle the client return.
             if (typeOf === "root" || typeOf === "rootCat") {
-                const body = `return this${typeOf === "root" ? "" : "._client"}.doRequest({
+                const body = `return this${typeOf === "root" ? "" : "._client"}._doRequest({
     ${arg}method: "${namespace === "" ? "" : `${namespace}.`}${key}",
     mutation: ${methodOrCat.mutation ? "true" : "false"},
-});`;
+}, abortSignal);`;
                 cls.addMethod(
-                    `async ${key}`, input, `Promise<${renderSignature((methodOrCat as Method).output)}>`,
+                    `async ${key}`, `${input}abortSignal?: AbortSignal`, `Promise<${renderSignature((methodOrCat as Method).output)}>`,
                     body, description,
                 );
                 continue;
@@ -205,14 +206,13 @@ function makeClientClass(
     method: "${namespace === "" ? "" : `${namespace}.`}${key}",
     ${arg}mutation: ${methodOrCat.mutation ? "true" : "false"},
 });`;
-            cls.addMethod(key, input, "void", body, description);
+            cls.addMethod(key, input.slice(0, -2), "void", body, description);
         }
     }
 
     let prefix = cats.join("\n\n");
     if (prefix !== "") prefix += "\n\n";
 
-    const suffix = typeOf === "batcher" ? "Batcher" : "Client";
     let extendsCls: string | null = null;
     switch (typeOf) {
     case "batcher":
@@ -225,9 +225,58 @@ function makeClientClass(
     return prefix + cls.generate(`${name}${suffix}`, extendsCls, description, typeOf === "root");
 }
 
+const hostnameSetup = (protocol: string, hostname: string, version: string) => `if (!hostname) {
+    hostname = "${protocol}://${hostname}/";
+}
+
+super(hostname, "version=${version}", headers, API${version.toUpperCase()}Batcher);`;
+
 function generateClientConstructor(c: Client) {
     return (cls: ClassGenerator) => {
-        
+        const auth = c.authentication;
+        if (!auth) {
+            // Return the hostname setup only.
+            cls.addMethod("constructor", "hostname?: string", null, "const headers = {};\n" + hostnameSetup(
+                c.defaultProtocol, c.defaultHostname, c.apiVersion, 
+            ), null);
+            return;
+        }
+
+        // Define the token type keys.
+        const keys = Object.keys(auth.tokenTypes).sort();
+        const union = keys.map((x) => `"${x}"`).join(" | ");
+
+        // Defines the token type objects.
+        let object = "const types = {\n";
+        for (const key of keys.sort()) {
+            object += `    "${key}": "${auth.tokenTypes[key]}",\n`;
+        }
+        object += "};";
+
+        // Handle the token type.
+        let args: string;
+        let body: string;
+        if (auth.defaultTokenType) {
+            args = `token?: string, tokenType?: ${union}, hostname?: string`;
+            body = `${object}
+if (!tokenType) {
+    tokenType = "${auth.defaultTokenType}";
+}
+const headers: {[key: string]: string} = {};
+if (token) {
+    headers.Authorization = types[tokenType] + " " + token;
+}
+${hostnameSetup(c.defaultProtocol, c.defaultHostname, c.apiVersion)}`;
+        } else {
+            args = `auth?: {token: string; tokenType: ${union}}, hostname?: string`;
+            body = `${object}
+const headers: {[key: string]: string} = {};
+if (auth) {
+    headers.Authorization = types[auth.tokenType] + " " + auth.token;
+}
+${hostnameSetup(c.defaultProtocol, c.defaultHostname, c.apiVersion)}`;
+        }
+        cls.addMethod("constructor", args, null, body, null);
     };
 }
 
