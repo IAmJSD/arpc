@@ -127,7 +127,7 @@ ${this._methods.join("\n\n")}
     }
 }
 
-type ClientClassType = "batcher" | "root" | "batcherCat" | "rootCat";
+type ClientClassType = "root" | "batcherCat" | "rootCat";
 
 const singleArgConstructor = (arg: string) => (cls: ClassGenerator) => {
     cls.addMethod("constructor", arg, null, null, null);
@@ -136,8 +136,7 @@ const singleArgConstructor = (arg: string) => (cls: ClassGenerator) => {
 function categoryConstructor(typeOf: ClientClassType) {
     switch (typeOf) {
     case "batcherCat":
-    case "batcher":
-        return singleArgConstructor("private _batch: Request[]");
+        return () => {};
     case "rootCat":
     case "root":
         return singleArgConstructor("private _client: ReqDoer");
@@ -168,10 +167,20 @@ function makeClientClass(
             const clsName = `${name}${upperFirst(key)}`;
             cats.push(
                 makeClientClass(clsName, null, methodOrCat as Methods,
-                    (typeOf === "batcher" || typeOf === "batcherCat") ? "batcherCat" : "rootCat",
+                    typeOf === "batcherCat" ? "batcherCat" : "rootCat",
                     categoryConstructor(typeOf), `${namespace === "" ? "" : `${namespace}.`}${key}`),
             );
-            const arg = typeOf === "root" ? "this" : `this.${typeOf.startsWith("batcher") ? "_batch" : "_client"}`;
+            let arg: string;
+            switch (typeOf) {
+            case "root":
+                arg = "this";
+                break;
+            case "rootCat":
+                arg = "this._client";
+                break;
+            default:
+                arg = "";
+            }
 
             let ignore = "";
             if (typeOf === "root") ignore = "// @ts-expect-error: The request method on this client is protected.\n";
@@ -202,11 +211,13 @@ function makeClientClass(
             }
 
             // Handle the batcher return.
-            const body = `this._batch.push({
+            const body = `return {
     method: "${namespace === "" ? "" : `${namespace}.`}${key}",
     ${arg}mutation: ${methodOrCat.mutation ? "true" : "false"},
-});`;
-            cls.addMethod(key, input.slice(0, -2), "void", body, description);
+};`;
+            cls.addMethod(
+                key, input.slice(0, -2), `Request<${renderSignature((methodOrCat as Method).output)}>`,
+                body, description);
         }
     }
 
@@ -215,9 +226,6 @@ function makeClientClass(
 
     let extendsCls: string | null = null;
     switch (typeOf) {
-    case "batcher":
-        extendsCls = "BaseBatcher";
-        break;
     case "root":
         extendsCls = `BaseClient<${name}Batcher>`;
         break;
@@ -282,7 +290,7 @@ ${hostnameSetup(c.defaultProtocol, c.defaultHostname, c.apiVersion)}`;
 
 function buildClient(c: Client) {
     const className = `API${c.apiVersion.toUpperCase()}`;
-    const batcher = makeClientClass(className, null, c.methods, "batcher", () => {}, "");
+    const batcher = makeClientClass(className, null, c.methods, "batcherCat", () => {}, "");
     const client = makeClientClass(className, c.description, c.methods, "root", generateClientConstructor(c), "");
 
     return `${batcher}\n\n${client}`;

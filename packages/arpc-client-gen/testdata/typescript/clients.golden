@@ -143,32 +143,21 @@ export class BatchError extends BaseException {
 }
 
 // Defines a request.
-type Request = {
+type Request<T> = {
     arg: any;
     mutation: boolean;
     method: string;
 };
 
+// Makes a new array type with T being the type of each element in A.
+type ExtractTypes<A extends Request<any>[]> = {
+    [K in keyof A]: A[K] extends Request<infer T> ? T : never;
+};
+
 // Defines the interface for a request doer.
 interface ReqDoer {
-    _doRequest(request: Request, signal: AbortSignal | undefined): Promise<any>;
-    _doRequest(request: Request[], signal: AbortSignal | undefined): Promise<any[]>;
-}
-
-// Defines the base batcher.
-abstract class BaseBatcher {
-    protected _client: ReqDoer;
-    protected _batch: Request[] = [];
-
-    constructor(client: ReqDoer) {
-        this._client = client;
-    }
-
-    // Execute the batch. The returned promise resolves to an array of responses
-    // in the same order as the requests were added.
-    execute(signal?: AbortSignal) {
-        return this._client._doRequest(this._batch, signal);
-    }
+    _doRequest(request: Request<any>, signal: AbortSignal | undefined): Promise<any>;
+    _doRequest(request: Request<any>[], signal: AbortSignal | undefined): Promise<any[]>;
 }
 
 // Defines a lookup table for URL encoding.
@@ -210,14 +199,14 @@ function _throw(error: ErrorResponse) {
 }
 
 // Defines the base client.
-abstract class BaseClient<Batcher extends BaseBatcher> {
-    protected _batcherConstructor: new (client: ReqDoer) => Batcher;
+abstract class BaseClient<Batcher> {
+    protected _batcherConstructor: new () => Batcher;
     protected _url: string;
     protected _baseHeaders: {[key: string]: string};
 
     constructor(
         hostname: string, initQuery: string, initHeaders: {[key: string]: string},
-        batcherConstructor: new (client: ReqDoer) => Batcher,
+        batcherConstructor: new () => Batcher,
     ) {
         if (!hostname.includes("://")) hostname = "https://" + hostname;
         if (!hostname.endsWith("/")) hostname += "/";
@@ -230,9 +219,9 @@ abstract class BaseClient<Batcher extends BaseBatcher> {
     }
 
     // Defines the request doer.
-    protected _doRequest(request: Request, signal: AbortSignal | undefined): Promise<any>
-    protected _doRequest(request: Request[], signal: AbortSignal | undefined): Promise<any[]>
-    protected async _doRequest(request: Request | Request[], signal: AbortSignal | undefined) {
+    protected _doRequest(request: Request<any>, signal: AbortSignal | undefined): Promise<any>
+    protected _doRequest<A extends Request<any>[]>(request: A, signal: AbortSignal | undefined): Promise<ExtractTypes<A>>
+    protected async _doRequest(request: Request<any> | Request<any>[], signal: AbortSignal | undefined) {
         let body: ArrayBuffer | undefined;
         let url = this._url;
         const headers = {...this._baseHeaders};
@@ -293,92 +282,89 @@ abstract class BaseClient<Batcher extends BaseBatcher> {
         _throw(decoded);
     }
 
-    // Defines the batcher for the API client.
-    batcher() {
-        // @ts-expect-error: _doRequest is protected.
-        return new this._batcherConstructor(this);
+    // Defines the batch creator.
+    async batch<A extends Request<any>[]>(
+        fn: (batcher: Batcher) => Promise<A> | A, signal?: AbortSignal,
+    ): Promise<ExtractTypes<A>> {
+        const batcher = new this._batcherConstructor();
+        const requests = await fn(batcher);
+        return this._doRequest(requests, signal);
     }
 }
 
 class APIV1EchoHelloWorldBatcher {
-    constructor(private _batch: Request[]) {}
-
     // Void function.
-    test(): void {
-        this._batch.push({
+    test(): Request<null> {
+        return {
             method: "echo.hello.world.test",
             arg: null, mutation: true,
-        });
+        };
     }
 }
 
 class APIV1EchoHelloBatcher {
-    constructor(private _batch: Request[]) {}
-
     // This is a echo function with hello returning a string.
-    string(value: string): void {
-        this._batch.push({
+    string(value: string): Request<string> {
+        return {
             method: "echo.hello.string",
             arg: value, mutation: true,
-        });
+        };
     }
 
     get world(): APIV1EchoHelloWorldBatcher {
-        return new APIV1EchoHelloWorldBatcher(this._batch);
+        return new APIV1EchoHelloWorldBatcher();
     }
 }
 
 class APIV1EchoBatcher {
-    constructor(private _batch: Request[]) {}
-
     // This is a echo function with a boolean returning a boolean.
-    boolean(value: boolean): void {
-        this._batch.push({
+    boolean(value: boolean): Request<boolean> {
+        return {
             method: "echo.boolean",
             arg: value, mutation: false,
-        });
+        };
     }
 
     get hello(): APIV1EchoHelloBatcher {
-        return new APIV1EchoHelloBatcher(this._batch);
+        return new APIV1EchoHelloBatcher();
     }
 
     // This is a echo function with a number returning a string.
-    itoa(value: number): void {
-        this._batch.push({
+    itoa(value: number): Request<string> {
+        return {
             method: "echo.itoa",
             arg: value, mutation: false,
-        });
+        };
     }
 
     // This is a echo function with a number returning a number.
-    number(value: number): void {
-        this._batch.push({
+    number(value: number): Request<number> {
+        return {
             method: "echo.number",
             arg: value, mutation: false,
-        });
+        };
     }
 }
 
-class APIV1Batcher extends BaseBatcher {
+class APIV1Batcher {
     get echo(): APIV1EchoBatcher {
-        return new APIV1EchoBatcher(this._batch);
+        return new APIV1EchoBatcher();
     }
 
     // This is a inputless function returning a void.
-    inputless(): void {
-        this._batch.push({
+    inputless(): Request<null> {
+        return {
             method: "inputless",
             arg: null, mutation: false,
-        });
+        };
     }
 
     // This is a root function with a string returning a void.
-    root(name: string): void {
-        this._batch.push({
+    root(name: string): Request<null> {
+        return {
             method: "root",
             arg: name, mutation: false,
-        });
+        };
     }
 }
 
@@ -475,7 +461,7 @@ export class APIV1Client extends BaseClient<APIV1Batcher> {
     }
 }
 
-class APIV2Batcher extends BaseBatcher {}
+class APIV2Batcher {}
 
 // This is authentication without a default.
 export class APIV2Client extends BaseClient<APIV2Batcher> {
@@ -496,7 +482,7 @@ export class APIV2Client extends BaseClient<APIV2Batcher> {
     }
 }
 
-class APIV3Batcher extends BaseBatcher {}
+class APIV3Batcher {}
 
 // This is authentication with a default.
 export class APIV3Client extends BaseClient<APIV3Batcher> {

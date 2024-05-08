@@ -143,32 +143,21 @@ export class BatchError extends BaseException {
 }
 
 // Defines a request.
-type Request = {
+type Request<T> = {
     arg: any;
     mutation: boolean;
     method: string;
 };
 
+// Makes a new array type with T being the type of each element in A.
+type ExtractTypes<A extends Request<any>[]> = {
+    [K in keyof A]: A[K] extends Request<infer T> ? T : never;
+};
+
 // Defines the interface for a request doer.
 interface ReqDoer {
-    _doRequest(request: Request, signal: AbortSignal | undefined): Promise<any>;
-    _doRequest(request: Request[], signal: AbortSignal | undefined): Promise<any[]>;
-}
-
-// Defines the base batcher.
-abstract class BaseBatcher {
-    protected _client: ReqDoer;
-    protected _batch: Request[] = [];
-
-    constructor(client: ReqDoer) {
-        this._client = client;
-    }
-
-    // Execute the batch. The returned promise resolves to an array of responses
-    // in the same order as the requests were added.
-    execute(signal?: AbortSignal) {
-        return this._client._doRequest(this._batch, signal);
-    }
+    _doRequest(request: Request<any>, signal: AbortSignal | undefined): Promise<any>;
+    _doRequest(request: Request<any>[], signal: AbortSignal | undefined): Promise<any[]>;
 }
 
 // Defines a lookup table for URL encoding.
@@ -210,14 +199,14 @@ function _throw(error: ErrorResponse) {
 }
 
 // Defines the base client.
-abstract class BaseClient<Batcher extends BaseBatcher> {
-    protected _batcherConstructor: new (client: ReqDoer) => Batcher;
+abstract class BaseClient<Batcher> {
+    protected _batcherConstructor: new () => Batcher;
     protected _url: string;
     protected _baseHeaders: {[key: string]: string};
 
     constructor(
         hostname: string, initQuery: string, initHeaders: {[key: string]: string},
-        batcherConstructor: new (client: ReqDoer) => Batcher,
+        batcherConstructor: new () => Batcher,
     ) {
         if (!hostname.includes("://")) hostname = "https://" + hostname;
         if (!hostname.endsWith("/")) hostname += "/";
@@ -230,9 +219,9 @@ abstract class BaseClient<Batcher extends BaseBatcher> {
     }
 
     // Defines the request doer.
-    protected _doRequest(request: Request, signal: AbortSignal | undefined): Promise<any>
-    protected _doRequest(request: Request[], signal: AbortSignal | undefined): Promise<any[]>
-    protected async _doRequest(request: Request | Request[], signal: AbortSignal | undefined) {
+    protected _doRequest(request: Request<any>, signal: AbortSignal | undefined): Promise<any>
+    protected _doRequest<A extends Request<any>[]>(request: A, signal: AbortSignal | undefined): Promise<ExtractTypes<A>>
+    protected async _doRequest(request: Request<any> | Request<any>[], signal: AbortSignal | undefined) {
         let body: ArrayBuffer | undefined;
         let url = this._url;
         const headers = {...this._baseHeaders};
@@ -293,9 +282,12 @@ abstract class BaseClient<Batcher extends BaseBatcher> {
         _throw(decoded);
     }
 
-    // Defines the batcher for the API client.
-    batcher() {
-        // @ts-expect-error: _doRequest is protected.
-        return new this._batcherConstructor(this);
+    // Defines the batch creator.
+    async batch<A extends Request<any>[]>(
+        fn: (batcher: Batcher) => Promise<A> | A, signal?: AbortSignal,
+    ): Promise<ExtractTypes<A>> {
+        const batcher = new this._batcherConstructor();
+        const requests = await fn(batcher);
+        return this._doRequest(requests, signal);
     }
 }`;
