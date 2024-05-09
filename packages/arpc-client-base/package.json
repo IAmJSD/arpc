@@ -1,8 +1,0 @@
-{
-    "name": "@arpc/client-base",
-    "version": "1.0.0",
-    "dependencies": {
-        "@msgpack/msgpack": "^3.0.0-beta2",
-        "fast-base64": "^0.1.8"
-    }
-}

@@ -1,3 +1,4 @@
+import { RateLimitingMiddleware } from "./ratelimiting";
 import request from "./request";
 import {
     AuthHandler, AuthenticatedRequestHandler,
@@ -17,16 +18,31 @@ export class RPCRouter<
     private _routes: Routes | null = null;
     private _auth: Auth | null = null;
     private _exceptions: Exceptions | null = null;
+    private _ratelimiting: RateLimitingMiddleware<User, AuthSet> | null = null;
+
+    // Set the rate limiting middleware.
+    setRateLimiting(
+        ratelimiting: RateLimitingMiddleware<User, AuthSet>
+    ): RPCRouter<Handler, Routes, Auth, Exceptions, User, AuthSet> {
+        if (this._ratelimiting) throw new Error("Rate limiting already set");
+        const new_ = new RPCRouter<Handler, Routes, Auth, Exceptions, User, AuthSet>();
+        new_._routes = this._routes;
+        new_._auth = this._auth;
+        new_._exceptions = this._exceptions;
+        new_._ratelimiting = ratelimiting;
+        return new_;
+    }
 
     // Set exceptions on the builder.
     setExceptions<Exceptions extends {[name: string]: BodyErrorConstructor}>(exceptions: Exceptions): RPCRouter<
-        Handler, Routes, Auth, Exceptions, User, AuthSet,
+        Handler, Routes, Auth, Exceptions, User, AuthSet
     > {
         if (this._exceptions) throw new Error("Exceptions already set");
         const new_ = new RPCRouter<Handler, Routes, Auth, Exceptions, User, AuthSet>();
         new_._routes = this._routes;
         new_._auth = this._auth;
         new_._exceptions = exceptions;
+        new_._ratelimiting = this._ratelimiting;
         return new_;
     }
 
@@ -39,6 +55,7 @@ export class RPCRouter<
         new_._routes = routes;
         new_._auth = this._auth;
         new_._exceptions = this._exceptions;
+        new_._ratelimiting = this._ratelimiting;
         return new_;
     }
 
@@ -60,7 +77,7 @@ export class RPCRouter<
 
     // Build the handler for web requests.
     buildHttpHandler(): (req: Request) => Promise<Response> {
-        return request(this._routes, this._auth, this._exceptions);
+        return request(this._routes, this._auth, this._exceptions, this._ratelimiting);
     }
 
     // Build the handler for the internal API client. The signature of this

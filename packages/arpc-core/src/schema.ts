@@ -11,7 +11,7 @@ export type UnauthenticatedRequestHandler = {
     parallel?: boolean;
 
     // Defines the input schema for this handler.
-    schema?: z.ZodType<any, any, any>;
+    schema: z.ZodType<any, any, any>;
 
     // Defines the method that will be called when this handler is invoked.
     method: (input: any) => Promise<any>;
