@@ -19,8 +19,8 @@ export class RPCRouter<
     private _exceptions: Exceptions | null = null;
 
     // Set exceptions on the builder.
-    setExceptions<Exceptions extends {[name: string]: BodyErrorConstructor}>(exceptions: Exceptions): Omit<
-        RPCRouter<Handler, Routes, Auth, Exceptions, User, AuthSet>, "setExceptions"
+    setExceptions<Exceptions extends {[name: string]: BodyErrorConstructor}>(exceptions: Exceptions): RPCRouter<
+        Handler, Routes, Auth, Exceptions, User, AuthSet,
     > {
         if (this._exceptions) throw new Error("Exceptions already set");
         const new_ = new RPCRouter<Handler, Routes, Auth, Exceptions, User, AuthSet>();
@@ -33,9 +33,7 @@ export class RPCRouter<
     // Set routes on the builder.
     setRoutes<
         Routes extends { [key: string]: HandlerMapping<Handler> }
-    >(routes: Routes): Omit<
-        RPCRouter<Handler, Routes, Auth, Exceptions, User, AuthSet>, "setRoutes" | "setAuthHandler" | "setExceptions"
-    > {
+    >(routes: Routes): RPCRouter<Handler, Routes, Auth, Exceptions, User, AuthSet> {
         if (this._routes) throw new Error("Routes already set");
         const new_ = new RPCRouter<Handler, Routes, Auth, Exceptions, User, AuthSet>();
         new_._routes = routes;
@@ -49,10 +47,7 @@ export class RPCRouter<
         Auth extends AuthHandler<any, any>, User = ExtractUser<Auth>,
     >(
         auth: Auth
-    ): Omit<
-        RPCRouter<AuthenticatedRequestHandler<User>, {}, Auth, Exceptions, User, true>,
-        "setAuthHandler"
-    > {
+    ): RPCRouter<AuthenticatedRequestHandler<User>, {}, Auth, Exceptions, User, true> {
         if (this._auth) throw new Error("Auth handler already set");
         if (this._routes) throw new Error("Routes must be set after auth handler");
         const new_ = new RPCRouter<
