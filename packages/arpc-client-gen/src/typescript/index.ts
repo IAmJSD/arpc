@@ -79,7 +79,10 @@ function createObject(obj: Object) {
 
 function createException(name: string, description: string, builtIn: boolean) {
     if (description !== "") {
-        description = `// ${description.trim().split("\n").join("\n// ")}\n`;
+        description = `/**
+${description.trim().split("\n").join("\n// ")}
+*/
+`;
     }
 
     return `${description}export class ${name} extends ${builtIn ? "BuiltInError" : "BaseException"} {}
@@ -92,7 +95,9 @@ class ClassGenerator {
     addMethod(name: string, args: string, returnType: string | null, body: string | null, comment: string | null) {
         let commentFmt = "";
         if (comment) {
-            commentFmt = `    // ${comment.trim().split("\n").join("\n    // ")}\n`;
+            commentFmt = `    /**
+    ${comment.trim().split("\n").join("\n    ")}
+    */\n`;
         }
 
         returnType = returnType ? `: ${returnType}` : "";
@@ -117,7 +122,10 @@ ${this._methods.join("\n\n")}
 
         let commentFmt = "";
         if (comment) {
-            commentFmt = `// ${comment.trim().split("\n").join("\n// ")}\n`;
+            commentFmt = `/**
+${comment.trim()}
+*/
+`;
         }
 
         extendsCls = extendsCls ? ` extends ${extendsCls}` : "";

@@ -292,10 +292,14 @@ abstract class BaseClient<Batcher> {
     }
 }
 
-// This is a exception.
+/**
+This is a exception.
+*/
 export class TestException extends BaseException {}
 _addException(TestException);
 
-// This is another exception.
+/**
+This is another exception.
+*/
 export class TestException2 extends BaseException {}
 _addException(TestException2);

@@ -293,7 +293,9 @@ abstract class BaseClient<Batcher> {
 }
 
 class APIV1EchoHelloWorldBatcher {
-    // Void function.
+    /**
+    Void function.
+    */
     test(): Request<null> {
         return {
             method: "echo.hello.world.test",
@@ -303,7 +305,9 @@ class APIV1EchoHelloWorldBatcher {
 }
 
 class APIV1EchoHelloBatcher {
-    // This is a echo function with hello returning a string.
+    /**
+    This is a echo function with hello returning a string.
+    */
     string(value: string): Request<string> {
         return {
             method: "echo.hello.string",
@@ -317,7 +321,9 @@ class APIV1EchoHelloBatcher {
 }
 
 class APIV1EchoBatcher {
-    // This is a echo function with a boolean returning a boolean.
+    /**
+    This is a echo function with a boolean returning a boolean.
+    */
     boolean(value: boolean): Request<boolean> {
         return {
             method: "echo.boolean",
@@ -329,7 +335,9 @@ class APIV1EchoBatcher {
         return new APIV1EchoHelloBatcher();
     }
 
-    // This is a echo function with a number returning a string.
+    /**
+    This is a echo function with a number returning a string.
+    */
     itoa(value: number): Request<string> {
         return {
             method: "echo.itoa",
@@ -337,7 +345,9 @@ class APIV1EchoBatcher {
         };
     }
 
-    // This is a echo function with a number returning a number.
+    /**
+    This is a echo function with a number returning a number.
+    */
     number(value: number): Request<number> {
         return {
             method: "echo.number",
@@ -351,7 +361,9 @@ class APIV1Batcher {
         return new APIV1EchoBatcher();
     }
 
-    // This is a inputless function returning a void.
+    /**
+    This is a inputless function returning a void.
+    */
     inputless(): Request<null> {
         return {
             method: "inputless",
@@ -359,7 +371,9 @@ class APIV1Batcher {
         };
     }
 
-    // This is a root function with a string returning a void.
+    /**
+    This is a root function with a string returning a void.
+    */
     root(name: string): Request<null> {
         return {
             method: "root",
@@ -371,7 +385,9 @@ class APIV1Batcher {
 class APIV1EchoHelloWorldClient {
     constructor(private _client: ReqDoer) {}
 
-    // Void function.
+    /**
+    Void function.
+    */
     async test(abortSignal?: AbortSignal): Promise<null> {
         return this._client._doRequest({
             arg: null, method: "echo.hello.world.test",
@@ -383,7 +399,9 @@ class APIV1EchoHelloWorldClient {
 class APIV1EchoHelloClient {
     constructor(private _client: ReqDoer) {}
 
-    // This is a echo function with hello returning a string.
+    /**
+    This is a echo function with hello returning a string.
+    */
     async string(value: string, abortSignal?: AbortSignal): Promise<string> {
         return this._client._doRequest({
             arg: value, method: "echo.hello.string",
@@ -399,7 +417,9 @@ class APIV1EchoHelloClient {
 class APIV1EchoClient {
     constructor(private _client: ReqDoer) {}
 
-    // This is a echo function with a boolean returning a boolean.
+    /**
+    This is a echo function with a boolean returning a boolean.
+    */
     async boolean(value: boolean, abortSignal?: AbortSignal): Promise<boolean> {
         return this._client._doRequest({
             arg: value, method: "echo.boolean",
@@ -411,7 +431,9 @@ class APIV1EchoClient {
         return new APIV1EchoHelloClient(this._client);
     }
 
-    // This is a echo function with a number returning a string.
+    /**
+    This is a echo function with a number returning a string.
+    */
     async itoa(value: number, abortSignal?: AbortSignal): Promise<string> {
         return this._client._doRequest({
             arg: value, method: "echo.itoa",
@@ -419,7 +441,9 @@ class APIV1EchoClient {
         }, abortSignal);
     }
 
-    // This is a echo function with a number returning a number.
+    /**
+    This is a echo function with a number returning a number.
+    */
     async number(value: number, abortSignal?: AbortSignal): Promise<number> {
         return this._client._doRequest({
             arg: value, method: "echo.number",
@@ -428,7 +452,9 @@ class APIV1EchoClient {
     }
 }
 
-// This is API V1. Hello World!
+/**
+This is API V1. Hello World!
+*/
 export class APIV1Client extends BaseClient<APIV1Batcher> {
     constructor(hostname?: string) {
         const headers = {};
@@ -444,7 +470,9 @@ export class APIV1Client extends BaseClient<APIV1Batcher> {
         return new APIV1EchoClient(this);
     }
 
-    // This is a inputless function returning a void.
+    /**
+    This is a inputless function returning a void.
+    */
     async inputless(abortSignal?: AbortSignal): Promise<null> {
         return this._doRequest({
             arg: null, method: "inputless",
@@ -452,7 +480,9 @@ export class APIV1Client extends BaseClient<APIV1Batcher> {
         }, abortSignal);
     }
 
-    // This is a root function with a string returning a void.
+    /**
+    This is a root function with a string returning a void.
+    */
     async root(name: string, abortSignal?: AbortSignal): Promise<null> {
         return this._doRequest({
             arg: name, method: "root",
@@ -463,7 +493,9 @@ export class APIV1Client extends BaseClient<APIV1Batcher> {
 
 class APIV2Batcher {}
 
-// This is authentication without a default.
+/**
+This is authentication without a default.
+*/
 export class APIV2Client extends BaseClient<APIV2Batcher> {
     constructor(auth?: {token: string; tokenType: "BEARER" | "BOT"}, hostname?: string) {
         const types = {
@@ -484,7 +516,9 @@ export class APIV2Client extends BaseClient<APIV2Batcher> {
 
 class APIV3Batcher {}
 
-// This is authentication with a default.
+/**
+This is authentication with a default.
+*/
 export class APIV3Client extends BaseClient<APIV3Batcher> {
     constructor(token?: string, tokenType?: "BEARER" | "BOT", hostname?: string) {
         const types = {
