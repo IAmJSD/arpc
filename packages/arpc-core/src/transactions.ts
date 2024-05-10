@@ -42,22 +42,26 @@ const _dbTxMagicKey = Symbol("arpcDBTx");
 export function databaseTransaction<
     Tx extends DBTransaction, TxReturn extends Promise<Tx> | Tx,
 >(creator: () => TxReturn): TxReturn {
+    // Get the worker context.
     const ctx = workerContext();
     if (!ctx) {
         throw new Error("databaseTransaction() was requested outside of a arpc worker context");
     }
 
+    // Get the map that holds functions -> transactions for this request.
     let m: Map<any, any> = ctx.get(_dbTxMagicKey);
     if (!m) {
         m = new Map();
         ctx.set(_dbTxMagicKey, m);
     }
 
+    // Try to get the transaction from a previous call.
     let tx = m.get(creator);
-    if (!tx) {
-        tx = creator();
-        m.set(creator, tx);
-    }
+    if (tx) return tx;
+
+    // Create the transaction.
+    tx = creator();
+    m.set(creator, tx);
     if ("then" in tx) {
         function caller(key: string) {
             return async () => {
