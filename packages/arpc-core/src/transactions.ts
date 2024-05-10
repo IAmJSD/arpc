@@ -88,28 +88,35 @@ export function databaseTransaction<
                     return;
                 }
                 tx[key]();
-            }
+            };
         }
         commit(caller("commit"));
         rollback(caller("rollback"));
     }
 
     // Create a proxy to handle manual commits and rollbacks.
+    const commitProxy = new Proxy(tx.commit, {
+        apply(target, thisArg, args) {
+            m.delete(creator);
+            tx = null;
+            return target.apply(thisArg, args);
+        },
+    });
+    const rollbackProxy = new Proxy(tx.rollback, {
+        apply(target, thisArg, args) {
+            m.delete(creator);
+            tx = null;
+            return target.apply(thisArg, args);
+        },
+    });
     const txProxy = new Proxy(tx, {
         get(target, key) {
             if (key === "commit") {
-                return (...args: any[]) => {
-                    m.delete(creator);
-                    tx = null;
-                    return target.commit(...args);
-                };
+                return commitProxy;
             } else if (key === "rollback") {
-                return (...args: any[]) => {
-                    m.delete(creator);
-                    tx = null;
-                    return target.rollback(...args);
-                };
+                return rollbackProxy;
             }
+
             return target[key];
         },
     });
