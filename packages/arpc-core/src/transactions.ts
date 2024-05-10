@@ -30,8 +30,8 @@ export function rollback(fn: () => Promise<void>) {
 }
 
 interface DBTransaction {
-    commit(): any;
-    rollback(): any;
+    commit(...args: any): any;
+    rollback(...args: any): any;
 }
 
 const _dbTxMagicKey = Symbol("arpcDBTx");
@@ -61,10 +61,13 @@ export function databaseTransaction<
 
     // Create the transaction.
     tx = creator();
-    m.set(creator, tx);
     if ("then" in tx) {
         function caller(key: string) {
             return async () => {
+                if (tx === null) {
+                    // This means the transaction was already committed or rolled back.
+                    return;
+                }
                 let t: any;
                 try {
                     t = await tx;
@@ -81,5 +84,28 @@ export function databaseTransaction<
         commit(tx.commit);
         rollback(tx.rollback);
     }
-    return tx;
+
+    // Create a proxy to handle manual commits and rollbacks.
+    const txProxy = new Proxy(tx, {
+        get(target, key) {
+            if (key === "commit") {
+                return (...args: any[]) => {
+                    m.delete(creator);
+                    tx = null;
+                    return target.commit(...args);
+                };
+            } else if (key === "rollback") {
+                return (...args: any[]) => {
+                    m.delete(creator);
+                    tx = null;
+                    return target.rollback(...args);
+                };
+            }
+            return target[key];
+        },
+    });
+
+    // Store the transaction proxy and return it.
+    m.set(creator, txProxy);
+    return txProxy;
 }
