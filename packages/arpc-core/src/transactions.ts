@@ -81,8 +81,17 @@ export function databaseTransaction<
         commit(caller("commit"));
         rollback(caller("rollback"));
     } else {
-        commit(tx.commit);
-        rollback(tx.rollback);
+        function caller(key: string) {
+            return async () => {
+                if (tx === null) {
+                    // This means the transaction was already committed or rolled back.
+                    return;
+                }
+                tx[key]();
+            }
+        }
+        commit(caller("commit"));
+        rollback(caller("rollback"));
     }
 
     // Create a proxy to handle manual commits and rollbacks.
