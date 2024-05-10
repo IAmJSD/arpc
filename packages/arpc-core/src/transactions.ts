@@ -30,8 +30,8 @@ export function rollback(fn: () => Promise<void>) {
 }
 
 interface DBTransaction {
-    commit(...args: any): any;
-    rollback(...args: any): any;
+    commit(): any;
+    rollback(): any;
 }
 
 const _dbTxMagicKey = Symbol("arpcDBTx");
