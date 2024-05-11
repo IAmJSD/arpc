@@ -36,7 +36,7 @@ interface DBTransaction {
 
 const _dbTxMagicKey = Symbol("arpcDBTx");
 
-// Handle writing the proxy, hooking the transaction, and returning it.
+// Handle creating the proxy, hooking the transaction, and returning it.
 function finalizeTx(m: Map<any, any>, creator: any, tx: any): any {
     // Make a async caller that handles manual commits and rollbacks.
     function caller(key: string) {
@@ -80,8 +80,7 @@ function finalizeTx(m: Map<any, any>, creator: any, tx: any): any {
         },
     });
 
-    // Store the transaction proxy and return it.
-    m.set(creator, txProxy);
+    // Return the proxy.
     return txProxy;
 }
 
@@ -112,7 +111,13 @@ export function databaseTransaction<
     tx = creator();
     if ("then" in tx) {
         // Do finalization inside the promise so that if it fails, we do not get unexpected behavior.
-        return tx.then((tx: any) => finalizeTx(m, creator, tx));
+        const promise = tx.then((tx: any) => finalizeTx(m, creator, tx));
+        m.set(creator, promise);
+        return promise;
     }
-    return finalizeTx(m, creator, tx);
+
+    // Handle the synchronous case.
+    const txProxy = finalizeTx(m, creator, tx);
+    m.set(creator, txProxy);
+    return txProxy;
 }
