@@ -38,7 +38,7 @@ export default (routes, auth, exceptions, ratelimiter) => {
     }
 
     // Handle custom exceptions.
-    const handleExceptions = (err) => {
+    const handleExceptions = (err, bulk) => {
         const className = err.constructor.name;
         if (className in exceptions) {
             // Return this as a response.
@@ -75,7 +75,8 @@ export default (routes, auth, exceptions, ratelimiter) => {
         await storagePromise;
 
         // Return the tainted handler.
-        return taintWithWorkerContext(new Map([[_requestMagicKey, req]]), async () => {
+        const ctx = new Map([[_requestMagicKey, req]]);
+        return taintWithWorkerContext(ctx, async () => {
             // Handle user authentication.
             let user = null;
             const authHeader = req.headers.get("Authorization");
@@ -150,14 +151,110 @@ export default (routes, auth, exceptions, ratelimiter) => {
                     }
                 }
 
-                // Defines the arguments.
-                const args = arg.map((a) => a.arg);
+                // Handles executing the chunks.
                 const chunks = [];
-                for (const route of routes) {
-                    if (route.parallel) {
-                        // 
+                const responses = [];
+                let allNull = true;
+                const flush = async () => {
+                    // Add a bunch of nulls that work as placeholders to responses.
+                    const indexStart = responses.length;
+                    responses.push(...Array(chunks.length).fill(null));
+
+                    // Each worker either returns a error object or nothing.
+                    const workers = chunks.map(([route, arg], i) => (async () => {
+                        // Call the route schema.
+                        try {
+                            arg = await route.schema.parseAsync(arg);
+                        } catch (err) {
+                            return builtInError("BadRequest", "INVALID_ARG", "The argument specified failed validation.", err.errors, true);
+                        }
+
+                        // Call the ratelimiter with the route, argument, and user.
+                        if (ratelimiter) {
+                            try {
+                                await ratelimiter(route, arg, user);
+                            } catch (err) {
+                                if (err instanceof Ratelimited) {
+                                    return builtInError("Ratelimited", err.code, err.message, err.body, true);
+                                }
+                                return handleExceptions(err, true);
+                            }
+                        }
+
+                        // Call the route method.
+                        try {
+                            const resp = await route.method(arg, user);
+                            if (resp !== null) {
+                                allNull = false;
+                            }
+                            responses[indexStart + i] = resp;
+                        } catch (err) {
+                            return handleExceptions(err, true);
+                        }
+                    })());
+
+                    // Wait for all of the workers to finish.
+                    const errors = (await Promise.all(workers)).filter((r) => r !== null);
+                    if (errors.length > 0) {
+                        // Rollback all of the transactions.
+                        const [, rollbackFns] = ctx.get(_txMagicKey) || [null, []];
+                        try {
+                            for (const fn of rollbackFns) {
+                                await fn();
+                            }
+                        } catch {
+                            // If rolling back fails, ignore this. The initial error is more important.
+                            // We do not commit, so this is fine.
+                        }
+
+                        // Get the highest status code.
+                        let highestStatus = 0;
+                        for (const err of errors) {
+                            highestStatus = Math.max(highestStatus, err[1]);
+                        }
+                        return new Response(
+                            encode(errors.length === 1 ? errors[0][0] : errors.map((r) => r[0])),
+                            {
+                                status: highestStatus,
+                                headers: {
+                                    "Content-Type": "application/msgpack",
+                                    "X-Is-Arpc": "true",
+                                },
+                            },
+                        );
+                    }
+                };
+
+                // Handles chunking all of the requests.
+                const args = arg.map((a) => a.arg);
+                for (const routeIndex in routes) {
+                    const arg = args[routeIndex];
+                    const route = routes[routeIndex];
+                    if (!route.parallel && chunks.length > 0) {
+                        // We need to flush all previous requests before we do a mutation.
+                        const res = await flush();
+                        if (res) {
+                            return res;
+                        }
+                    }
+                    chunks.push([route, arg]);
+                    if (!route.parallel) {
+                        // Flush the chunk.
+                        const res = await flush();
+                        if (res) {
+                            return res;
+                        }
                     }
                 }
+                if (chunks.length > 0) {
+                    const res = await flush();
+                    if (res) {
+                        return res;
+                    }
+                }
+
+                // Set the response appropriately.
+                resp = allNull ? null : responses;
             } else {
                 // Get the route.
                 const route = findRoute(routeKey, routes);
@@ -190,28 +287,34 @@ export default (routes, auth, exceptions, ratelimiter) => {
                 }
     
                 // Call the route method.
-                const [commitFns, rollbackFns] = ctx.get(_txMagicKey) || [[], []];
                 try {
                     resp = await route.method(arg, user);
                 } catch (err) {
                     // Run all of the rollback functions.
-                    for (const fn of rollbackFns) {
-                        await fn();
+                    const [, rollbackFns] = ctx.get(_txMagicKey) || [null, []];
+                    try {
+                        for (const fn of rollbackFns) {
+                            await fn();
+                        }
+                    } catch {
+                        // If rolling back fails, ignore this. The initial error is more important.
+                        // We do not commit, so this is fine.
                     }
 
                     // Handle the exception that caused this in the first place.
                     return handleExceptions(err);
                 }
+            }
 
-                // Run all of the commit functions.
-                try {
-                    for (const fn of commitFns) {
-                        await fn();
-                    }
-                } catch (err) {
-                    // Handle the exception that caused this.
-                    return handleExceptions(err);
+            // Run all of the commit functions.
+            const [commitFns] = ctx.get(_txMagicKey) || [[]];
+            try {
+                for (const fn of commitFns) {
+                    await fn();
                 }
+            } catch (err) {
+                // Handle the exception that caused this.
+                return handleExceptions(err);
             }
 
             // If the response is null, return a 204.
