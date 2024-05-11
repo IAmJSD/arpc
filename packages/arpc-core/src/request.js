@@ -26,6 +26,60 @@ function findRoute(routeKey, routes) {
     return route;
 }
 
+// Turns query data into a Uint8Array.
+function query2uint(query) {
+    let len = 0;
+    const init = new Uint8Array(query.length);
+    for (let i = 0; i < query.length; i++) {
+        const v = query.charCodeAt(i);
+        i++;
+        if (v === 37) {
+            // This is a percent sign.
+            if (i + 2 >= query.length) {
+                throw new Error("Invalid percent encoding");
+            }
+            init[len++] = parseInt(query.substring(i + 1, i + 3), 16);
+            i += 2;
+        } else {
+            // This is a normal character.
+            init[len++] = v;
+        }
+    }
+    return init.slice(0, len);
+}
+
+const ARG_REGEX = /(\?.*)(arg=([^&]+)\&?)/g;
+
+// Handles safely parsing the URL query when a binary arg is in it.
+function safeParseQuery(url) {
+    // Look for a match and.
+    const match = ARG_REGEX.exec(url);
+    if (!match) {
+        // This will fail, but for different reasons. Parse the URL.
+        return new URL(url).searchParams;
+    }
+
+    // Get the index where arg starts.
+    const index = match.index + match[1].length;
+
+    // Remove out the arg from the URL.
+    const newUrl = url.substring(0, index) + url.substring(index + match[2].length);
+    const params = new URL(newUrl).searchParams;
+
+    // Parse the argument.
+    const arg = query2uint(match[3]);
+
+    // Return a get function that will return the argument.
+    return {
+        get(key) {
+            if (key === "arg") {
+                return arg;
+            }
+            return params.get(key);
+        },
+    };
+}
+
 // Defines the function to handle the request.
 export default (routes, auth, exceptions, ratelimiter) => {
     // Flat pack the supported token types into a map of lower case strings to the
@@ -37,14 +91,67 @@ export default (routes, auth, exceptions, ratelimiter) => {
         }
     }
 
+    // Map custom exception constructors to their names.
+    const exceptionMap = new Map();
+    for (const [name, cls] of Object.entries(exceptions)) {
+        exceptionMap.set(cls, name);
+    }
+
+    // Handle built in errors.
+    const builtInError = (clsName, code, message, body, bulk) => {
+        const b = {
+            builtIn: true,
+            name: clsName,
+            code,
+            message,
+            body: body || null,
+        };
+
+        return bulk ? [
+            b,
+            clsName === "InternalServerError" ? 500 : 400,
+        ] : new Response(
+            encode(b),
+            {
+                status: clsName === "InternalServerError" ? 500 : 400,
+                headers: {
+                    "Content-Type": "application/msgpack",
+                    "X-Is-Arpc": "true",
+                },
+            },
+        );
+    }
+
     // Handle custom exceptions.
     const handleExceptions = (err, bulk) => {
-        const className = err.constructor.name;
-        if (className in exceptions) {
-            // Return this as a response.
-            // TODO
+        // Check if the error is a custom exception.
+        const name = exceptionMap.get(err.constructor);
+        if (name) {
+            // We can safely throw this to the user.
+            const j = {
+                builtIn: false,
+                name,
+                body: err.body || null,
+            };
+            return bulk ? [j, 400] : new Response(
+                encode(j),
+                {
+                    status: 400,
+                    headers: {
+                        "Content-Type": "application/msgpack",
+                        "X-Is-Arpc": "true",
+                    },
+                },
+            );
         }
-        throw e;
+
+        // Throw in another immediate context so that a handler in the global scope can catch it.
+        setTimeout(() => {
+            throw err;
+        }, 0);
+
+        // Return a generic error.
+        return builtInError("InternalServerError", "INTERNAL_ERROR", "An internal error occurred", null, bulk);
     };
 
     /**
@@ -55,14 +162,19 @@ export default (routes, auth, exceptions, ratelimiter) => {
      */
     return async function handler(req) {
         // Handle the route.
-        const url = new URL(req.url);
-        const routeKey = url.searchParams.get("route");
+        let q;
+        try {
+            q = req.method === "POST" ? new URL(req.url).searchParams : safeParseQuery(req.url);
+        } catch {
+            return builtInError("BadRequest", "INVALID_URL", "The URL specified is invalid");
+        }
+        const routeKey = q.get("route");
         if (!routeKey) {
             return builtInError("BadRequest", "MISSING_ROUTE", "Missing route parameter");
         }
 
         // Get the version.
-        const version = url.searchParams.get("version");
+        const version = q.get("version");
         if (!version) {
             return builtInError("BadRequest", "MISSING_VERSION", "Missing version parameter");
         }
@@ -104,16 +216,21 @@ export default (routes, auth, exceptions, ratelimiter) => {
 
             // Get the argument.
             let arg;
-            if (req.method === "POST") {
-                arg = decode(new Uint8Array(await req.arrayBuffer()));
-            } else {
-                // Get the argument from the URL.
-                arg = url.searchParams.get("arg");
-                if (!arg) {
-                    return builtInError("BadRequest", "MISSING_ARG", "Missing arg parameter");
+            try {
+                if (req.method === "POST") {
+                    arg = decode(new Uint8Array(await req.arrayBuffer()));
+                } else {
+                    // Get the argument from the URL.
+                    arg = url.get("arg");
+                    if (!arg) {
+                        return builtInError("BadRequest", "MISSING_ARG", "Missing arg parameter");
+                    }
+    
+                    // Decode the argument.
+                    arg = decode(arg);
                 }
-
-                // TODO: Parse the argument.
+            } catch {
+                return builtInError("BadRequest", "INVALID_ARG", "The argument specified failed to decode");
             }
 
             let resp;
