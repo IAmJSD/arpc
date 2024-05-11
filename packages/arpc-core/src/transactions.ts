@@ -1,11 +1,11 @@
 import { _txMagicKey } from "./request";
 import { workerContext } from "./workerContext";
 
-// Defines a function to commit.
-export function commit(fn: () => Promise<void>) {
+// Defines a function to commit a transaction across a batch of requests (or single).
+export function useCommit(fn: () => Promise<void>) {
     const ctx = workerContext();
     if (!ctx) {
-        throw new Error("commit() was requested outside of a arpc worker context");
+        throw new Error("useCommit() was requested outside of a arpc worker context");
     }
     let a: [(() => Promise<void>)[], (() => Promise<void>)[]] = ctx.get(_txMagicKey);
     if (!a) {
@@ -15,11 +15,11 @@ export function commit(fn: () => Promise<void>) {
     a[0].push(fn);
 }
 
-// Defines a function to rollback.
-export function rollback(fn: () => Promise<void>) {
+// Defines a function to rollback a transaction across a batch of requests (or single).
+export function useRollback(fn: () => Promise<void>) {
     const ctx = workerContext();
     if (!ctx) {
-        throw new Error("rollback() was requested outside of a arpc worker context");
+        throw new Error("useRollback() was requested outside of a arpc worker context");
     }
     let a: [(() => Promise<void>)[], (() => Promise<void>)[]] = ctx.get(_txMagicKey);
     if (!a) {
@@ -48,8 +48,8 @@ function finalizeTx(m: Map<any, any>, creator: any, tx: any): any {
             return tx[key]();
         };
     }
-    commit(caller("commit"));
-    rollback(caller("rollback"));
+    useCommit(caller("commit"));
+    useRollback(caller("rollback"));
 
     // Create a proxy to handle manual commits and rollbacks.
     const commitProxy = new Proxy(tx.commit, {
@@ -87,13 +87,13 @@ function finalizeTx(m: Map<any, any>, creator: any, tx: any): any {
 // Defines a function to start a database transaction, or fetch the current one if the transaction creation
 // function was passed in before within the current request (either single or within a batch). Note for this,
 // it is important you pass in the same function reference in each call.
-export function databaseTransaction<
+export function useDatabaseTransaction<
     Tx extends DBTransaction, TxReturn extends Promise<Tx> | Tx,
 >(creator: () => TxReturn): TxReturn {
     // Get the worker context.
     const ctx = workerContext();
     if (!ctx) {
-        throw new Error("databaseTransaction() was requested outside of a arpc worker context");
+        throw new Error("useDatabaseTransaction() was requested outside of a arpc worker context");
     }
 
     // Get the map that holds functions -> transactions for this request.
