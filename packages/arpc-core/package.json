@@ -8,7 +8,7 @@
         ".": {
             "browser": "./dist/index.mjs",
             "import": "./dist/index.mjs",
-            "require": "./dist/index.cjs",
+            "require": "./dist/index.js",
             "types": "./src/index.ts"
         }
     },
