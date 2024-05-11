@@ -37,7 +37,21 @@ interface DBTransaction {
 const _dbTxMagicKey = Symbol("arpcDBTx");
 
 // Handle creating the proxy, hooking the transaction, and returning it.
-function finalizeTx(m: Map<any, any>, creator: any, tx: any): any {
+function finalizeTx(m: Map<any, any>, creator: any, tx: any, exclusivePtr?: [number, any]): any {
+    // Handle non-exclusive calls to this.
+    if (exclusivePtr) {
+        const current = exclusivePtr[0]++;
+        if (current > 0) {
+            return (async () => {
+                // Try to get the transaction every 2ms.
+                for (;;) {
+                    if (exclusivePtr[1]) return exclusivePtr[1];
+                    await new Promise((r) => setTimeout(r, 2));
+                }
+            })();
+        }
+    }
+
     // Make a async caller that handles manual commits and rollbacks.
     function caller(key: string) {
         return async () => {
@@ -81,6 +95,9 @@ function finalizeTx(m: Map<any, any>, creator: any, tx: any): any {
     });
 
     // Return the proxy.
+    if (exclusivePtr) {
+        exclusivePtr[1] = txProxy;
+    }
     return txProxy;
 }
 
@@ -111,7 +128,8 @@ export function databaseTransaction<
     tx = creator();
     if ("then" in tx) {
         // Do finalization inside the promise so that if it fails, we do not get unexpected behavior.
-        const promise = tx.then((tx: any) => finalizeTx(m, creator, tx));
+        const ptr: [number, any] = [0, null];
+        const promise = tx.then((tx: any) => finalizeTx(m, creator, tx, ptr));
         m.set(creator, promise);
         return promise;
     }
