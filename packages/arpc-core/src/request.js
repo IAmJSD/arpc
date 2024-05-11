@@ -1,6 +1,6 @@
-import { Ratelimited } from "./ratelimiting";
 import { decode, encode } from "@msgpack/msgpack";
-import { taintWithWorkerContext, workerContext } from "./workerContext";
+import { storagePromise, taintWithWorkerContext } from "./workerContext";
+import { Ratelimited } from "./ratelimiting";
 
 // Defines the magic key for request.
 export const _requestMagicKey = Symbol("arpcRequest");
@@ -71,12 +71,11 @@ export default (routes, auth, exceptions, ratelimiter) => {
             return builtInError("BadRequest", "VERSION_NOT_FOUND", "Version not found");
         }
 
-        // Return the tainted handler.
-        return taintWithWorkerContext(async () => {
-            // Set the request key.
-            const ctx = workerContext();
-            ctx.set(_requestMagicKey, req);
+        // Await the storage promise so that we don't race with the worker context.
+        await storagePromise;
 
+        // Return the tainted handler.
+        return taintWithWorkerContext(new Map([[_requestMagicKey, req]]), async () => {
             // Handle user authentication.
             let user = null;
             const authHeader = req.headers.get("Authorization");
@@ -219,6 +218,9 @@ export default (routes, auth, exceptions, ratelimiter) => {
             if (resp === null) {
                 return new Response(null, {
                     status: 204,
+                    headers: {
+                        "X-Is-Arpc": "true",
+                    },
                 });
             }
 

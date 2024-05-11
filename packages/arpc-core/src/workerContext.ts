@@ -1,12 +1,12 @@
 // @ts-ignore: Some TS environments do not support this.
-import type { AsyncLocalStorage as AsyncLocalStorageType } from "node:async_hooks";
+import type { AsyncLocalStorage } from "node:async_hooks";
 
 let lastWorker = 0;
 
 // Where compatible, use the async local storage.
-let storage: AsyncLocalStorageType<Map<any, any>> | null = null;
-(async () => {
-    const doNotBundleThis = (f: string) => {
+let storage: AsyncLocalStorage<Map<any, any>> | null = null;
+export const storagePromise = (async () => {
+    const doNotBundleThis = (f: string): Promise<any> => {
         /* webpackIgnore: true */
         return import(/* webpackIgnore: true */ f);
     };
@@ -17,16 +17,16 @@ let storage: AsyncLocalStorageType<Map<any, any>> | null = null;
 // This map is used for compatibility with the worker context.
 const map_: Map<number, Map<any, any>> = new Map();
 
-export function taintWithWorkerContext<T>(fn: () => Promise<T>): Promise<T> {
-    const w = lastWorker++;
-
+export function taintWithWorkerContext<T>(initMap: Map<any, any>, fn: () => Promise<T>): Promise<T> {
     // Try to use the async local storage.
     if (storage) {
-        return storage.run(new Map(), fn);
+        return storage.run(initMap, fn);
     }
 
     // Use stack poisoning on worker functions.
+    const w = lastWorker++;
     const name = `$ARPCWorker${w}`;
+    map_.set(w, initMap);
     const obj = {
         async [name]() {
             try {
@@ -38,6 +38,8 @@ export function taintWithWorkerContext<T>(fn: () => Promise<T>): Promise<T> {
     };
     return obj[name]();
 }
+
+const WORKER_STACK_REGEX = /\$ARPCWorker([0-9]+)/gm;
 
 export function workerContext() {
     // Try to use the async local storage.
@@ -57,7 +59,7 @@ export function workerContext() {
     }
 
     // Get the worker number.
-    const match = stack.match(/\$ARPCWorker([0-9]+)/gm);
+    const match = WORKER_STACK_REGEX.exec(stack);
     if (match) {
         const id = parseInt(match[1]);
         let m = map_.get(id);

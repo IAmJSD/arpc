@@ -1,5 +1,5 @@
-import { RateLimitingMiddleware } from "./ratelimiting";
 import request from "./request";
+import { RateLimitingMiddleware } from "./ratelimiting";
 import {
     AuthHandler, AuthenticatedRequestHandler,
     HandlerMapping, UnauthenticatedRequestHandler,

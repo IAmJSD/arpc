@@ -11,8 +11,9 @@ export function request(): Request {
     return ctx.get(_requestMagicKey);
 }
 
-// Defines a map which you can use to store data in the current arpc worker context.
 const _mapMagicKey = Symbol("arpcMap");
+
+// Defines a map which you can use to store data in the current arpc worker context.
 export function context(): Map<any, any> {
     const ctx = workerContext();
     if (!ctx) {

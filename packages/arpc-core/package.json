@@ -6,6 +6,10 @@
     },
     "devDependencies": {
         "zod": "^3.23.0",
-        "@types/react": "^18.3.1"
+        "@types/react": "^18.3.1",
+        "tinybench": "^2.8.0"
+    },
+    "scripts": {
+        "benchmark": "node benchmarks/index.mjs"
     }
 }
