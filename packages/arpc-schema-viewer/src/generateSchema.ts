@@ -304,13 +304,10 @@ export async function generateSchema(
         }
 
         // Process the Zod schema to get the input type.
-        const ts = {
-            program: tsProgram, src,
-        };
         const input = {
             name: arg.name.getText(),
             signature: getZodInputSignature(
-                schema, ts, enums, objects, uniqueNames, () => inputTypeName || path.map(
+                schema, enums, objects, uniqueNames, () => inputTypeName || path.map(
                     (x) => x[0].toUpperCase() + x.slice(1)).join(""),
             ),
         };

@@ -1,14 +1,8 @@
 import type { Enum, Object, Signature } from "@arpc/client-gen";
-import type { Program, SourceFile } from "typescript";
 import z from "zod";
 
-type TSInstance = {
-    program: Program;
-    src: SourceFile;
-};
-
 export function getZodInputSignature(
-    schema: z.ZodType<any, any, any>, ts: TSInstance, enums: Enum[],
+    schema: z.ZodType<any, any, any>, enums: Enum[],
     objects: Object[], uniqueNames: Set<string>, getName: () => string,
 ): Signature {
     // Handle simple types.
@@ -21,7 +15,7 @@ export function getZodInputSignature(
     if (schema instanceof z.ZodNullable || schema instanceof z.ZodOptional) {
         return {
             type: "nullable",
-            inner: getZodInputSignature(schema._def.innerType, ts, enums, objects, uniqueNames, getName),
+            inner: getZodInputSignature(schema._def.innerType, enums, objects, uniqueNames, getName),
         };
     }
 
@@ -29,7 +23,7 @@ export function getZodInputSignature(
     if (schema instanceof z.ZodArray) {
         return {
             type: "array",
-            inner: getZodInputSignature(schema._def.type, ts, enums, objects, uniqueNames, getName),
+            inner: getZodInputSignature(schema._def.type, enums, objects, uniqueNames, getName),
         };
     }
 
@@ -50,7 +44,7 @@ export function getZodInputSignature(
             type: "union",
             inner: options.map(
                 (option, index) => getZodInputSignature(
-                    option, ts, enums, objects, uniqueNames, () => `${getName()}Variant${index}`),
+                    option, enums, objects, uniqueNames, () => `${getName()}Variant${index}`),
             ),
         };
     }
@@ -59,8 +53,8 @@ export function getZodInputSignature(
     if (schema instanceof z.ZodRecord || schema instanceof z.ZodMap) {
         return {
             type: "map",
-            key: getZodInputSignature(schema._def.keyType, ts, enums, objects, uniqueNames, getName),
-            value: getZodInputSignature(schema._def.valueType, ts, enums, objects, uniqueNames, getName),
+            key: getZodInputSignature(schema._def.keyType, enums, objects, uniqueNames, getName),
+            value: getZodInputSignature(schema._def.valueType, enums, objects, uniqueNames, getName),
         };
     }
 
@@ -70,7 +64,7 @@ export function getZodInputSignature(
         const fields: { [key: string]: Signature } = {};
         for (const [shapeKey, shapeValue] of Object.entries(schema.shape)) {
             fields[shapeKey] = getZodInputSignature(
-                shapeValue as z.ZodType<any, any, any>, ts, enums, objects, uniqueNames,
+                shapeValue as z.ZodType<any, any, any>, enums, objects, uniqueNames,
                 () => `${getName()}${shapeKey[0].toUpperCase()}${shapeKey.slice(1)}`,
             );
         }
@@ -104,7 +98,51 @@ export function getZodInputSignature(
     }
 
     // Handle enums.
-    // TODO
+    if (schema instanceof z.ZodEnum) {
+        const e = schema.Enum;
+        const keys = Object.keys(e);
+        const newEnum = new Map<any, any>();
+        for (const key of keys) {
+            newEnum.set(
+                key.replaceAll(" ", "").replace(/[^a-zA-Z0-9_]/g, "_"),
+                e[key],
+            );
+        }
+
+        let valueType: Signature = { type: "string" };
+        if (keys.length !== 0) {
+            const types = ["string", "number", "bigint", "boolean"];
+            const v = typeof e[keys[0]];
+            if (!types.includes(v)) {
+                throw new Error("Enums can only have string, number, bigint, or boolean values");
+            }
+            valueType = { type: v as any };
+        }
+
+        // Get the unique name.
+        const name = getName();
+        let revision = 0;
+        let fullName = name;
+        while (uniqueNames.has(fullName)) {
+            // Get this revision and check if it is the same.
+            const existing = enums.find((o) => o.name === fullName);
+            if (existing) {
+                // It is a enum. See if the data is the same.
+                if (JSON.stringify(existing.data) === JSON.stringify(newEnum)) {
+                    // The data is the same, so we can just reference it.
+                    return { type: "enum_value", enum: fullName };
+                }
+            }
+
+            // Try a new revision.
+            revision++;
+            fullName = `${name}V${revision}`;
+        }
+
+        // Push the enum.
+        enums.push({ name: fullName, valueType, data: newEnum });
+        return { type: "enum_value", enum: fullName };
+    }
 
     // Handle literals.
     if (schema instanceof z.ZodNull || schema instanceof z.ZodUndefined) {
