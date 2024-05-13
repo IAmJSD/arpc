@@ -1,8 +1,6 @@
 // @ts-ignore: Some TS environments do not support this.
 import type { AsyncLocalStorage } from "node:async_hooks";
 
-let lastWorker = 0;
-
 // Where compatible, use the async local storage.
 let storage: AsyncLocalStorage<Map<any, any>> | null = null;
 export const storagePromise = (async () => {
@@ -14,8 +12,9 @@ export const storagePromise = (async () => {
     storage = new i.AsyncLocalStorage();
 })().catch(() => {});
 
-// This map is used for compatibility with the worker context.
+// This map and number is used for compatibility with the worker context.
 const map_: Map<number, Map<any, any>> = new Map();
+let lastWorker = 0;
 
 export function taintWithWorkerContext<T>(initMap: Map<any, any>, fn: () => Promise<T>): Promise<T> {
     // Try to use the async local storage.

@@ -4,11 +4,16 @@ import { parse } from "@arpc/lockfile";
 import type {
     BuildData, Client, Enum, Exception, Method, Methods, Object,
 } from "@arpc/client-gen";
+import type { RPCRouter } from "@arpc/core";
 import {
-    SourceFile, createProgram, getLeadingCommentRanges, isClassDeclaration,
-    isEnumDeclaration, isStringLiteral, isVariableStatement,
+    SourceFile, createProgram, getLeadingCommentRanges, isArrowFunction,
+    isClassDeclaration, isEnumDeclaration, isFunctionExpression,
+    isMethodDeclaration, isStringLiteral, isTypeAliasDeclaration,
+    isVariableStatement,
 } from "typescript";
+import z from "zod";
 import { builtinExceptions } from "./builtinExceptions";
+import { getZodInputSignature } from "./getZodInputSignature";
 
 type AuthenticationType = {
     tokenTypes: { [humanName: string]: string };
@@ -56,7 +61,9 @@ function isTokenType(value: string | undefined): string | undefined {
 
 // Generates a schema using the TypeScript processor and the files on disk. Note that this is VERY
 // slow and partially blocking, so should only be ran during page build in production.
-export async function generateSchema(protocol: string, hostname: string): Promise<BuildData> {
+export async function generateSchema(
+    protocol: string, hostname: string, router: RPCRouter<any, any, any, any, any, any>,
+): Promise<BuildData> {
     // Get the lockfile.
     const base = join(process.cwd(), "rpc");
     const lockfile = parse(await readFile(join(base, "index.ts"), "utf-8"));
@@ -175,14 +182,157 @@ export async function generateSchema(protocol: string, hostname: string): Promis
         exceptions.push({ name: exceptionName, description: description || `A ${exceptionName} custom exception` });
     }
 
+    // Defines a super slim partial of what a routers routes look like.
+    type RoutesRoutesPartial = {
+        [key: string]: {
+            schema: z.ZodType<any, any, any>;
+            mutation?: boolean;
+        } | RoutesRoutesPartial;
+    };
+
+    // Get the routes from the router so we can access the compiled data.
+    // @ts-expect-error: We are accessing a private property.
+    const routerRoutes: {[apiVersion: string]: RoutesRoutesPartial} = router._routes;
+
     // Defines where the enums and objects will be stored. The set is used to avoid duplicate names.
     const enums: Enum[] = [];
     const objects: Object[] = [];
     const uniqueNames = new Set<string>();
 
     // Handle creating a method and setting any enums/objects.
-    function createMethod(src: SourceFile, path: string[]): Method {
-        
+    function createMethod(src: SourceFile, path: string[], version: string): Method {
+        // Find the route in the current router.
+        let currentPathItem = (routerRoutes || {})[version];
+        let schema: z.ZodType<any, any, any> | null = null;
+        let mutation: boolean | undefined = undefined;
+        let pathIndex = 0;
+        while (currentPathItem) {            
+            // Get the next path item.
+            const nextItem = currentPathItem[path[pathIndex]];
+
+            // If this contains a Zod schema, we are at the end of the path.
+            if (nextItem.schema && nextItem.schema instanceof z.ZodType) {
+                schema = nextItem.schema;
+                mutation = nextItem.mutation as boolean;
+                break;
+            }
+
+            // Move to the next path item.
+            currentPathItem = nextItem as RoutesRoutesPartial;
+            pathIndex++;
+        }
+        if (!schema) {
+            throw new Error("Lockfile and router routes are out of sync");
+        }
+
+        // Get all of the type alias declarations in the file.
+        const typeAliases: Map<string, string> = new Map();
+        src.forEachChild((node) => {
+            if (isTypeAliasDeclaration(node)) {
+                typeAliases.set(node.name.text, node.type.getText());
+            }
+        });
+
+        // Recurse the type aliases to their basest form.
+        for (let [key, value] of typeAliases) {
+            while (typeAliases.has(value)) {
+                value = typeAliases.get(value)!;
+            }
+            typeAliases.set(key, value);
+        }
+
+        // Find the method.
+        const method = src.forEachChild((node) => {
+            if (isVariableStatement(node)) {
+                // Get the declaration list.
+                const declList = node.declarationList.declarations;
+
+                // Arrow functions will only have one declaration.
+                if (declList.length !== 1) {
+                    return;
+                }
+                const decl = declList[0];
+
+                // Check the name.
+                if (decl.name.getText() === "method") {
+                    // Check the initializer is a function.
+                    if (
+                        decl.initializer &&
+                        (
+                            isArrowFunction(decl.initializer) ||
+                            isFunctionExpression(decl.initializer)
+                        )    
+                    ) {
+                        return decl.initializer;
+                    }
+
+                    // Throw an error if it isn't.
+                    throw new Error("method must be an arrow function or function expression");
+                }
+            }
+
+            // Handle classic methods.
+            if (isMethodDeclaration(node) && node.name.getText() === "method") {
+                return node;
+            }
+        });
+        if (!method) {
+            throw new Error("Failed to find method");
+        }
+
+        // Get the first argument.
+        const arg = method.parameters[0];
+        if (!arg) {
+            throw new Error("Method must have at least one argument");
+        }
+
+        // Check the type is a type reference or a type literal that equals
+        // z.infer<typeof schema>.
+        let inputTypeName: string | null = null;
+        if (arg.type) {
+            // Not having a type is bizarre, but technically allowed, so we'll
+            // permit it too :)
+
+            const typeText = arg.type.getText();
+            if (typeText !== "z.infer<typeof schema>") {
+                const t = typeAliases.get(typeText);
+                if (t !== "z.infer<typeof schema>") {
+                    throw new Error(`Method argument must be of type or alias a type that is equal to z.infer<typeof schema> in the same file, got ${typeText}`);
+                }
+                inputTypeName = typeText;
+            }
+        }
+
+        // Process the Zod schema to get the input type.
+        const input = {
+            name: arg.name.getText(),
+            signature: getZodInputSignature(
+                schema, enums, objects, uniqueNames, () => inputTypeName || path.map(
+                    (x) => x[0].toUpperCase() + x.slice(1)).join(""),
+            ),
+        };
+
+        // TODO: Process the output type.
+
+        // Get the description from the comment above the method.
+        let description: string | null = null;
+        const fullStart = method.getFullStart();
+        const start = method.getStart();
+        if (fullStart !== start) {
+            const ft = src.getFullText();
+            const comments = getLeadingCommentRanges(ft, start);
+            if (comments) {
+                description = ft.substring(comments[0].pos, comments[0].end).trim();
+            }
+        }
+
+        // Default mutation to true if it is undefined.
+        if (mutation === undefined) {
+            mutation = true;
+        }
+
+        // Return the method.
+        return { input, output, description, mutation };
     }
 
     // Handle going through the API versions and building clients for them.
@@ -235,7 +385,7 @@ export async function generateSchema(protocol: string, hostname: string): Promis
 
                 // Create the method.
                 stack.push(key);
-                methods[key] = createMethod(parsed, stack);
+                methods[key] = createMethod(parsed, stack, version);
                 stack.pop();
             }
         }
