@@ -327,18 +327,42 @@ export async function generateSchema(
         function processType(t: Type, a: Signature[]) {
             // Handle processing literals.
             if (t.isLiteral()) {
-                // TODO: Handle object literals.
-
                 // TODO: Handle array literals.
+
+                // TODO: Handle object literals.
 
                 // Get the type as a string.
                 const s = typeChecker.typeToString(t);
 
-                // TODO: Handle string literals.
+                // Handle string literals.
+                if (s.startsWith('"') || s.startsWith("'") || s.startsWith("`")) {
+                    const v = dequotify(s);
+                    const hasString = a.some((x) => x.type === "literal" && x.value === v);
+                    if (!hasString) {
+                        a.push({ type: "literal", value: v });
+                    }
+                    return;
+                }
 
-                // TODO: Handle number literals.
+                // Handle number literals.
+                if (!isNaN(Number(s))) {
+                    const v = Number(s);
+                    const hasNumber = a.some((x) => x.type === "literal" && x.value === v);
+                    if (!hasNumber) {
+                        a.push({ type: "literal", value: v });
+                    }
+                    return;
+                }
 
-                // TODO: Handle bigint literals.
+                // Handle bigint literals.
+                if (s.endsWith("n")) {
+                    const v = BigInt(s.slice(0, -1));
+                    const hasBigInt = a.some((x) => x.type === "literal" && x.value === v);
+                    if (!hasBigInt) {
+                        a.push({ type: "literal", value: v });
+                    }
+                    return;
+                }
 
                 // Handle boolean literals.
                 if (s === "true" || s === "false") {
@@ -379,17 +403,47 @@ export async function generateSchema(
                     if (!hasNull) {
                         a.push({ type: "literal", value: null });
                     }
+                    return;
                 }
+
+                // Hmm, we don't know what this is. Throw an error.
+                throw new Error(`Unknown literal type to arpc: ${s}`);
             }
         }
         const outputs: Signature[] = [];
         processType(returnType, outputs);
 
         // Create the output type.
+        let nullable = false;
         let output: Signature;
         if (outputs.length === 1) {
             output = outputs[0];
         } else {
+            // Handle wrapping the whole union in a nullable.
+        all:
+            for (;;) {
+                let noNulls = true;
+                for (let i = 0; i < outputs.length; i++) {
+                    const output = outputs[i];
+                    if (output.type === "nullable") {
+                        nullable = true;
+                        outputs[i] = output.inner;
+                        break all;
+                    }
+                    if (output.type === "literal" && output.value === null) {
+                        nullable = true;
+                        outputs.splice(i, 1);
+                        noNulls = false;
+                        break;
+                    }
+                }
+                if (noNulls) break;
+            }
+
+            if (nullable) {
+                output = { type: "union", inner: outputs };
+            }
+
             output = { type: "union", inner: outputs };
         }
 
