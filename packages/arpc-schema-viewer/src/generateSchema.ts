@@ -2,18 +2,20 @@ import { readFile } from "fs/promises";
 import { join } from "path";
 import { parse } from "@arpc/lockfile";
 import type {
-    BuildData, Client, Enum, Exception, Method, Methods, Object, Signature,
+    BuildData, Client, Enum, Exception, Method, Methods, Object,
 } from "@arpc/client-gen";
 import type { RPCRouter } from "@arpc/core";
 import {
     SourceFile, createProgram, getLeadingCommentRanges, isArrowFunction,
     isClassDeclaration, isEnumDeclaration, isFunctionExpression,
     isMethodDeclaration, isStringLiteral, isTypeAliasDeclaration,
-    isVariableStatement, Symbol, SignatureKind, isFunctionDeclaration, Type,
+    isVariableStatement, Symbol, SignatureKind, isFunctionDeclaration,
 } from "typescript";
 import z from "zod";
 import { builtinExceptions } from "./builtinExceptions";
 import { getZodInputSignature } from "./getZodInputSignature";
+import { dequotify } from "./helpers";
+import { processTypeScriptReturnType } from "./processTypeScriptReturnType";
 
 type AuthenticationType = {
     tokenTypes: { [humanName: string]: string };
@@ -35,17 +37,6 @@ function importBulk(routes: Routes, imported: Set<string>) {
     }
 }
 
-const QUOTES_RE = /^(["'`])(.*)\1$/;
-
-function dequotify(value: string): string {
-    const match = QUOTES_RE.exec(value);
-    if (!match) {
-        return value;
-    }
-
-    return match[2];
-}
-
 const TOKEN_TYPES_REGEX = /^TokenTypes\.([A-Za-z0-9_]+)$/;
 
 // Makes sure this is a token type.
@@ -58,42 +49,6 @@ function isTokenType(value: string | undefined): string | undefined {
 
     return match[1];
 }
-
-function postprocessOutputs(outputs: Signature[]): Signature {
-    if (outputs.length === 1) {
-        return outputs[0];
-    }
-    let nullable = false;
-
-    // Handle wrapping the whole union in a nullable.
-all:
-    for (;;) {
-        for (let i = 0; i < outputs.length; i++) {
-            const output = outputs[i];
-            if (output.type === "nullable") {
-                nullable = true;
-                outputs[i] = output.inner;
-                continue all;
-            }
-            if (output.type === "literal" && output.value === null) {
-                nullable = true;
-                outputs.splice(i, 1);
-                continue all;
-            }
-        }
-        break;
-    }
-
-    if (nullable) {
-        return { type: "nullable", inner: { type: "union", inner: outputs } };
-    }
-
-    return { type: "union", inner: outputs };
-}
-
-const typeSet = new Set([
-    "string", "number", "bigint", "boolean",
-]);
 
 // Generates a schema using the TypeScript processor and the files on disk. Note that this is VERY
 // slow and partially blocking, so should only be ran during page build in production.
@@ -359,181 +314,10 @@ export async function generateSchema(
         const lastSignature = signatures[signatures.length - 1];
         const returnType = typeChecker.getReturnTypeOfSignature(lastSignature);
 
-        // Go through the return types and unwind them accordingly.
-        function processType(t: Type, a: Signature[], getName: () => string) {
-            let s: string;
-            let typeAlias: string | null = null;
-            for (;;) {
-                // Get the type as a string.
-                s = typeChecker.typeToString(t);
-
-                // Resolve any local type aliases.
-                const a = typeAliases.get(s);
-                if (a) {
-                    if (!typeAlias) {
-                        typeAlias = s;
-                    }
-                    s = a;
-                } else {
-                    break;
-                }
-            }
-
-            // Handle unions.
-            if (t.isUnion()) {
-                const types = t.types;
-                for (const type of types) {
-                    processType(type, a, getName);
-                }
-                return;
-            }
-
-            // TODO: Handle objects.
-
-            // TODO: Handle maps.
-
-            // Cut "readonly " from the start of the string.
-            if (s.startsWith("readonly ")) {
-                s = s.slice(9);
-            }
-
-            // Handle promise types.
-            if (s.startsWith("Promise<") && s.endsWith(">")) {
-                processType(typeChecker.getTypeAtLocation(t.symbol!.declarations![0]), a, getName);
-                return;
-            }
-
-            // Handle array types.
-            if (s.endsWith("[]")) {
-                const inner: Signature[] = [];
-                processType(typeChecker.getTypeAtLocation(t.symbol!.declarations![0]), inner, getName);
-                a.push({ type: "array", inner: postprocessOutputs(inner) });
-                return;
-            }
-
-            // TODO: Handle enums.
-
-            // Handle simple types.
-            const l = s.toLowerCase();
-            if (typeSet.has(l)) {
-                a.push({ type: l.toLowerCase() as any });
-                return;
-            }
-
-            // Handle processing literals.
-            if (t.isLiteral()) {
-                // Handle array literals.
-                if (s.startsWith("[")) {
-                    const inner: Signature[] = [];
-                    processType(typeChecker.getTypeAtLocation(t.symbol!.declarations![0]), inner, getName);
-                    a.push({ type: "array", inner: postprocessOutputs(inner) });
-                    return;
-                }
-
-                // Handle object literals.
-                if (s.startsWith("{")) {
-                    // Get the object properties.
-                    const obj: { [key: string]: Signature } = {};
-                    const props = t.getProperties();
-                    for (const prop of props) {
-                        const inner: Signature[] = [];
-                        processType(typeChecker.getTypeOfSymbolAtLocation(prop, prop.valueDeclaration!), inner, getName);
-                        obj[prop.name] = postprocessOutputs(inner);
-                    }
-
-                    // Get the revision.
-                    let revision = 0;
-                    let fullName = getName();
-                    while (uniqueNames.has(fullName)) {
-                        fullName = getName() + "V" + (revision++);
-                    }
-                    uniqueNames.add(fullName);
-                    objects.push({ name: fullName, fields: obj });
-
-                    // Push the object.
-                    a.push({ type: "object", key: fullName });
-                    return;
-                }
-
-                // Handle string literals.
-                if (s.startsWith('"') || s.startsWith("'") || s.startsWith("`")) {
-                    const v = dequotify(s);
-                    const hasString = a.some((x) => x.type === "literal" && x.value === v);
-                    if (!hasString) {
-                        a.push({ type: "literal", value: v });
-                    }
-                    return;
-                }
-
-                // Handle number literals.
-                if (!isNaN(Number(s))) {
-                    const v = Number(s);
-                    const hasNumber = a.some((x) => x.type === "literal" && x.value === v);
-                    if (!hasNumber) {
-                        a.push({ type: "literal", value: v });
-                    }
-                    return;
-                }
-
-                // Handle bigint literals.
-                if (s.endsWith("n")) {
-                    const v = BigInt(s.slice(0, -1));
-                    const hasBigInt = a.some((x) => x.type === "literal" && x.value === v);
-                    if (!hasBigInt) {
-                        a.push({ type: "literal", value: v });
-                    }
-                    return;
-                }
-
-                // Handle boolean literals.
-                if (s === "true" || s === "false") {
-                    // Convert to a boolean.
-                    const stob = s === "true";
-
-                    // Check if the opposite kind of boolean is already in the array.
-                    for (const v of a) {
-                        if (v.type === "boolean") {
-                            // We already cover all cases. Return here.
-                            return;
-                        }
-
-                        if (v.type === "literal") {
-                            // Check if the type of this is a boolean.
-                            if (typeof v.value === "boolean") {
-                                // If it is the same, return right away.
-                                if (v.value === stob) return;
-
-                                // Since it is different, we need to change the type.
-                                // Trick TypeScript since we are doing this in a non-type
-                                // safe way, but more efficient one.
-                                (v as any).type = "boolean";
-                                delete (v as any).value;
-                                return;
-                            }
-                        }
-                    }
-
-                    // Add the boolean literal.
-                    a.push({ type: "literal", value: stob });
-                    return;
-                }
-
-                // Handle null or undefined literals.
-                if (s === "null" || s === "undefined") {
-                    const hasNull = a.some((v) => v.type === "literal" && v.value === null);
-                    if (!hasNull) {
-                        a.push({ type: "literal", value: null });
-                    }
-                    return;
-                }
-
-                // Hmm, we don't know what this is. Throw an error.
-                throw new Error(`Unknown literal type to arpc: ${s}`);
-            }
-        }
-        const outputs: Signature[] = [];
-        processType(returnType, outputs, () => path.map((x) => x[0].toUpperCase() + x.slice(1)).join("") + "Output");
-        const output = postprocessOutputs(outputs);
+        // Get the output type.
+        const output = processTypeScriptReturnType(
+            returnType, src, typeChecker, enums, objects, uniqueNames, typeAliases, path,
+        );
 
         // Get the description from the comment above the method.
         let description: string | null = null;
