@@ -325,14 +325,29 @@ export async function generateSchema(
 
         // Go through the return types and unwind them accordingly.
         function processType(t: Type, a: Signature[]) {
+            let s: string;
+            let typeAlias: string | null = null;
+            for (;;) {
+                // Get the type as a string.
+                s = typeChecker.typeToString(t);
+
+                // Resolve any local type aliases.
+                const a = typeAliases.get(s);
+                if (a) {
+                    if (!typeAlias) {
+                        typeAlias = s;
+                    }
+                    s = a;
+                } else {
+                    break;
+                }
+            }
+
             // Handle processing literals.
             if (t.isLiteral()) {
                 // TODO: Handle array literals.
 
                 // TODO: Handle object literals.
-
-                // Get the type as a string.
-                const s = typeChecker.typeToString(t);
 
                 // Handle string literals.
                 if (s.startsWith('"') || s.startsWith("'") || s.startsWith("`")) {
