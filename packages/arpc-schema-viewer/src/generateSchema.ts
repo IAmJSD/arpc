@@ -2,14 +2,14 @@ import { readFile } from "fs/promises";
 import { join } from "path";
 import { parse } from "@arpc/lockfile";
 import type {
-    BuildData, Client, Enum, Exception, Method, Methods, Object,
+    BuildData, Client, Enum, Exception, Method, Methods, Object, Signature,
 } from "@arpc/client-gen";
 import type { RPCRouter } from "@arpc/core";
 import {
     SourceFile, createProgram, getLeadingCommentRanges, isArrowFunction,
     isClassDeclaration, isEnumDeclaration, isFunctionExpression,
     isMethodDeclaration, isStringLiteral, isTypeAliasDeclaration,
-    isVariableStatement,
+    isVariableStatement, Symbol, SignatureKind, isFunctionDeclaration, Type,
 } from "typescript";
 import z from "zod";
 import { builtinExceptions } from "./builtinExceptions";
@@ -200,6 +200,7 @@ export async function generateSchema(
     const uniqueNames = new Set<string>();
 
     // Handle creating a method and setting any enums/objects.
+    const typeChecker = tsProgram.getTypeChecker();
     function createMethod(src: SourceFile, path: string[], version: string): Method {
         // Find the route in the current router.
         let currentPathItem = (routerRoutes || {})[version];
@@ -272,7 +273,7 @@ export async function generateSchema(
             }
 
             // Handle classic methods.
-            if (isMethodDeclaration(node) && node.name.getText() === "method") {
+            if ((isMethodDeclaration(node) || isFunctionDeclaration(node)) && node.name?.getText() === "method") {
                 return node;
             }
         });
@@ -290,8 +291,7 @@ export async function generateSchema(
         // z.infer<typeof schema>.
         let inputTypeName: string | null = null;
         if (arg.type) {
-            // Not having a type is bizarre, but technically allowed, so we'll
-            // permit it too :)
+            // Not having a type is bizarre, but technically allowed, so we'll permit it too :)
 
             const typeText = arg.type.getText();
             if (typeText !== "z.infer<typeof schema>") {
@@ -307,12 +307,91 @@ export async function generateSchema(
         const input = {
             name: arg.name.getText(),
             signature: getZodInputSignature(
-                schema, enums, objects, uniqueNames, () => inputTypeName || path.map(
-                    (x) => x[0].toUpperCase() + x.slice(1)).join(""),
+                schema, enums, objects, uniqueNames, () => inputTypeName || (path.map(
+                    (x) => x[0].toUpperCase() + x.slice(1)).join("") + "Opts"),
             ),
         };
 
-        // TODO: Process the output type.
+        // Process the output type by using the TS return type (either inferred or explicitly set).
+        // @ts-ignore: For some reason, this isn't exported?
+        const methodSym: Map<string, Symbol> = src.locals;
+        let sym = methodSym.get("method")!;
+        // @ts-ignore: idk why this is a error.
+        if (sym.exportSymbol) sym = sym.exportSymbol;
+        const symType = typeChecker.getTypeOfSymbolAtLocation(sym, sym.valueDeclaration!);
+        const signatures = typeChecker.getSignaturesOfType(symType, SignatureKind.Call);
+        const lastSignature = signatures[signatures.length - 1];
+        const returnType = typeChecker.getReturnTypeOfSignature(lastSignature);
+
+        // Go through the return types and unwind them accordingly.
+        function processType(t: Type, a: Signature[]) {
+            // Handle processing literals.
+            if (t.isLiteral()) {
+                // TODO: Handle object literals.
+
+                // TODO: Handle array literals.
+
+                // Get the type as a string.
+                const s = typeChecker.typeToString(t);
+
+                // TODO: Handle string literals.
+
+                // TODO: Handle number literals.
+
+                // TODO: Handle bigint literals.
+
+                // Handle boolean literals.
+                if (s === "true" || s === "false") {
+                    // Convert to a boolean.
+                    const stob = s === "true";
+
+                    // Check if the opposite kind of boolean is already in the array.
+                    for (const v of a) {
+                        if (v.type === "boolean") {
+                            // We already cover all cases. Return here.
+                            return;
+                        }
+
+                        if (v.type === "literal") {
+                            // Check if the type of this is a boolean.
+                            if (typeof v.value === "boolean") {
+                                // If it is the same, return right away.
+                                if (v.value === stob) return;
+
+                                // Since it is different, we need to change the type.
+                                // Trick TypeScript since we are doing this in a non-type
+                                // safe way, but more efficient one.
+                                (v as any).type = "boolean";
+                                delete (v as any).value;
+                                return;
+                            }
+                        }
+                    }
+
+                    // Add the boolean literal.
+                    a.push({ type: "literal", value: stob });
+                    return;
+                }
+
+                // Handle null or undefined literals.
+                if (s === "null" || s === "undefined") {
+                    const hasNull = a.some((v) => v.type === "literal" && v.value === null);
+                    if (!hasNull) {
+                        a.push({ type: "literal", value: null });
+                    }
+                }
+            }
+        }
+        const outputs: Signature[] = [];
+        processType(returnType, outputs);
+
+        // Create the output type.
+        let output: Signature;
+        if (outputs.length === 1) {
+            output = outputs[0];
+        } else {
+            output = { type: "union", inner: outputs };
+        }
 
         // Get the description from the comment above the method.
         let description: string | null = null;
