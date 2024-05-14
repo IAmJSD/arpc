@@ -59,6 +59,42 @@ function isTokenType(value: string | undefined): string | undefined {
     return match[1];
 }
 
+function postprocessOutputs(outputs: Signature[]): Signature {
+    if (outputs.length === 1) {
+        return outputs[0];
+    }
+    let nullable = false;
+
+    // Handle wrapping the whole union in a nullable.
+all:
+    for (;;) {
+        for (let i = 0; i < outputs.length; i++) {
+            const output = outputs[i];
+            if (output.type === "nullable") {
+                nullable = true;
+                outputs[i] = output.inner;
+                continue all;
+            }
+            if (output.type === "literal" && output.value === null) {
+                nullable = true;
+                outputs.splice(i, 1);
+                continue all;
+            }
+        }
+        break;
+    }
+
+    if (nullable) {
+        return { type: "nullable", inner: { type: "union", inner: outputs } };
+    }
+
+    return { type: "union", inner: outputs };
+}
+
+const typeSet = new Set([
+    "string", "number", "bigint", "boolean",
+]);
+
 // Generates a schema using the TypeScript processor and the files on disk. Note that this is VERY
 // slow and partially blocking, so should only be ran during page build in production.
 export async function generateSchema(
@@ -324,7 +360,7 @@ export async function generateSchema(
         const returnType = typeChecker.getReturnTypeOfSignature(lastSignature);
 
         // Go through the return types and unwind them accordingly.
-        function processType(t: Type, a: Signature[]) {
+        function processType(t: Type, a: Signature[], getName: () => string) {
             let s: string;
             let typeAlias: string | null = null;
             for (;;) {
@@ -343,11 +379,81 @@ export async function generateSchema(
                 }
             }
 
+            // Handle unions.
+            if (t.isUnion()) {
+                const types = t.types;
+                for (const type of types) {
+                    processType(type, a, getName);
+                }
+                return;
+            }
+
+            // TODO: Handle objects.
+
+            // TODO: Handle maps.
+
+            // Cut "readonly " from the start of the string.
+            if (s.startsWith("readonly ")) {
+                s = s.slice(9);
+            }
+
+            // Handle promise types.
+            if (s.startsWith("Promise<") && s.endsWith(">")) {
+                processType(typeChecker.getTypeAtLocation(t.symbol!.declarations![0]), a, getName);
+                return;
+            }
+
+            // Handle array types.
+            if (s.endsWith("[]")) {
+                const inner: Signature[] = [];
+                processType(typeChecker.getTypeAtLocation(t.symbol!.declarations![0]), inner, getName);
+                a.push({ type: "array", inner: postprocessOutputs(inner) });
+                return;
+            }
+
+            // TODO: Handle enums.
+
+            // Handle simple types.
+            const l = s.toLowerCase();
+            if (typeSet.has(l)) {
+                a.push({ type: l.toLowerCase() as any });
+                return;
+            }
+
             // Handle processing literals.
             if (t.isLiteral()) {
-                // TODO: Handle array literals.
+                // Handle array literals.
+                if (s.startsWith("[")) {
+                    const inner: Signature[] = [];
+                    processType(typeChecker.getTypeAtLocation(t.symbol!.declarations![0]), inner, getName);
+                    a.push({ type: "array", inner: postprocessOutputs(inner) });
+                    return;
+                }
 
-                // TODO: Handle object literals.
+                // Handle object literals.
+                if (s.startsWith("{")) {
+                    // Get the object properties.
+                    const obj: { [key: string]: Signature } = {};
+                    const props = t.getProperties();
+                    for (const prop of props) {
+                        const inner: Signature[] = [];
+                        processType(typeChecker.getTypeOfSymbolAtLocation(prop, prop.valueDeclaration!), inner, getName);
+                        obj[prop.name] = postprocessOutputs(inner);
+                    }
+
+                    // Get the revision.
+                    let revision = 0;
+                    let fullName = getName();
+                    while (uniqueNames.has(fullName)) {
+                        fullName = getName() + "V" + (revision++);
+                    }
+                    uniqueNames.add(fullName);
+                    objects.push({ name: fullName, fields: obj });
+
+                    // Push the object.
+                    a.push({ type: "object", key: fullName });
+                    return;
+                }
 
                 // Handle string literals.
                 if (s.startsWith('"') || s.startsWith("'") || s.startsWith("`")) {
@@ -426,41 +532,8 @@ export async function generateSchema(
             }
         }
         const outputs: Signature[] = [];
-        processType(returnType, outputs);
-
-        // Create the output type.
-        let nullable = false;
-        let output: Signature;
-        if (outputs.length === 1) {
-            output = outputs[0];
-        } else {
-            // Handle wrapping the whole union in a nullable.
-        all:
-            for (;;) {
-                let noNulls = true;
-                for (let i = 0; i < outputs.length; i++) {
-                    const output = outputs[i];
-                    if (output.type === "nullable") {
-                        nullable = true;
-                        outputs[i] = output.inner;
-                        break all;
-                    }
-                    if (output.type === "literal" && output.value === null) {
-                        nullable = true;
-                        outputs.splice(i, 1);
-                        noNulls = false;
-                        break;
-                    }
-                }
-                if (noNulls) break;
-            }
-
-            if (nullable) {
-                output = { type: "union", inner: outputs };
-            }
-
-            output = { type: "union", inner: outputs };
-        }
+        processType(returnType, outputs, () => path.map((x) => x[0].toUpperCase() + x.slice(1)).join("") + "Output");
+        const output = postprocessOutputs(outputs);
 
         // Get the description from the comment above the method.
         let description: string | null = null;
