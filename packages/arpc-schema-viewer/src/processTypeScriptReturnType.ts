@@ -1,6 +1,6 @@
 import type { Enum, Object, Signature } from "@arpc/client-gen";
 import {
-    Type, SourceFile, TypeChecker, isEnumDeclaration, Symbol, SignatureKind,
+    Type, SourceFile, TypeChecker, isEnumDeclaration, Symbol,
 } from "typescript";
 import { dequotify } from "./helpers";
 
@@ -46,7 +46,7 @@ export function processTypeScriptReturnType(
     path: string[],
 ) {
     // Go through the return types and unwind them accordingly.
-    function handleLiterals(s: string, a: Signature[], t: Type, getName: () => string) {
+    function handleLiterals(s: string, a: Signature[], t: Type) {
         // Handle string literals.
         if (s.startsWith('"') || s.startsWith("'") || s.startsWith("`")) {
             const v = dequotify(s);
@@ -150,8 +150,92 @@ export function processTypeScriptReturnType(
             return;
         }
 
+        // Unwind promises.
+        if (t.symbol?.escapedName === "Promise") {
+            // @ts-ignore: This exists on the symbol.
+            const types = t.typeArguments;
+            if (types.length !== 1) {
+                throw new Error("Promise type doesn't have one type argument.");
+            }
+            processType(types[0], a, getName);
+            return;
+        }
+
+        // Handle maps.
+        if (t.symbol?.escapedName === "Map") {
+            // @ts-ignore: This exists on the symbol.
+            const types = t.typeArguments;
+            if (types.length !== 2) {
+                throw new Error("Map type doesn't have two type arguments.");
+            }
+
+            let inner: Signature[] = [];
+            processType(types[0], inner, () => `${typeAlias || getName()}Key`);
+            const key = postprocessOutputs(inner);
+
+            inner = [];
+            processType(types[1], inner, () => `${typeAlias || getName()}Value`);
+            const value = postprocessOutputs(inner);
+
+            a.push({ type: "map", key, value });
+            return;
+        }
+
         // Handle records.
-        // TODO: Handle records.
+        if (t.symbol?.escapedName === "Record") {
+            // @ts-ignore: This exists on the symbol.
+            const types = t.typeArguments;
+            if (types.length !== 2) {
+                throw new Error("Record type doesn't have two type arguments.");
+            }
+
+            let inner: Signature[] = [];
+            processType(types[0], inner, () => `${typeAlias || getName()}Key`);
+            const key = postprocessOutputs(inner);
+
+            inner = [];
+            processType(types[1], inner, () => `${typeAlias || getName()}Value`);
+            const value = postprocessOutputs(inner);
+
+            a.push({ type: "map", key, value });
+            return;
+        }
+
+        // Handle simple types.
+        const l = s.toLowerCase();
+        if (typeSet.has(l)) {
+            a.push({ type: l as any });
+            return;
+        }
+
+        // Handle processing literals.
+        if (t.isLiteral()) {
+            handleLiterals(s, a, t);
+            return;
+        }
+
+        // Handle {[x: Y]: Z} types.
+        const apparent = typeChecker.getApparentType(t);
+        // @ts-ignore: TS doesn't have a good way to get the index infos.
+        const indexInfos: { keyType: Type; valueType: Type }[] = apparent?.indexInfos;
+        if (indexInfos) {
+            if (indexInfos.length !== 1) {
+                throw new Error("Index type doesn't have one index info.");
+            }
+
+            const { keyType, valueType } = indexInfos[0];
+
+            let inner: Signature[] = [];
+            processType(keyType, inner, () => `${typeAlias || getName()}Key`);
+            const key = postprocessOutputs(inner);
+
+            inner = [];
+            processType(valueType, inner, () => `${typeAlias || getName()}Value`);
+            const value = postprocessOutputs(inner);
+
+            a.push({ type: "map", key, value });
+            return;
+        }
 
         // Handle objects.
         // @ts-ignore: TS doesn't have a good way to get the members.
@@ -212,12 +296,6 @@ export function processTypeScriptReturnType(
             s = s.slice(9);
         }
 
-        // Handle promise types.
-        if (s.startsWith("Promise<") && s.endsWith(">")) {
-            processType(typeChecker.getTypeAtLocation(t.symbol!.declarations![0]), a, getName);
-            return;
-        }
-
         // Handle writing enums to the enums array.
         const enum_ = src.forEachChild((node) => {
             if (isEnumDeclaration(node) && node.name.text === s) {
@@ -226,19 +304,6 @@ export function processTypeScriptReturnType(
         });
         if (enum_) {
             // TODO: Set the enum.
-        }
-
-        // Handle simple types.
-        const l = s.toLowerCase();
-        if (typeSet.has(l)) {
-            a.push({ type: l as any });
-            return;
-        }
-
-        // Handle processing literals.
-        if (t.isLiteral()) {
-            handleLiterals(s, a, t, getName);
-            return;
         }
 
         // Throw an error if we don't know what this is.
