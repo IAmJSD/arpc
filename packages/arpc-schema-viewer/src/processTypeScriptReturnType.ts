@@ -1,6 +1,6 @@
 import type { Enum, Object, Signature } from "@arpc/client-gen";
 import {
-    Type, SourceFile, TypeChecker, isEnumDeclaration,
+    Type, SourceFile, TypeChecker, isEnumDeclaration, Symbol, SignatureKind,
 } from "typescript";
 import { dequotify } from "./helpers";
 
@@ -47,51 +47,6 @@ export function processTypeScriptReturnType(
 ) {
     // Go through the return types and unwind them accordingly.
     function handleLiterals(s: string, a: Signature[], t: Type, getName: () => string) {
-        // Handle array literals.
-        if (s.startsWith("[")) {
-            const inner: Signature[] = [];
-            processType(typeChecker.getTypeAtLocation(t.symbol!.declarations![0]), inner, getName);
-            a.push({ type: "array", inner: postprocessOutputs(inner) });
-            return;
-        }
-
-        // Handle object literals.
-        if (s.startsWith("{")) {
-            // Get the object properties.
-            const obj: { [key: string]: Signature } = {};
-            const props = t.getProperties();
-            for (const prop of props) {
-                const inner: Signature[] = [];
-                processType(typeChecker.getTypeOfSymbolAtLocation(prop, prop.valueDeclaration!), inner, getName);
-                obj[prop.name] = postprocessOutputs(inner);
-            }
-
-            // Get the revision.
-            let revision = 0;
-            let fullName = getName();
-            while (uniqueNames.has(fullName)) {
-                // Get this revision and check if it is the same.
-                const existing = objects.find((o) => o.name === fullName);
-                if (existing) {
-                    // It is a object and not a enum. See if the fields are the same.
-                    if (JSON.stringify(existing.fields) === JSON.stringify(obj)) {
-                        // The fields are the same, so we can just reference it.
-                        a.push({ type: "object", key: fullName });
-                    }
-                }
-    
-                // Try a new revision.
-                revision++;
-                fullName = `${getName()}V${revision}`;
-            }
-            uniqueNames.add(fullName);
-            objects.push({ name: fullName, fields: obj });
-
-            // Push the object.
-            a.push({ type: "object", key: fullName });
-            return;
-        }
-
         // Handle string literals.
         if (s.startsWith('"') || s.startsWith("'") || s.startsWith("`")) {
             const v = dequotify(s);
@@ -195,9 +150,62 @@ export function processTypeScriptReturnType(
             return;
         }
 
-        // TODO: Handle objects.
+        // Handle records.
+        // TODO: Handle records.
 
-        // TODO: Handle maps.
+        // Handle objects.
+        // @ts-ignore: TS doesn't have a good way to get the members.
+        const members: Map<string, Symbol> = t.members;
+        if (members) {
+            // Defines where the fields are stored.
+            const fields: { [key: string]: Signature } = {};
+
+            for (const [name, sym] of members) {
+                // Get the type.
+                const symType = typeChecker.getTypeOfSymbolAtLocation(sym, sym.valueDeclaration!);
+
+                // Process the type.
+                const inner: Signature[] = [];
+                processType(symType, inner, () => `${typeAlias || getName()}${name[0].toUpperCase()}${name.slice(1)}`);
+                fields[name] = postprocessOutputs(inner);
+            }
+
+            // Get the revision.
+            let revision = 0;
+            let fullName = typeAlias || getName();
+            while (uniqueNames.has(fullName)) {
+                // Get this revision and check if it is the same.
+                const existing = objects.find((o) => o.name === fullName);
+                if (existing) {
+                    // It is a object and not a enum. See if the fields are the same.
+                    if (JSON.stringify(existing.fields) === JSON.stringify(fields)) {
+                        // The fields are the same, so we can just reference it.
+                        a.push({ type: "object", key: fullName });
+                        return;
+                    }
+                }
+
+                // Try a new revision.
+                revision++;
+                fullName = `${typeAlias || getName()}V${revision}`;
+            }
+            objects.push({ name: fullName, fields });
+            a.push({ type: "object", key: fullName });
+            return;
+        }
+
+        // Handle array types.
+        if (typeChecker.isArrayLikeType(t) || typeChecker.isArrayType(t) || typeChecker.isTupleType(t)) {
+            // @ts-ignore: TS doesn't have a good way to get the inner type.
+            const inner = t.resolvedTypeArguments;
+            if (!inner) {
+                throw new Error("Array type doesn't have an inner type.");
+            }
+            for (const i of inner) {
+                processType(i, a, getName);
+            }
+            return;
+        }
 
         // Cut "readonly " from the start of the string.
         if (s.startsWith("readonly ")) {
@@ -210,14 +218,6 @@ export function processTypeScriptReturnType(
             return;
         }
 
-        // Handle array types.
-        if (s.endsWith("[]")) {
-            const inner: Signature[] = [];
-            processType(typeChecker.getTypeAtLocation(t.symbol!.declarations![0]), inner, getName);
-            a.push({ type: "array", inner: postprocessOutputs(inner) });
-            return;
-        }
-
         // Handle writing enums to the enums array.
         const enum_ = src.forEachChild((node) => {
             if (isEnumDeclaration(node) && node.name.text === s) {
@@ -225,25 +225,6 @@ export function processTypeScriptReturnType(
             }
         });
         if (enum_) {
-            // Go through the objects.
-            const m = new Map<any, any>();
-            const types = new Set<string>();
-            for (const member of enum_.members) {
-                const name = dequotify(member.name.getText());
-
-                const init = member.initializer;
-                if (!init) {
-                    m.set(name, name);
-                    types.add("string");
-                    continue;
-                }
-                const s = init.getText();
-                const sigs: Signature[] = [];
-                const value = handleLiterals(s, sigs, init, getName);
-
-                m.set(name, value);
-            }
-
             // TODO: Set the enum.
         }
 
