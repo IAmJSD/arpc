@@ -316,7 +316,7 @@ export async function generateSchema(
 
         // Get the output type.
         const output = processTypeScriptReturnType(
-            returnType, src, typeChecker, enums, objects, uniqueNames, typeAliases, path,
+            returnType, typeChecker, enums, objects, uniqueNames, typeAliases, path,
         );
 
         // Get the description from the comment above the method.

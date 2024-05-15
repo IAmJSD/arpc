@@ -41,12 +41,12 @@ all:
 }
 
 export function processTypeScriptReturnType(
-    returnType: Type, src: SourceFile, typeChecker: TypeChecker, enums: Enum[],
+    returnType: Type, typeChecker: TypeChecker, enums: Enum[],
     objects: Object[], uniqueNames: Set<string>, typeAliases: Map<string, string>,
     path: string[],
 ) {
     // Go through the return types and unwind them accordingly.
-    function handleLiterals(s: string, a: Signature[], t: Type) {
+    function handleLiterals(s: string, a: Signature[]) {
         // Handle string literals.
         if (s.startsWith('"') || s.startsWith("'") || s.startsWith("`")) {
             const v = dequotify(s);
@@ -210,7 +210,7 @@ export function processTypeScriptReturnType(
 
         // Handle processing literals.
         if (t.isLiteral()) {
-            handleLiterals(s, a, t);
+            handleLiterals(s, a);
             return;
         }
 
@@ -297,13 +297,50 @@ export function processTypeScriptReturnType(
         }
 
         // Handle writing enums to the enums array.
-        const enum_ = src.forEachChild((node) => {
-            if (isEnumDeclaration(node) && node.name.text === s) {
-                return node;
+        const alias = t.aliasSymbol;
+        if (alias) {
+            // Get the exports.
+            const e = alias.exports;
+
+            if (e) {
+                // Process the values.
+                const values = new Map<string, any>();
+                const types: Signature[] = [];
+                for (const [key, sym] of e) {
+                    // Get the type of the symbol.
+                    const symType = typeChecker.getTypeOfSymbolAtLocation(sym, sym.valueDeclaration!);
+                    const inner: Signature[] = [];
+                    processType(symType, inner, () => `${typeAlias || getName()}${(key as string)[0].toUpperCase()}${(key as string).slice(1)}`);
+                    types.push(postprocessOutputs(inner));
+
+                    // Set the value.
+                    const x: Signature[] = [];
+                    handleLiterals(typeChecker.symbolToString(sym), x);
+                    values.set(key as string, x[0]);
+                }
+
+                // Get the revision.
+                let revision = 0;
+                let fullName = typeAlias || getName();
+                while (uniqueNames.has(fullName)) {
+                    // Get this revision and check if it is the same.
+                    const existing = enums.find((e) => e.name === fullName);
+                    if (existing) {
+                        // It is a enum and not a object. See if the fields are the same.
+                        if (JSON.stringify(existing.data) === JSON.stringify(values)) {
+                            // The fields are the same, so we can just reference it.
+                            a.push({ type: "enum_value", enum: fullName });
+                            return;
+                        }
+                    }
+
+                    // Try a new revision.
+                    revision++;
+                    fullName = `${typeAlias || getName()}V${revision}`;
+                }
+                enums.push({ name: fullName, valueType: postprocessOutputs(types), data: values });
+                a.push({ type: "enum_value", enum: fullName });
             }
-        });
-        if (enum_) {
-            // TODO: Set the enum.
         }
 
         // Throw an error if we don't know what this is.
