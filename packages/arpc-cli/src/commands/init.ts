@@ -427,7 +427,7 @@ async function cmdAction() {
 
 Your project now has arpc installed into it and mounted into Next!
 
-You can access the client that your consumers within client-side (or their server-side) JS by importing @/clients/rpc. If you need the RPC routes on the Next server (for example in a Server Action), you can use the self export in @/rpc.
+You can access the client that your consumers will use within their client-side (or their server-side) JS by importing @/clients/rpc. If you need the RPC routes on the Next server (for example in a Server Action), you can use the self export in @/rpc.
 
 To get started, you should make a new API revision. You can do this by running \x1b[36marpc versions create\x1b[0m.
 `);
