@@ -52,9 +52,9 @@ function isTokenType(value: string | undefined): string | undefined {
 
 // Generates a schema using the TypeScript processor and the files on disk. Note that this is VERY
 // slow and partially blocking, so should only be ran during page build in production.
-export async function generateSchema(
-    protocol: string, hostname: string, router: RPCRouter<any, any, any, any, any, any>,
-): Promise<BuildData> {
+//
+// NOTE: Default protocol/hostname are omitted. These should be added by the client.
+export async function generateSchema(router: RPCRouter<any, any, any, any, any, any>): Promise<BuildData> {
     // Get the lockfile.
     const base = join(process.cwd(), "rpc");
     const lockfile = parse(await readFile(join(base, "index.ts"), "utf-8"));
@@ -364,8 +364,8 @@ export async function generateSchema(
         // Pre-push the client.
         clients.push({
             apiVersion: version as `v${string}`,
-            methods, description, defaultProtocol: protocol,
-            defaultHostname: hostname, authentication,
+            methods, description, defaultProtocol: "",
+            defaultHostname: "", authentication,
         });
 
         // Handle going through the routes and mapping out the method objects.

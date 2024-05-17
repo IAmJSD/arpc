@@ -132,9 +132,9 @@ export const httpHandler = routerInstance.buildHttpHandler();
 export const self = routerInstance.self;
 
 // NOTE: This is VERY slow. Only run this in dev or in the building of production.
-export const generateSchema = async (protocol: string, hostname: string) => {
+export const generateSchema = async () => {
     const genImport = await import("@arpc/schema-viewer");
-    return genImport.generateSchema(protocol, hostname, routerInstance);
+    return genImport.generateSchema(routerInstance);
 };
 `);
 
