@@ -9,10 +9,42 @@ import { sortVersions } from "../utils/sortVersions";
 import { error, success } from "../utils/console";
 import { generateClient } from "../utils/generateClient";
 
-const authRoutePlaceholder = `// TODO
+const authRoutePlaceholder = `import z from "zod";
+import { UserExport } from "@/rpc/authentication";
+
+// Defines the schema for the input.
+export const schema = z.object({});
+
+// Defines the method that will be called.
+export async function method(input: z.infer<typeof schema>, user: UserExport) {
+    return "Hello, world!";
+}
+
+// Defines if this is a mutation. Defaults to true if unset.
+export const mutation = true;
+
+// Defines if this should run in parallel in batch queries. Defaults to false if unset.
+export const parallel = false;
+
+// Defines if the user needs to be authenticated. Defaults to true if unset.
+export const authenticated = true;
 `;
 
-const noAuthRoutePlaceholder = `// TODO
+const noAuthRoutePlaceholder = `import z from "zod";
+
+// Defines the schema for the input.
+export const schema = z.object({});
+
+// Defines the method that will be called.
+export async function method(input: z.infer<typeof schema>) {
+    return "Hello, world!";
+}
+
+// Defines if this is a mutation. Defaults to true if unset.
+export const mutation = true;
+
+// Defines if this should run in parallel in batch queries. Defaults to false if unset.
+export const parallel = false;
 `;
 
 function searchNamespace(namespace: string[], lockfile: Lockfile, version: string) {
@@ -121,6 +153,65 @@ function _break(namespace: string[], versionInit: RPCVersionWithCache | undefine
     success("Method prepared for breaking change.");
 }
 
+async function drop(namespace: string[], versionInit: RPCVersionWithCache | undefined) {
+    if (!versionInit) {
+        const init = requiresRpcInit();
+        const version = sortVersions(Object.keys(init.lockfile.routes)).pop();
+        if (!version) {
+            error("There are no API versions to drop the method from.");
+        }
+        versionInit = [init, version];
+    }
+    const [{ lockfile, rpcPath, repoFolderStructure }, version] = versionInit;
+
+    let routes = lockfile.routes[version] as { [key: string]: any };
+    const cpy = [...namespace];
+    const methodName = cpy.pop()!;
+    let namespaceChunk = cpy.shift();
+    while (namespaceChunk) {
+        if (!routes[namespaceChunk]) {
+            error("The method specified does not exist.");
+        }
+
+        const nextRoute = routes[namespaceChunk];
+
+        if (typeof nextRoute === "string") {
+            error("A namespace cannot be a method.");
+        }
+        if (Object.keys(nextRoute).length === 1) {
+            delete routes[namespaceChunk];
+        }
+
+        routes = nextRoute;
+        namespaceChunk = cpy.shift();
+    }
+
+    if (!routes[methodName]) {
+        error("The method specified does not exist.");
+    }
+
+    const relPath = routes[methodName];
+    delete routes[methodName];
+
+    const absPath = join(rpcPath, relPath);
+    await Promise.all([
+        // Delete the file.
+        unlink(absPath).catch(() => {}),
+
+        // Update the lockfile.
+        writeFile(
+            join(rpcPath, "index.ts"),
+            stringify(lockfile),
+        ),
+    ]);
+
+    const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
+    mkdirSync(clientsFolder, { recursive: true });
+    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"));
+
+    success("Method dropped.");
+}
+
 function namespaceParser(namespace: string) {
     const s = namespace.trim().split(".");
     for (const part of s) {
@@ -150,5 +241,9 @@ export function methods(cmd: Command) {
         .argument("[api version]", "The API version to make the breaking change in.", versionParser)
         .action(_break);
 
-    
+    root.command("drop")
+        .description("Drops a method.")
+        .argument("<name>", "The name of the method.", namespaceParser)
+        .argument("[api version]", "The API version to drop the method from.", versionParser)
+        .action(drop);
 }
