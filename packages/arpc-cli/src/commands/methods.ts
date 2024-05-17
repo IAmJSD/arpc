@@ -1,0 +1,154 @@
+import { InvalidArgumentError, type Command } from "commander";
+import { join, dirname } from "path";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { stat, writeFile, unlink } from "fs/promises";
+import { Lockfile, stringify } from "@arpc/lockfile";
+import { versionParser, RPCVersionWithCache } from "../utils/versionParser";
+import { requiresRpcInit } from "../utils/requiresRpcInit";
+import { sortVersions } from "../utils/sortVersions";
+import { error, success } from "../utils/console";
+import { generateClient } from "../utils/generateClient";
+
+const authRoutePlaceholder = `// TODO
+`;
+
+const noAuthRoutePlaceholder = `// TODO
+`;
+
+function searchNamespace(namespace: string[], lockfile: Lockfile, version: string) {
+    let routes = lockfile.routes[version] as { [key: string]: any };
+    const cpy = [...namespace];
+    const methodName = cpy.pop()!;
+    let namespaceChunk = cpy.shift();
+    while (namespaceChunk) {
+        if (!routes[namespaceChunk]) {
+            routes[namespaceChunk] = {};
+        }
+        routes = routes[namespaceChunk];
+        namespaceChunk = cpy.shift();
+
+        if (typeof routes === "string") {
+            error("A namespace cannot be a method.");
+        }
+    }
+    return [routes, methodName] as const;
+}
+
+async function create(namespace: string[], versionInit: RPCVersionWithCache | undefined) {
+    if (!versionInit) {
+        const init = requiresRpcInit();
+        const version = sortVersions(Object.keys(init.lockfile.routes)).pop();
+        if (!version) {
+            error("You need to create a API version first.");
+        }
+        versionInit = [init, version];
+    }
+    const [{ lockfile, rpcPath, repoFolderStructure }, version] = versionInit;
+
+    const [routes, methodName] = searchNamespace(namespace, lockfile, version);
+    if (routes[methodName]) {
+        error("The method specified already exists. If you want to make a breaking change, use the break sub-command.");
+    }
+
+    const relPath = `./routes/${version}/${namespace.join("/")}.ts`;
+    routes[methodName] = relPath;
+
+    const absPath = join(rpcPath, relPath);
+    const dir = dirname(absPath);
+    mkdirSync(dir, { recursive: true });
+    await Promise.all([
+        // Create the file if it doesn't exist.
+        stat(absPath).catch(() => {
+            return writeFile(
+                absPath,
+                lockfile.hasAuthentication ?
+                    authRoutePlaceholder :
+                    noAuthRoutePlaceholder,
+            );
+        }),
+
+        // Update the lockfile.
+        writeFile(
+            join(rpcPath, "index.ts"),
+            stringify(lockfile),
+        ),
+
+        // Delete routes/.keep if it exists.
+        unlink(join(rpcPath, "routes", ".keep")).catch(() => {}),
+    ]);
+    
+    const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
+    mkdirSync(clientsFolder, { recursive: true });
+    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"));
+
+    success("Method created.");
+}
+
+function _break(namespace: string[], versionInit: RPCVersionWithCache | undefined) {
+    if (!versionInit) {
+        const init = requiresRpcInit();
+        const version = sortVersions(Object.keys(init.lockfile.routes)).pop();
+        if (!version) {
+            error("You need to create a API version first.");
+        }
+        versionInit = [init, version];
+    }
+    const [{ lockfile, rpcPath }, version] = versionInit;
+
+    const [routes, methodName] = searchNamespace(namespace, lockfile, version);
+    if (!routes[methodName]) {
+        error("The method specified does not exist. If you want to create a new method, use the create sub-command.");
+    }
+    const relPath = routes[methodName];
+    if (relPath.startsWith(`./routes/${version}/`)) {
+        error("The method specified is already in the current API version. You need to bump the API version first before making a breaking change.");
+    }
+
+    const newRelPath = `./routes/${version}/${namespace.join("/")}.ts`;
+
+    const newAbsPath = join(rpcPath, newRelPath);
+    mkdirSync(dirname(newAbsPath), { recursive: true });
+
+    const fileContents = readFileSync(join(rpcPath, relPath), "utf-8");
+    writeFileSync(newAbsPath, fileContents);
+
+    routes[methodName] = newRelPath;
+    writeFileSync(
+        join(rpcPath, "index.ts"),
+        stringify(lockfile),
+    );
+
+    success("Method prepared for breaking change.");
+}
+
+function namespaceParser(namespace: string) {
+    const s = namespace.trim().split(".");
+    for (const part of s) {
+        if (part === "") {
+            throw new InvalidArgumentError("Blank namespace part.");
+        }
+        if (!part.match(/^[a-z][a-z0-9_]*$/i)) {
+            throw new InvalidArgumentError("Invalid namespace.");
+        }
+    }
+    return s;
+}
+
+export function methods(cmd: Command) {
+    const root = cmd
+        .description("Manages the methods of your RPC server.");
+
+    root.command("create")
+        .description("Creates a new method.")
+        .argument("<name>", "The name of the method.", namespaceParser)
+        .argument("[api version]", "The API version to create the method in.", versionParser)
+        .action(create);
+
+    root.command("break")
+        .description("Creates a breaking change on a existing method.")
+        .argument("<name>", "The name of the method.", namespaceParser)
+        .argument("[api version]", "The API version to make the breaking change in.", versionParser)
+        .action(_break);
+
+    
+}

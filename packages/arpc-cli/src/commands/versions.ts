@@ -1,4 +1,4 @@
-import { InvalidArgumentError, type Command } from "commander";
+import type { Command } from "commander";
 import { writeFileSync, mkdirSync, rmdirSync, readFileSync } from "fs";
 import { readdir, rename, stat, mkdir } from "fs/promises";
 import { join, sep } from "path";
@@ -7,6 +7,7 @@ import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { API_REVISION_REGEX, sortVersions } from "../utils/sortVersions";
 import { error, success } from "../utils/console";
 import { generateClient } from "../utils/generateClient";
+import { RPCVersionWithCache, versionParser } from "../utils/versionParser";
 
 async function bump() {
     const { lockfile, repoFolderStructure, rpcPath } = requiresRpcInit();
@@ -110,8 +111,6 @@ async function beta() {
 
     success(`API bumped to ${newVersion}.`);
 }
-
-type RPCVersionWithCache = [ReturnType<typeof requiresRpcInit>, string];
 
 async function drop([init, version]: RPCVersionWithCache) {
     const { lockfile, rpcPath, repoFolderStructure } = init;
@@ -267,17 +266,6 @@ async function deprecate([init, version]: RPCVersionWithCache, reason: string) {
     await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"));
 
     success(`API version ${version} deprecated.`);
-}
-
-function versionParser(version: string) {
-    const init = requiresRpcInit();
-    if (!init.lockfile.routes[version]) {
-        version = `v${init.lockfile.routes[version]}`;
-        if (!init.lockfile.routes[version]) {
-            throw new InvalidArgumentError("Version not found.");
-        }
-    }
-    return [init, version];
 }
 
 export function versions(cmd: Command) {
