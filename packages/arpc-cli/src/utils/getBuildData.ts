@@ -53,7 +53,7 @@ export async function getBuildData(nextFolder: string) {
 
     try {
         // Run node.
-        const res = await new Promise<string>((res, rej) => exec(`node -e '${evalStr}'`, {
+        const res = await new Promise<string>((res, rej) => exec(`node --enable-source-maps -e '${evalStr}'`, {
             cwd: nextFolder, shell: env.SHELL || undefined, env,
         }, (err, stdout, stderr) => {
             if (err) {
