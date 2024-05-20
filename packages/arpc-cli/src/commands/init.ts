@@ -107,7 +107,7 @@ export const metadata: Metadata = {
 export default function Layout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en">
-            <body class="dark:bg-gray-800 dark:text-white">
+            <body className="dark:bg-gray-800 dark:text-white">
                 {children}
             </body>
         </html>
@@ -191,7 +191,7 @@ function getRpcIndexRelPath(basePath: string, childPath: string) {
 }
 
 function addToIgnoreFile(ignore: string, rel: string) {
-    if (!ignore.endsWith("\n")) {
+    if (ignore !== "" && !ignore.endsWith("\n")) {
         ignore += "\n";
     }
     ignore += rel + "\n";
