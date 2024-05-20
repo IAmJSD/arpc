@@ -80,6 +80,9 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
         alwaysStrict: false,
     });
 
+    // Load the type checker.
+    const typeChecker = tsProgram.getTypeChecker();
+
     // Handle authentication.
     let authentication: AuthenticationType | null = null;
     if (lockfile.hasAuthentication) {
@@ -141,7 +144,7 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
     const keys = Object.keys(lockfile.exceptions).sort();
     for (const exceptionName of keys) {
         // Get the file path for the exception file.
-        const fp = join(base, lockfile.exceptions[exceptionName]);
+        const fp = join(base, lockfile.exceptions[exceptionName] + ".ts");
 
         // Parse the exception file.
         const parsed = tsProgram.getSourceFile(fp);
@@ -191,7 +194,6 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
     const uniqueNames = new Set<string>();
 
     // Handle creating a method and setting any enums/objects.
-    const typeChecker = tsProgram.getTypeChecker();
     function createMethod(src: SourceFile, path: string[], version: string): Method {
         // Find the route in the current router.
         let currentPathItem = (routerRoutes || {})[version];

@@ -142,10 +142,10 @@ function _break(namespace: string[], versionInit: RPCVersionWithCache | undefine
     const newAbsPath = join(rpcPath, newRelPath);
     mkdirSync(dirname(newAbsPath), { recursive: true });
 
-    const fileContents = readFileSync(join(rpcPath, relPath), "utf-8");
+    const fileContents = readFileSync(join(rpcPath, relPath + ".ts"), "utf-8");
     writeFileSync(newAbsPath, fileContents);
 
-    routes[methodName] = newRelPath;
+    routes[methodName] = newRelPath.slice(0, -3);
     writeFileSync(
         join(rpcPath, "index.ts"),
         stringify(lockfile),
@@ -194,7 +194,7 @@ async function drop(namespace: string[], versionInit: RPCVersionWithCache | unde
     const relPath = routes[methodName];
     delete routes[methodName];
 
-    const absPath = join(rpcPath, relPath);
+    const absPath = join(rpcPath, relPath + ".ts");
     await Promise.all([
         // Delete the file.
         unlink(absPath).catch(() => {}),

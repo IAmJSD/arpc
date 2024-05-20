@@ -210,11 +210,11 @@ async function drop([init, version]: RPCVersionWithCache) {
         if (v === version) break;
         const path = `./routes/${version}`;
         function scan(o: {[key: string]: any}) {
-            for (const [k, v] of Object.values(o)) {
+            for (const [k, v] of Object.entries(o)) {
                 if (typeof v === "object") {
                     scan(v);
-                } else if (typeof v === "string" && v === path) {
-                    o[k] = `./routes/${versionAfter}`;
+                } else if (typeof v === "string" && v.startsWith(path)) {
+                    o[k] = `./routes/${versionAfter}${v.slice(path.length)}`;
                 }
             }
         }

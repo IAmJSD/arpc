@@ -49,7 +49,7 @@ export async function getBuildData(nextFolder: string) {
     delete env.PWD;
 
     // Add path to node requires.
-    env.NODE_PATH = join(nextFolder, "rpc");
+    env.NODE_PATH = join(nextFolder, "node_modules");
 
     try {
         // Run node.
@@ -74,6 +74,6 @@ export async function getBuildData(nextFolder: string) {
         await tidy();
 
         // Log the error.
-        error(`Could not run the RPC: ${(e as Error).message}`);
+        error(`Could not evaluate the RPC router: ${(e as Error).message}`);
     }
 }
