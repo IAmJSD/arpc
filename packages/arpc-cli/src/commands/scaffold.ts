@@ -1,4 +1,4 @@
-import type { Command } from "commander";
+import { InvalidArgumentError, type Command } from "commander";
 import { join } from "path";
 import { statSync, writeFileSync } from "fs";
 import { stringify } from "@arpc/lockfile";
@@ -80,6 +80,43 @@ export default async function ratelimit(methodName: string, arg: any${userType})
     success("Ratelimiting set up.");
 }
 
+function scaffoldException(name: string) {
+    const { rpcPath, lockfile } = requiresRpcInit();
+
+    if (lockfile.exceptions[name]) {
+        error("The exception already exists.");
+    }
+
+    const exceptionFile = join(rpcPath, "exceptions", `${name}.ts`);
+    try {
+        // Check if the file already exists.
+        statSync(exceptionFile);
+    } catch {
+        // Write the file.
+        writeFileSync(exceptionFile, `export class ${name} extends Error {
+    get body() {
+        // TODO: Return a body that is useful to the user.
+        return null;
+    }
+}
+`);
+    }
+    lockfile.exceptions[name] = `./exceptions/${name}`;
+
+    writeFileSync(
+        join(rpcPath, "index.ts"),
+        stringify(lockfile),
+    );
+    success(`Exception ${name} set up.`);
+}
+
+function nameParser(name: string) {
+    if (!/^[a-zA-Z]+$/.test(name)) {
+        new InvalidArgumentError("The name must only contain letters.");
+    }
+    return name;
+}
+
 export function scaffold(cmd: Command) {
     const root = cmd
         .description("Sets up the scaffolding for supporting optional features.");
@@ -91,4 +128,9 @@ export function scaffold(cmd: Command) {
     root.command("ratelimiting")
         .description("Sets up ratelimiting.")
         .action(scaffoldRatelimiting);
+
+    root.command("exception")
+        .argument("<name>", "The name of the exception.", nameParser)
+        .description("Adds a custom exception.")
+        .action(scaffoldException);
 }
