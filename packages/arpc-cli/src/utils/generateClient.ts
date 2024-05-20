@@ -1,6 +1,8 @@
 import { join } from "path";
 import * as ClientGen from "@arpc/client-gen";
+import { writeFile } from "fs/promises";
 import { getBuildData } from "./getBuildData";
+import { error } from "./console";
 
 type Generators = {
     [key: string]: [any, {
@@ -16,9 +18,25 @@ export const generators: Generators = {
 } as const;
 
 export async function generateClient<Key extends keyof typeof generators>(
-    generator: Key, rpcPath: string, filePath: string,
+    generator: Key, rpcPath: string, filePath: string, protocol: string, hostname: string,
     options: {[key: string]: any},
 ) {
     const buildData = await getBuildData(join(rpcPath, ".."));
-    return generators[generator][0](buildData, filePath, options);
+    for (const c of buildData.clients) {
+        c.defaultProtocol = protocol;
+        c.defaultHostname = hostname;
+    }
+
+    let res: string;
+    try {
+        res = generators[generator][0](buildData, options);
+    } catch (err) {
+        error(`Failed to generate client: ${(err as Error).message}`);
+    }
+
+    try {
+        await writeFile(filePath, res);
+    } catch (err) {
+        error(`Failed to write client to ${filePath}: ${(err as Error).message}`);
+    }
 }

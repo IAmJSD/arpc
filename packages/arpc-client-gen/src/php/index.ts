@@ -103,7 +103,8 @@ function createException(
     \\${namespace}\\Internal\\set_exception(${name}::class, false);`;
 }
 
-export function php(data: BuildData, namespace: string) {
+export function php(data: BuildData, options: {namespace: string}) {
+    let namespace = options.namespace;
     if (namespace.startsWith("\\")) namespace = namespace.slice(1);
     if (namespace.endsWith("\\")) namespace = namespace.slice(0, -1);
 

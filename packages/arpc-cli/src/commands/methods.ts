@@ -112,7 +112,7 @@ async function create(namespace: string[], versionInit: RPCVersionWithCache | un
     
     const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
     mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), {});
+    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"),  "", "", {});
 
     success("Method created.");
 }
@@ -208,7 +208,7 @@ async function drop(namespace: string[], versionInit: RPCVersionWithCache | unde
 
     const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
     mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), {});
+    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), "", "", {});
 
     success("Method dropped.");
 }

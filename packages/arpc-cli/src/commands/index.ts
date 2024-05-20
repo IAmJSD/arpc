@@ -1,3 +1,4 @@
+export { generate } from "./generate";
 export { init } from "./init";
 export { lint } from "./lint";
 export { scaffold } from "./scaffold";
