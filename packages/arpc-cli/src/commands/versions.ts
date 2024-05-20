@@ -31,7 +31,7 @@ async function bump() {
 
     const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
     mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"));
+    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), {});
 
     success(`API bumped to ${newVersion}.`);
 }
@@ -69,7 +69,7 @@ async function alpha() {
 
     const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
     mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"));
+    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), {});
 
     success(`API bumped to ${newVersion}.`);
 }
@@ -107,7 +107,7 @@ async function beta() {
 
     const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
     mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"));
+    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), {});
 
     success(`API bumped to ${newVersion}.`);
 }
@@ -230,7 +230,7 @@ async function drop([init, version]: RPCVersionWithCache) {
     // Re-generate the client and report a success.
     const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
     mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"));
+    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), {});
     success(`API version ${version} dropped.`);
 }
 
@@ -263,7 +263,7 @@ async function deprecate([init, version]: RPCVersionWithCache, reason: string) {
 
     const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
     mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"));
+    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), {});
 
     success(`API version ${version} deprecated.`);
 }

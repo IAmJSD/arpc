@@ -6,9 +6,11 @@
         "build": "tsup-node"
     },
     "dependencies": {
+        "@arpc/lockfile": "*",
+        "@arpc/client-gen": "*",
         "axios": "^1.6.8",
         "commander": "^12.0.0",
-        "@arpc/lockfile": "*"
+        "esbuild": "^0.21.3"
     },
     "devDependencies": {
         "tsup": "^8.0.2"
