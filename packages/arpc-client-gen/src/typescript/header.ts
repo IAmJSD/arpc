@@ -117,8 +117,8 @@ export class UnknownError extends BuiltInError {}
 // Adds a error class to the exception registry.
 const _customExceptions: {[key: string]: new (body: any) => BaseException} = {};
 const _builtInExceptions: {[key: string]: new (code: string, message: string, body: any) => BaseException} = {};
-function _addException<T extends BaseException>(classType: new (body: any) => T);
-function _addException<T extends BuiltInError>(classType: new (code: string, message: string, body: any) => T);
+function _addException<T extends BaseException>(classType: new (body: any) => T): void;
+function _addException<T extends BuiltInError>(classType: new (code: string, message: string, body: any) => T): void;
 function _addException(classType: any) {
     const name = classType.name;
     if (classType.prototype instanceof BuiltInError) {
@@ -274,7 +274,7 @@ abstract class BaseClient<Batcher> {
                 try {
                     _throw(error);
                 } catch (e) {
-                    errors.push(e);
+                    errors.push(e as BaseException);
                 }
             }
             throw new BatchError(errors);

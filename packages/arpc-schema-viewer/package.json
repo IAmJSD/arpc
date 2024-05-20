@@ -1,13 +1,12 @@
 {
     "name": "@arpc/schema-viewer",
     "version": "1.0.0",
-    "module": "dist/index.mjs",
     "main": "dist/index.js",
     "types": "src/index.ts",
     "exports": {
         ".": {
-            "browser": "./dist/index.mjs",
-            "import": "./dist/index.mjs",
+            "browser": "./dist/index.js",
+            "import": "./dist/index.js",
             "require": "./dist/index.js",
             "types": "./src/index.ts"
         }
