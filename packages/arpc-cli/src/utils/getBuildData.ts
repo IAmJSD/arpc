@@ -13,7 +13,7 @@ const evalString = (fp: string) =>
 
 export async function getBuildData(nextFolder: string) {
     // Create a temporary folder.
-    const tmpFolder = await mkdtemp(join(nextFolder, "arpc-"));
+    const tmpFolder = await mkdtemp(join(nextFolder, ".arpc-"));
     async function tidy() {
         try {
             await rm(tmpFolder, { recursive: true });
