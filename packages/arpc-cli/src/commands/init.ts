@@ -423,9 +423,7 @@ async function cmdAction() {
 
     // Send the success message.
     console.log(`
-\x1b[32m✔  arpc has been successfully installed!\x1b[0m
-
-Your project now has arpc installed into it and mounted into Next!
+\x1b[32m✔  arpc has been successfully installed and mounted into Next!\x1b[0m
 
 You can access the client that your consumers will use within their client-side (or their server-side) JS by importing @/clients/rpc. If you need the RPC routes on the Next server (for example in a Server Action), you can use the self export in @/rpc.
 
