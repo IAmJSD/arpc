@@ -5,9 +5,10 @@ import { stringify } from "@arpc/lockfile";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { error, success } from "../utils/console";
 import { argumentWithParser } from "../utils/argumentWithParser";
+import { generateClient } from "../utils/generateClient";
 
-function scaffoldAuthentication() {
-    const { rpcPath, lockfile } = requiresRpcInit();
+async function scaffoldAuthentication() {
+    const { rpcPath, lockfile, repoFolderStructure } = requiresRpcInit();
 
     if (lockfile.hasAuthentication) {
         error("Authentication is already set up.");
@@ -31,7 +32,9 @@ export async function validate(token: string, tokenType: TokenTypes) {
     return null;
 }
 
-export type UserExport = ReturnType<typeof validate>;
+type Unpromisify<T> = T extends Promise<infer U> ? U : T;
+
+export type UserExport = Unpromisify<ReturnType<typeof validate>>;
 `);
     }
 
@@ -39,6 +42,11 @@ export type UserExport = ReturnType<typeof validate>;
         join(rpcPath, "index.ts"),
         stringify(lockfile),
     );
+
+    const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
+    mkdirSync(clientsFolder, { recursive: true });
+    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), "", "", {});
+
     success("Authentication set up.");
 }
 

@@ -86,7 +86,7 @@ export default (routes, auth, exceptions, ratelimiter) => {
     // token type.
     const tokenTypeMap = new Map();
     if (auth) {
-        for (const type of Object.values(auth.tokenTypes)) {
+        for (const type of Object.values(auth.TokenTypes)) {
             tokenTypeMap.set(type.toLowerCase(), type);
         }
     }
