@@ -8,6 +8,7 @@ import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { sortVersions } from "../utils/sortVersions";
 import { error, success } from "../utils/console";
 import { generateClient } from "../utils/generateClient";
+import { argumentWithParser } from "../utils/argumentWithParser";
 
 const authRoutePlaceholder = `import z from "zod";
 import { UserExport } from "@/rpc/authentication";
@@ -231,19 +232,19 @@ export function methods(cmd: Command) {
 
     root.command("create")
         .description("Creates a new method.")
-        .argument("<name>", "The name of the method.", namespaceParser)
-        .argument("[api version]", "The API version to create the method in.", versionParser)
+        .addArgument(argumentWithParser("<name>", "The name of the method.", namespaceParser))
+        .addArgument(argumentWithParser("[api version]", "The API version to create the method in.", versionParser))
         .action(create);
 
     root.command("break")
         .description("Creates a breaking change on a existing method.")
-        .argument("<name>", "The name of the method.", namespaceParser)
-        .argument("[api version]", "The API version to make the breaking change in.", versionParser)
+        .addArgument(argumentWithParser("<name>", "The name of the method.", namespaceParser))
+        .addArgument(argumentWithParser("[api version]", "The API version to make the breaking change in.", versionParser))
         .action(_break);
 
     root.command("drop")
         .description("Drops a method.")
-        .argument("<name>", "The name of the method.", namespaceParser)
-        .argument("[api version]", "The API version to drop the method from.", versionParser)
+        .addArgument(argumentWithParser("<name>", "The name of the method.", namespaceParser))
+        .addArgument(argumentWithParser("[api version]", "The API version to drop the method from.", versionParser))
         .action(drop);
 }

@@ -8,6 +8,7 @@ import { API_REVISION_REGEX, sortVersions } from "../utils/sortVersions";
 import { error, success } from "../utils/console";
 import { generateClient } from "../utils/generateClient";
 import { RPCVersionWithCache, versionParser } from "../utils/versionParser";
+import { argumentWithParser } from "../utils/argumentWithParser";
 
 async function bump() {
     const { lockfile, repoFolderStructure, rpcPath } = requiresRpcInit();
@@ -286,12 +287,12 @@ export function versions(cmd: Command) {
 
     root.command("drop")
         .description("Drops the version of the API which is specified.")
-        .argument("<version>", "The version to drop.", versionParser)
+        .addArgument(argumentWithParser("<version>", "The version to drop.", versionParser))
         .action(drop);
 
     root.command("deprecate")
         .description("Adds a deprecation notice to the specified version.")
-        .argument("<version>", "The version to deprecate.", versionParser)
+        .addArgument(argumentWithParser("<version>", "The version to deprecate.", versionParser))
         .argument("[reason]", "The reason for deprecation.", "This version is deprecated.")
         .action(deprecate);
 }

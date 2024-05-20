@@ -4,6 +4,7 @@ import { statSync, writeFileSync } from "fs";
 import { stringify } from "@arpc/lockfile";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { error, success } from "../utils/console";
+import { argumentWithParser } from "../utils/argumentWithParser";
 
 function scaffoldAuthentication() {
     const { rpcPath, lockfile } = requiresRpcInit();
@@ -112,7 +113,7 @@ function scaffoldException(name: string) {
 
 function nameParser(name: string) {
     if (!/^[a-zA-Z]+$/.test(name)) {
-        new InvalidArgumentError("The name must only contain letters.");
+        throw new InvalidArgumentError("The name must only contain letters.");
     }
     return name;
 }
@@ -130,7 +131,7 @@ export function scaffold(cmd: Command) {
         .action(scaffoldRatelimiting);
 
     root.command("exception")
-        .argument("<name>", "The name of the exception.", nameParser)
+        .addArgument(argumentWithParser("<name>", "The name of the exception.", nameParser))
         .description("Adds a custom exception.")
         .action(scaffoldException);
 }
