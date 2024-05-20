@@ -8,9 +8,15 @@ import { findRepoFolderStructure } from "../utils/findRepoFolderStructure";
 import { error, success } from "../utils/console";
 import { runShellScript } from "../utils/runShellScript";
 
-async function handleDependency(dependencies: { [key: string]: any }, name: string) {
+async function handleDependency(dependencies: { [key: string]: any }, env: string, name: string) {
     if (dependencies[name]) {
         // Dependency already exists.
+        return;
+    }
+
+    // Handle if it is set in a environment variable.
+    if (process.env[env]) {
+        dependencies[name] = process.env[env];
         return;
     }
 
@@ -368,11 +374,11 @@ async function cmdAction() {
     const dependencies: { [key: string]: any } = packageJson.dependencies;
     try {
         await Promise.all([
-            handleDependency(dependencies, "@arpc/core"),
-            handleDependency(dependencies, "@arpc/schema-viewer"),
-            handleDependency(dependencies, "@msgpack/msgpack"),
-            handleDependency(dependencies, "zod"),
-            handleDependency(dependencies, "typescript"),
+            handleDependency(dependencies, "ARPC_CORE_VERSION", "@arpc/core"),
+            handleDependency(dependencies, "ARPC_SCHEMA_VIEWER_VERSION", "@arpc/schema-viewer"),
+            handleDependency(dependencies, "MSGPACK_VERSION", "@msgpack/msgpack"),
+            handleDependency(dependencies, "ZOD_VERSION", "zod"),
+            handleDependency(dependencies, "TYPESCRIPT_VERSION", "typescript"),
         ]);
     } catch (err) {
         error(`Failed to add dependencies: ${(err as Error).message}`);
