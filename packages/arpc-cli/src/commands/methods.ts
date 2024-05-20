@@ -84,7 +84,7 @@ async function create(namespace: string[], versionInit: RPCVersionWithCache | un
     }
 
     const relPath = `./routes/${version}/${namespace.join("/")}.ts`;
-    routes[methodName] = relPath;
+    routes[methodName] = relPath.slice(0, -3);
 
     const absPath = join(rpcPath, relPath);
     const dir = dirname(absPath);

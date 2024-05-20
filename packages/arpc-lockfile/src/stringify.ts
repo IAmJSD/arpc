@@ -28,6 +28,7 @@ function importRoutes(routes: Routes, imports: Map<string, string>, stack?: stri
             const hasImport = imports.has(value);
             if (!hasImport) {
                 body += `import * as ${stack}${camel(key)} from "${value}";\n`;
+                imports.set(value, `${stack}${camel(key)}`);
             }
         } else {
             const newStack = stack ? `${stack}${camel(key)}` : key;
@@ -39,17 +40,17 @@ function importRoutes(routes: Routes, imports: Map<string, string>, stack?: stri
     return body;
 }
 
-function generateRoutes(routes: Routes, imports: Map<string, string>, indentation?: string): string {
+function generateRoutes(routes: Routes, imports: Map<string, string>, spaces?: number): string {
     let body: string;
     const keys = Object.keys(routes).sort();
     let init = false;
-    if (indentation) {
+    if (spaces) {
         if (keys.length === 0) {
             return "},\n";
         }
         body = "\n";
     } else {
-        indentation = "    ";
+        spaces = 4;
         if (keys.length === 0) {
             return "const routes = {} as const;\n\n";
         }
@@ -57,19 +58,20 @@ function generateRoutes(routes: Routes, imports: Map<string, string>, indentatio
         init = true;
     }
 
+    let indentation = " ".repeat(spaces);
     for (const key of keys) {
         const value = routes[key];
         if (typeof value === "string") {
             body += `${indentation}${key}: ${imports.get(value)},\n`;
         } else {
             body += `${indentation}${key}: {`;
-            body += generateRoutes(value, imports, indentation + "    ");
+            body += generateRoutes(value, imports, spaces + 4);
         }
     }
     if (init) {
         body += "} as const;\n\n";
     } else {
-        body += `${indentation}},\n`;
+        body += `${" ".repeat(spaces - 4)}},\n`;
     }
     return body;
 }

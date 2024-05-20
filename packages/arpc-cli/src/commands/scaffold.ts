@@ -1,6 +1,6 @@
 import { InvalidArgumentError, type Command } from "commander";
 import { join } from "path";
-import { statSync, writeFileSync } from "fs";
+import { statSync, writeFileSync, mkdirSync } from "fs";
 import { stringify } from "@arpc/lockfile";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { error, success } from "../utils/console";
@@ -94,6 +94,7 @@ function scaffoldException(name: string) {
         statSync(exceptionFile);
     } catch {
         // Write the file.
+        mkdirSync(join(rpcPath, "exceptions"), { recursive: true });
         writeFileSync(exceptionFile, `export class ${name} extends Error {
     get body() {
         // TODO: Return a body that is useful to the user.
