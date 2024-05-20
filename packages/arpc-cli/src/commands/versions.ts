@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { writeFileSync, mkdirSync, rmdirSync, readFileSync } from "fs";
+import { writeFileSync, mkdirSync, rmSync, readFileSync } from "fs";
 import { readdir, rename, stat, mkdir } from "fs/promises";
 import { join, sep } from "path";
 import { stringify } from "@arpc/lockfile";
@@ -199,7 +199,7 @@ async function drop([init, version]: RPCVersionWithCache) {
 
     // Delete the old folder.
     try {
-        rmdirSync(join(rpcPath, "routes", version), { recursive: true });
+        rmSync(join(rpcPath, "routes", version), { recursive: true });
     } catch {
         // This is probably just aliasing.
     }

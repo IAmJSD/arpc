@@ -53,7 +53,7 @@ function generateRoutes(routes: Routes, imports: Map<string, string>, indentatio
         if (keys.length === 0) {
             return "const routes = {} as const;\n\n";
         }
-        body = "const routes = {";
+        body = "const routes = {\n";
         init = true;
     }
 

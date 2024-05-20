@@ -1,6 +1,6 @@
 import esbuild from "esbuild";
 import { join } from "path";
-import { mkdtemp, rmdir } from "fs/promises";
+import { mkdtemp, rm } from "fs/promises";
 import type { BuildData } from "@arpc/client-gen";
 import { error } from "./console";
 
@@ -9,7 +9,7 @@ export async function getBuildData(nextFolder: string) {
     const tmpFolder = await mkdtemp("arpc-");
     async function tidy() {
         try {
-            await rmdir(tmpFolder, { recursive: true });
+            await rm(tmpFolder, { recursive: true });
         } catch {
             // Ignore.
         }

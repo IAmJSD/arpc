@@ -72,23 +72,9 @@ function parseRoutes(
             return objStack[0];
         }
 
-        // Look for a value inside the object.
-        let res = VALUE_REGEX.exec(line);
-        if (res) {
-            // Parse the value.
-            let [_, key, type] = res;
-            if (key.startsWith('"')) key = key.substring(1, key.length - 1);
-            const t = imports.get(type);
-            if (!t) {
-                throw new Error(`The import for ${type} is missing.`);
-            }
-            objStack[objStack.length - 1][key] = t;
-            continue;
-        }
-
         // Look for the start of a object.
         let blank = false;
-        res = NEW_OBJ_REGEX.exec(line);
+        let res = NEW_OBJ_REGEX.exec(line);
         if (!res) {
             // Try to match a blank object.
             res = BLANK_OBJ_REGEX.exec(line);
@@ -99,6 +85,20 @@ function parseRoutes(
             const obj: Routes = {};
             objStack[objStack.length - 1][res[1]] = obj;
             if (!blank) objStack.push(obj);
+            continue;
+        }
+
+        // Look for a value inside the object.
+        res = VALUE_REGEX.exec(line);
+        if (res) {
+            // Parse the value.
+            let [_, key, type] = res;
+            if (key.startsWith('"')) key = key.substring(1, key.length - 1);
+            const t = imports.get(type);
+            if (!t) {
+                throw new Error(`The import for ${type} is missing.`);
+            }
+            objStack[objStack.length - 1][key] = t;
             continue;
         }
 
@@ -131,7 +131,7 @@ export function parse(lockFile: string): Lockfile {
     let hasRatelimits = false;
     const imports = new Map<string, string>();
     let exceptions: Record<string, string> | null = {};
-    while (line) {
+    while (line !== undefined) {
         if (line === "") {
             // Skip empty lines.
             line = lines.shift();
