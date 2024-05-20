@@ -1,6 +1,8 @@
 import type { Command } from "commander";
 import { writeFileSync, readFileSync } from "fs";
-import type { BuildData, Enum, Method, Methods, Signature } from "@arpc/client-gen";
+import type {
+    BuildData, Enum, Method, Methods, Object, Signature,
+} from "@arpc/client-gen";
 import { getBuildData } from "../utils/getBuildData";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { error, success } from "../utils/console";
@@ -91,7 +93,45 @@ function compareObjects(
     buildData: BuildData, compareData: BuildData, compareFile: string,
     errors: string[],
 ) {
-    // TODO
+    // Get the objects from the data we are comparing to.
+    const oldObjects = compareData.objects;
+    if (!Array.isArray(oldObjects)) {
+        error(`Could not find the objects array in the compare file ${compareFile}.`);
+    }
+    const oldObjectsMapping = new Map<string, Object>();
+    for (const o of oldObjects) {
+        if (typeof o !== "object" || typeof o.name !== "string") {
+            error("Could not find the name in the compare file objects.");
+        }
+        oldObjectsMapping.set(o.name, o);
+    }
+
+    // Get the clients from the new data.
+    const newObjectsMapping = new Map<string, Object>();
+    for (const o of buildData.objects) {
+        newObjectsMapping.set(o.name, o);
+    }
+
+    // Go through each old object and compare.
+    const usages = new UsageChecker(buildData);
+    for (const [key, oldObject] of oldObjectsMapping) {
+        const newObject = newObjectsMapping.get(key);
+        if (!newObject) {
+            // If there's no usages, this can go.
+            if (!usages.check("object", "key", key)) continue;
+
+            // The object is not in the new data but is used.
+            errors.push(`The object ${key} was removed.`);
+            continue;
+        }
+
+        // Go through the values.
+        for (const [k, v] of Object.entries(oldObject.fields)) {
+            if (JSON.stringify(newObject.fields[k]) !== JSON.stringify(v)) {
+                errors.push(`The object field ${k} for ${key} was changed.`);
+            }
+        }
+    }
 }
 
 // Handle that the old/new inputs might be undefined.
