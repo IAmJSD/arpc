@@ -241,11 +241,21 @@ function makeClientClass(
     return prefix + cls.generate(`${name}${suffix}`, extendsCls, description, typeOf === "root");
 }
 
-const hostnameSetup = (protocol: string, hostname: string, version: string) => `if (!hostname) {
+const hostnameSetup = (protocol: string, hostname: string, version: string) => {
+    if (hostname === "") {
+        return `if (!hostname) {
+    hostname = window.location.origin;
+}
+
+super(hostname, "version=${version}", headers, API${version.toUpperCase()}Batcher);`;
+    }
+
+    return `if (!hostname) {
     hostname = "${protocol}://${hostname}/";
 }
 
 super(hostname, "version=${version}", headers, API${version.toUpperCase()}Batcher);`;
+};
 
 function generateClientConstructor(c: Client) {
     return (cls: ClassGenerator) => {
