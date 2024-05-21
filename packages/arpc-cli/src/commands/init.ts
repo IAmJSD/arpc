@@ -4,9 +4,10 @@ import { readFile, writeFile, mkdir } from "fs/promises";
 import { join, sep } from "path";
 import axios from "axios";
 import { stringify } from "@arpc/lockfile";
-import { findRepoFolderStructure } from "../utils/findRepoFolderStructure";
+import { RepoFolderStructure, findRepoFolderStructure } from "../utils/findRepoFolderStructure";
 import { error, success } from "../utils/console";
 import { runShellScript } from "../utils/runShellScript";
+import { createGithubAction } from "../utils/createGithubAction";
 
 async function handleDependency(dependencies: { [key: string]: any }, env: string, name: string) {
     if (dependencies[name]) {
@@ -282,6 +283,17 @@ async function makeClientPlaceholder(nextFolder: string) {
     await writeFile(join(nextFolder, "clients", "rpc.ts"), client);
 }
 
+async function writeGitHubAction(folderStructure: RepoFolderStructure) {
+    if (!folderStructure.gitFolder) {
+        // We can't write a GitHub action if we don't have a Git folder.
+        return;
+    }
+    const action = await createGithubAction(folderStructure);
+    const workflowFolder = join(folderStructure.gitFolder, ".github", "workflows");
+    await mkdir(workflowFolder, { recursive: true });
+    await writeFile(join(workflowFolder, "arpc_lint.yml"), action);
+}
+
 async function cmdAction() {
     // Find the repositories folder structure.
     const folderStructure = findRepoFolderStructure();
@@ -425,6 +437,8 @@ async function cmdAction() {
         ),
 
         makeClientPlaceholder(folderStructure.nextFolder),
+
+        writeGitHubAction(folderStructure),
     ]);
 
     // Send the success message.

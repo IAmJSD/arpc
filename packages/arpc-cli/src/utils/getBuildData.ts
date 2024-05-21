@@ -23,7 +23,7 @@ export async function getBuildData(nextFolder: string) {
     }
 
     // Defines the RPC outfile.
-    const outfile = join(tmpFolder, "rpc.js");
+    const outfile = join(tmpFolder, "rpc.cjs");
 
     try {
         // Build the RPC.
