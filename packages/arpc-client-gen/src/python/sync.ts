@@ -83,7 +83,7 @@ class _BaseClient(object):
                 headers["Content-Type"] = "application/msgpack"
                 kwargs["data"] = data
 
-        resp = requests.request(m, self._hostname + "/rpc?" + params, headers=headers, **kwargs)
+        resp = requests.request(m, self._hostname + "/api/rpc?" + params, headers=headers, **kwargs)
         return _process_result(resp, batch)`;
 
 // Defines the __init__ generation function.
