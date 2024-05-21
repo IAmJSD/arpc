@@ -115,7 +115,7 @@ export default (routes, auth, exceptions, ratelimiter) => {
                 status: clsName === "InternalServerError" ? 500 : 400,
                 headers: {
                     "Content-Type": "application/msgpack",
-                    "X-Is-Arpc": "true",
+                    "x-is-arpc": "true",
                 },
             },
         );
@@ -138,7 +138,7 @@ export default (routes, auth, exceptions, ratelimiter) => {
                     status: 400,
                     headers: {
                         "Content-Type": "application/msgpack",
-                        "X-Is-Arpc": "true",
+                        "x-is-arpc": "true",
                     },
                 },
             );
@@ -220,7 +220,7 @@ export default (routes, auth, exceptions, ratelimiter) => {
                     arg = decode(new Uint8Array(await req.arrayBuffer()));
                 } else {
                     // Get the argument from the URL.
-                    arg = url.get("arg");
+                    arg = q.get("arg");
                     if (!arg) {
                         return builtInError("BadRequest", "MISSING_ARG", "Missing arg parameter");
                     }
@@ -334,7 +334,7 @@ export default (routes, auth, exceptions, ratelimiter) => {
                                 status: highestStatus,
                                 headers: {
                                     "Content-Type": "application/msgpack",
-                                    "X-Is-Arpc": "true",
+                                    "x-is-arpc": "true",
                                 },
                             },
                         );
@@ -438,7 +438,7 @@ export default (routes, auth, exceptions, ratelimiter) => {
                 return new Response(null, {
                     status: 204,
                     headers: {
-                        "X-Is-Arpc": "true",
+                        "x-is-arpc": "true",
                     },
                 });
             }
@@ -447,7 +447,7 @@ export default (routes, auth, exceptions, ratelimiter) => {
             return new Response(encode(resp), {
                 headers: {
                     "Content-Type": "application/msgpack",
-                    "X-Is-Arpc": "true",
+                    "x-is-arpc": "true",
                 },
             });
         });

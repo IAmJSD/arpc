@@ -199,9 +199,9 @@ namespace ${namespace}\\Internal {
             // Execute the request.
             $response = curl_exec($ch);
 
-            // Check the X-Is-Arpc header is set.
+            // Check the x-is-arpc header is set.
             $info = curl_getinfo($ch);
-            if (!isset($info["request_header"]) || strpos($info["request_header"], "X-Is-Arpc: true") === false) {
+            if (!isset($info["request_header"]) || strpos($info["request_header"], "x-is-arpc: true") === false) {
                 throw new \\${namespace}\\InvalidResponse("INVALID_RESPONSE", "The response is not a valid msgpack response.");
             }
 

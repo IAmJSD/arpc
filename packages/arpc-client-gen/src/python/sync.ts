@@ -15,7 +15,7 @@ ${sharedCode(true)}
 
 def _process_result(resp: requests.Response, batch):
     """Processes the result of a request."""
-    if resp.headers.get("X-Is-Arpc") != "true":
+    if resp.headers.get("x-is-arpc") != "true":
         raise InvalidResponse("INVALID_RESPONSE", "The response is not an arpc response.")
 
     if resp.status_code == 204:

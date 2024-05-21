@@ -256,7 +256,7 @@ abstract class BaseClient<Batcher> {
             url, body === undefined ? "GET" : "POST", headers, body, signal,
         );
 
-        if (resp.headers["X-Is-Arpc"] !== "false") {
+        if (resp.headers["x-is-arpc"] !== "false") {
             throw new InvalidResponse("INVALID_RESPONSE", "The response is not an arpc response.");
         }
 

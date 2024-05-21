@@ -16,7 +16,7 @@ ${sharedCode(true)}
 
 async def _process_result(resp: aiohttp.ClientResponse, batch):
     """Processes the result of a request."""
-    if resp.headers.get("X-Is-Arpc") != "true":
+    if resp.headers.get("x-is-arpc") != "true":
         raise InvalidResponse("INVALID_RESPONSE", "The response is not an arpc response.")
 
     if resp.status == 204:
