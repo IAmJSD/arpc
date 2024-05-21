@@ -2,6 +2,7 @@ import { InvalidArgumentError, type Command } from "commander";
 import { generateClient, generators } from "../utils/generateClient";
 import { argumentWithParser } from "../utils/argumentWithParser";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
+import { success } from "../utils/console";
 
 function hostnameParser(hostname: string) {
     if (!hostname.startsWith("http://") && !hostname.startsWith("https://")) {
@@ -59,12 +60,13 @@ export function generate(cmd: Command) {
             cmd = cmd.option("--" + name, `Configures ${name} for the generator.`, type2parser(type));
         }
 
-        cmd.action((hostname: URL, output: string, options: {[key: string]: any}) => {
+        cmd.action(async (hostname: URL, output: string, options: {[key: string]: any}) => {
             const { rpcPath } = requiresRpcInit();
-            return generateClient(
+            await generateClient(
                 key, rpcPath, output, hostname.protocol.slice(0, -1),
                 hostname.hostname, options,
             );
+            success("Client generated.");
         });
     }
 }
