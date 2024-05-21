@@ -64,7 +64,8 @@ export function generate(cmd: Command) {
             const { rpcPath } = requiresRpcInit();
             await generateClient(
                 key, rpcPath, output, hostname.protocol.slice(0, -1),
-                hostname.hostname, options,
+                `${hostname.hostname}${hostname.port === "" ? "" : `:${hostname.port}`}`,
+                options,
             );
             success("Client generated.");
         });
