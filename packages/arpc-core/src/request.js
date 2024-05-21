@@ -26,58 +26,57 @@ function findRoute(routeKey, routes) {
     return route;
 }
 
-// Turns query data into a Uint8Array.
-function query2uint(query) {
+// Take a URL-encoded param string and quickly convert it to a Uint8Array.
+function paramu8a(param) {
+    // Create a buffer for the param to live in.
+    const buffer = new Uint8Array(param.length);
+
+    // Defines the actual length of the bit of the buffer we're using.
     let len = 0;
-    const init = new Uint8Array(query.length);
-    for (let i = 0; i < query.length; i++) {
-        const v = query.charCodeAt(i);
-        i++;
+
+    // Iterate over the param string.
+    for (let i = 0; i < param.length; i++) {
+        const v = param.charCodeAt(i);
         if (v === 37) {
             // This is a percent sign.
-            if (i + 2 >= query.length) {
+            if (i + 2 >= param.length) {
                 throw new Error("Invalid percent encoding");
             }
-            init[len++] = parseInt(query.substring(i + 1, i + 3), 16);
+            buffer[len++] = parseInt(param.substring(i + 1, i + 3), 16);
             i += 2;
         } else {
             // This is a normal character.
-            init[len++] = v;
+            buffer[len++] = v;
         }
     }
-    return init.slice(0, len);
-}
 
-const ARG_REGEX = /(\?.*)(arg=([^&]+)\&?)/g;
+    // Return the truncated buffer.
+    return buffer.slice(0, len);
+}
 
 // Handles safely parsing the URL query when a binary arg is in it.
 function safeParseQuery(url) {
-    // Look for a match and.
-    const match = ARG_REGEX.exec(url);
-    if (!match) {
-        // This will fail, but for different reasons. Parse the URL.
-        return new URL(url).searchParams;
+    // Match the arguments.
+    const questionMarkIndex = url.indexOf("?");
+    if (questionMarkIndex === -1) {
+        return new URLSearchParams();
+    }
+    const params = url.substring(questionMarkIndex + 1);
+
+    // Split the arguments.
+    const args = params.split("&");
+    const m = new Map();
+    for (const arg of args) {
+        const equalsIndex = arg.indexOf("=");
+        const before = arg.substring(0, equalsIndex);
+        if (equalsIndex !== -1) {
+            const after = arg.substring(equalsIndex + 1);
+            m.set(before, before === "arg" ? paramu8a(after) : after);
+        }
     }
 
-    // Get the index where arg starts.
-    const index = match.index + match[1].length;
-
-    // Remove out the arg from the URL.
-    const newUrl = url.substring(0, index) + url.substring(index + match[2].length);
-    const params = new URL(newUrl).searchParams;
-
-    // Parse the argument.
-    const arg = query2uint(match[3]);
-
-    // Return a get function that will return the argument.
-    return {
-        get(key) {
-            if (key === "arg") {
-                return arg;
-            }
-            return params.get(key);
-        },
-    };
+    // Return the map.
+    return m;
 }
 
 // Defines the function to handle the request.
