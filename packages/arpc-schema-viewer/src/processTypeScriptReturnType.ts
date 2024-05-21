@@ -218,11 +218,7 @@ export function processTypeScriptReturnType(
         const apparent = typeChecker.getApparentType(t);
         // @ts-ignore: TS doesn't have a good way to get the index infos.
         const indexInfos: { keyType: Type; valueType: Type }[] = apparent?.indexInfos;
-        if (indexInfos) {
-            if (indexInfos.length !== 1) {
-                throw new Error("Index type doesn't have one index info.");
-            }
-
+        if (indexInfos && indexInfos.length === 1) {
             const { keyType, valueType } = indexInfos[0];
 
             let inner: Signature[] = [];
