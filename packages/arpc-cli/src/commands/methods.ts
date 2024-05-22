@@ -214,7 +214,12 @@ async function drop(namespace: string[], versionInit: RPCVersionWithCache | unde
 }
 
 function namespaceParser(namespace: string) {
-    const s = namespace.trim().split(".");
+    const lower = namespace.trim().toLowerCase();
+    if (lower === "batch" || lower === "batcher") {
+        throw new InvalidArgumentError(`${lower} is a reserved name.`);
+    }
+
+    const s = lower.split(".");
     for (const part of s) {
         if (part === "") {
             throw new InvalidArgumentError("Blank namespace part.");
