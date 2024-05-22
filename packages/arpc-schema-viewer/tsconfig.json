@@ -1,0 +1,13 @@
+{
+    "files": ["src/index.ts"],
+    "compilerOptions": {
+        "strict": true,
+        "allowJs": true,
+        "moduleResolution": "Node",
+        "jsx": "react-jsx",
+        "allowSyntheticDefaultImports": true,
+        "downlevelIteration": true,
+        "target": "ESNext",
+        "module": "ES2022"
+    }
+}

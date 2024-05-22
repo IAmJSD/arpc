@@ -10,7 +10,7 @@ export type RepoFolderStructure = {
     gitFolder: string | null;
 };
 
-const NEXT_CONFIG_REGEX = /^next\.config\.[tj]sx?$/;
+const NEXT_CONFIG_REGEX = /^next\.config\.[mc]?[tj]sx?$/;
 
 function findPackageManager(folder: string): PackageManager | null {
     const files = new Set(readdirSync(folder));
