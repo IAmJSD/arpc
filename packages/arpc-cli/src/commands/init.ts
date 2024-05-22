@@ -51,121 +51,29 @@ function figureOutSpacing(str: string): string {
     return "    ";
 }
 
-async function writeNextEntrypoints(nextFolder: string, isAppRouter: boolean) {
-    // Make sure the app/page router folder exists. We will need the api
-    // folder in both cases, so make sure it exists.
-    let p = join(nextFolder, isAppRouter ? "app" : "pages", "api");
-    if (isAppRouter) {
-        p = join(p, "rpc");
-    }
-    await mkdir(p, { recursive: true });
-
-    if (isAppRouter) {
-        await Promise.all([
-            // Write /api/rpc.
-            writeFile(
-                join(nextFolder, "app", "api", "rpc", "route.ts"),
-                `import { httpHandler } from "@/rpc";
+async function writeNextEntrypoints(nextFolder: string) {
+    const apiDir = join(nextFolder, "app", "api", "rpc");
+    await mkdir(apiDir, { recursive: true }).then(() => {
+        return writeFile(
+            join(apiDir, "route.ts"),
+            `import { httpHandler } from "@/rpc";
 
 export const GET = httpHandler;
 
 export const POST = httpHandler;
 `,
-            ),
+        );
+    });
 
-            // Write the files for the /arpc route.
-            mkdir(
-                join(nextFolder, "app", "(arpc)", "arpc"),
-                { recursive: true },
-            ).then(() => {
-                // Write page.tsx.
-                const page = writeFile(
-                    join(nextFolder, "app", "(arpc)", "arpc", "page.tsx"),
-                    `import { generateSchema } from "@/rpc";
+    const pagesDir = join(nextFolder, "pages");
+    await mkdir(pagesDir, { recursive: true }).then(() => {
+        return writeFile(
+            join(pagesDir, "arpc.tsx"),
+            `import { generateSchema } from "@/rpc";
 import { SchemaViewer } from "@arpc/schema-viewer";
 
-export default async function ARPCDocumentation() {
-    const schema = await generateSchema();
-
-    return <SchemaViewer schema={schema} />;
-}
-`);
-
-                // Write layout.tsx.
-                const layout = writeFile(
-                    join(nextFolder, "app", "(arpc)", "arpc", "layout.tsx"),
-                    `import type { Metadata } from "next";
-
-// Load in the styles for the arpc schema viewer.
+// @ts-ignore: This might break some TS environments.
 import "@arpc/schema-viewer/styles.css";
-
-export const runtime = "nodejs";
-
-export const metadata: Metadata = {
-    title: "API Documentation",
-    description: "The documentation for the API.",
-};
-
-export default function Layout({ children }: { children: React.ReactNode }) {
-    return (
-        <html lang="en">
-            <body className="dark:bg-gray-800 dark:text-white">
-                {children}
-            </body>
-        </html>
-    );
-}
-`);
-
-                // Wait for both to finish.
-                return Promise.all([page, layout]);
-            }),
-        ]);
-    } else {
-        await Promise.all([
-            // Write /api/rpc.
-            writeFile(
-                join(nextFolder, "pages", "api", "rpc.ts"),
-                `import { httpHandler } from "@/rpc";
-import type { NextApiRequest, NextApiResponse } from "next";
-
-const ALLOWED_METHODS = ["GET", "POST"];
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (!ALLOWED_METHODS.includes(req.method)) {
-        res.setHeader("Allow", "GET, POST");
-        res.status(405).end();
-        return;
-    }
-
-    const headers = new Headers();
-    for (const [key, value] of Object.entries(req.headers)) {
-        if (value) {
-            headers.set(
-                key, typeof value === "string" ? value : value[0],
-            );
-        }
-    }
-
-    const webStandardResp = await httpHandler(new Request(req.url!, {
-        body: req.body, headers,
-    }));
-    for (const [key, value] of Object.entries(webStandardResp.headers)) {
-        res.setHeader(key, value);
-    }
-    res.status(webStandardResp.status).send(webStandardResp.body);
-}
-`),
-
-            // Write /arpc.
-            writeFile(
-                join(nextFolder, "pages", "arpc.tsx"),
-                `import { generateSchema } from "@/rpc";
-import { SchemaViewer } from "@arpc/schema-viewer";
-
-type Props = {
-    schema: any;
-};
 
 export default SchemaViewer;
 
@@ -174,9 +82,8 @@ export async function getServerSideProps() {
 
     return { props: { schema } };
 }
-`),
-        ]);
-    }
+`);
+    });
 }
 
 function getRpcIndexRelPath(basePath: string, childPath: string) {
@@ -398,6 +305,7 @@ async function cmdAction() {
     try {
         await Promise.all([
             handleDependency(dependencies, "ARPC_CORE_VERSION", "@arpc/core"),
+            handleDependency(dependencies, "ARPC_SCHEMA_GEN_VERSION", "@arpc/schema-gen"),
             handleDependency(dependencies, "ARPC_SCHEMA_VIEWER_VERSION", "@arpc/schema-viewer"),
             handleDependency(dependencies, "MSGPACK_VERSION", "@msgpack/msgpack"),
             handleDependency(dependencies, "ZOD_VERSION", "zod"),
@@ -446,7 +354,7 @@ async function cmdAction() {
             "",
         ),
 
-        writeNextEntrypoints(folderStructure.nextFolder, isAppRouter),
+        writeNextEntrypoints(folderStructure.nextFolder),
 
         handlePrettierIgnore(
             folderStructure.gitFolder, folderStructure.nextFolder,

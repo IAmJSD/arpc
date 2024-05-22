@@ -3,7 +3,6 @@
     "compilerOptions": {
         "strict": true,
         "allowJs": true,
-        "jsx": "react-jsx",
         "moduleResolution": "Node",
         "allowSyntheticDefaultImports": true,
         "downlevelIteration": true,
