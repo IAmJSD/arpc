@@ -21,7 +21,7 @@ export const generators: Generators = {
 
 export async function generateClient<Key extends keyof typeof generators>(
     generator: Key, rpcPath: string, filePath: string, protocol: string, hostname: string,
-    options: {[key: string]: any},
+    options: {[key: string]: any}, justThrow?: boolean,
 ) {
     const buildData = await getBuildData(join(rpcPath, ".."));
     for (const c of buildData.clients) {
@@ -33,12 +33,18 @@ export async function generateClient<Key extends keyof typeof generators>(
     try {
         res = generators[generator][0](buildData, options);
     } catch (err) {
+        if (justThrow) {
+            throw err;
+        }
         error(`Failed to generate client: ${(err as Error).message}`);
     }
 
     try {
         await writeFile(filePath, res);
     } catch (err) {
+        if (justThrow) {
+            throw err;
+        }
         error(`Failed to write client to ${filePath}: ${(err as Error).message}`);
     }
 }
