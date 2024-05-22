@@ -414,7 +414,7 @@ async function cmdAction() {
     packageJson.scripts.arpc = "arpc";
     packageJson.scripts["dev:next"] = packageJson.scripts.dev;
     packageJson.scripts["dev:arpc"] = "arpc watch";
-    packageJson.scripts.dev = "concurrently 'npm:dev:next' 'npm:dev:arpc'";
+    packageJson.scripts.dev = "concurrently --raw 'npm:dev:next' 'npm:dev:arpc'";
 
     // Write the package.json.
     writeFileSync(
