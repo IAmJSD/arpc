@@ -343,12 +343,21 @@ async function cmdAction() {
     }
 
     // Check if typescript is in devDependencies and if it is then move it.
-    if (typeof packageJson.devDependencies === "object" && !Array.isArray(packageJson.devDependencies)) {
-        const t = packageJson.devDependencies.typescript;
-        if (t) {
-            packageJson.dependencies.typescript = t;
-            delete packageJson.devDependencies.typescript;
-        }
+    if (!packageJson.devDependencies) {
+        packageJson.devDependencies = {};
+    }
+    if (typeof packageJson.devDependencies !== "object" || Array.isArray(packageJson.devDependencies)) {
+        error("devDependencies in package.json is not an object.");
+    }
+    const t = packageJson.devDependencies.typescript;
+    if (t) {
+        packageJson.dependencies.typescript = t;
+        delete packageJson.devDependencies.typescript;
+    }
+
+    // Validate scripts.
+    if (typeof packageJson.scripts !== "object" || Array.isArray(packageJson.scripts)) {
+        error("Scripts in package.json is not an object.");
     }
 
     // Find if this is app router.
@@ -385,6 +394,7 @@ async function cmdAction() {
 
     // Write to the dependencies. This uses a Promise because it makes network requests.
     const dependencies: { [key: string]: any } = packageJson.dependencies;
+    const devDependencies: { [key: string]: any } = packageJson.devDependencies;
     try {
         await Promise.all([
             handleDependency(dependencies, "ARPC_CORE_VERSION", "@arpc/core"),
@@ -392,10 +402,19 @@ async function cmdAction() {
             handleDependency(dependencies, "MSGPACK_VERSION", "@msgpack/msgpack"),
             handleDependency(dependencies, "ZOD_VERSION", "zod"),
             handleDependency(dependencies, "TYPESCRIPT_VERSION", "typescript"),
+            handleDependency(devDependencies, "ARPC_VERSION", "arpc"),
+            handleDependency(devDependencies, "CONCURRENTLY_VERSION", "concurrently"),
         ]);
     } catch (err) {
         error(`Failed to add dependencies: ${(err as Error).message}`);
     }
+
+    // Add the arpc scripts.
+    packageJson.scripts = packageJson.scripts || {};
+    packageJson.scripts.arpc = "arpc";
+    packageJson.scripts["dev:next"] = packageJson.scripts.dev;
+    packageJson.scripts["dev:arpc"] = "arpc watch";
+    packageJson.scripts.dev = "concurrently 'npm:dev:next' 'npm:dev:arpc'";
 
     // Write the package.json.
     writeFileSync(
