@@ -79,10 +79,10 @@ function safeParseQuery(url) {
     return m;
 }
 
-// Defines the function to handle the request.
+// Defines the function to build the request handler. Most of this is untyped due to the nature
+// of iterating complex data structures, but the actual request handler is JSDoc typed.
 export default (globalRoutes, auth, exceptions, ratelimiter) => {
-    // Flat pack the supported token types into a map of lower case strings to the
-    // token type.
+    // Flat pack the supported token types into a map of lower case strings to the token type.
     const tokenTypeMap = new Map();
     if (auth) {
         for (const type of Object.values(auth.TokenTypes)) {
@@ -235,29 +235,29 @@ export default (globalRoutes, auth, exceptions, ratelimiter) => {
             let resp;
             if (routeKey === "batch") {
                 // Get all of the routes.
-                const routes = [];
+                const batchRoutes = [];
                 if (!Array.isArray(arg)) {
                     return builtInError("BadRequest", "INVALID_ARG", "Argument must be an array");
                 }
-                for (const routes of arg) {
+                for (const routeInfo of arg) {
                     // Make sure the routes are an object.
-                    if (typeof routes !== "object") {
+                    if (typeof routeInfo !== "object") {
                         return builtInError("BadRequest", "INVALID_ARG", "Argument must be an object");
                     }
 
                     // Get the route.
-                    const route = findRoute(routeKey, routes.methodName);
+                    const route = findRoute(routeInfo.methodName, routes);
                     if (!route) {
                         return builtInError("BadRequest", "ROUTE_NOT_FOUND", "Route not found");
                     }
-                    routes.push(route);
+                    batchRoutes.push(route);
                 }
 
                 // Check authentication for all of the routes.
                 if (!user && auth) {
                     const errors = [];
-                    for (const routeIndex in routes) {
-                        const route = routes[routeIndex];
+                    for (let routeIndex = 0; routeIndex < batchRoutes.length; routeIndex++) {
+                        const route = batchRoutes[routeIndex];
                         if (route.authenticated || route.authenticated === undefined) {
                             errors.push(["Unauthorized", "UNAUTHENTICATED", `Route ${arg[routeIndex].methodName} requires authentication`]);
                         }
@@ -304,6 +304,7 @@ export default (globalRoutes, auth, exceptions, ratelimiter) => {
                                 allNull = false;
                             }
                             responses[indexStart + i] = resp;
+                            return null;
                         } catch (err) {
                             return handleExceptions(err, true);
                         }
@@ -339,13 +340,16 @@ export default (globalRoutes, auth, exceptions, ratelimiter) => {
                             },
                         );
                     }
+
+                    // Clear the chunks.
+                    chunks.length = 0;
                 };
 
                 // Handles chunking all of the requests.
                 const args = arg.map((a) => a.arg);
-                for (const routeIndex in routes) {
+                for (let routeIndex = 0; routeIndex < batchRoutes.length; routeIndex++) {
                     const arg = args[routeIndex];
-                    const route = routes[routeIndex];
+                    const route = batchRoutes[routeIndex];
                     if (!route.parallel && chunks.length > 0) {
                         // We need to flush all previous requests before we do a mutation.
                         const res = await flush();
