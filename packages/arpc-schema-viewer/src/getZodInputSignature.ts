@@ -73,7 +73,6 @@ export function getZodInputSignature(
         const name = getName();
         let revision = 0;
         let fullName = name;
-        const obj = { name: fullName, fields };
         while (uniqueNames.has(fullName)) {
             // Get this revision and check if it is the same.
             const existing = objects.find((o) => o.name === fullName);
@@ -89,9 +88,10 @@ export function getZodInputSignature(
             revision++;
             fullName = `${name}V${revision}`;
         }
+        uniqueNames.add(fullName);
 
         // Push the object.
-        objects.push(obj);
+        objects.push({ name: fullName, fields });
 
         // Return a reference to it.
         return { type: "object", key: fullName };
@@ -138,6 +138,7 @@ export function getZodInputSignature(
             revision++;
             fullName = `${name}V${revision}`;
         }
+        uniqueNames.add(fullName);
 
         // Push the enum.
         enums.push({ name: fullName, valueType, data: newEnum });

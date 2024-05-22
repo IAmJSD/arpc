@@ -269,6 +269,7 @@ export function processTypeScriptReturnType(
                 revision++;
                 fullName = `${typeAlias || getName()}V${revision}`;
             }
+            uniqueNames.add(fullName);
             objects.push({ name: fullName, fields });
             a.push({ type: "object", key: fullName });
             return;
@@ -334,6 +335,7 @@ export function processTypeScriptReturnType(
                     revision++;
                     fullName = `${typeAlias || getName()}V${revision}`;
                 }
+                uniqueNames.add(fullName);
                 enums.push({ name: fullName, valueType: postprocessOutputs(types), data: values });
                 a.push({ type: "enum_value", enum: fullName });
             }
