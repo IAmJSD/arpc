@@ -3,7 +3,7 @@ import { statSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { join, sep } from "path";
 import axios from "axios";
-import { stringify } from "@arpc/lockfile";
+import { stringify } from "@arpc-packages/lockfile";
 import { RepoFolderStructure, findRepoFolderStructure } from "../utils/findRepoFolderStructure";
 import { error, success } from "../utils/console";
 import { runShellScript } from "../utils/runShellScript";
@@ -70,10 +70,10 @@ export const POST = httpHandler;
         return writeFile(
             join(pagesDir, "arpc.tsx"),
             `import { generateSchema } from "@/rpc";
-import { SchemaViewer } from "@arpc/schema-viewer";
+import { SchemaViewer } from "@arpc-packages/schema-viewer";
 
 // @ts-ignore: This might break some TS environments.
-import "@arpc/schema-viewer/styles.css";
+import "@arpc-packages/schema-viewer/styles.css";
 
 export default SchemaViewer;
 
@@ -304,9 +304,9 @@ async function cmdAction() {
     const devDependencies: { [key: string]: any } = packageJson.devDependencies;
     try {
         await Promise.all([
-            handleDependency(dependencies, "ARPC_CORE_VERSION", "@arpc/core"),
-            handleDependency(dependencies, "ARPC_SCHEMA_GEN_VERSION", "@arpc/schema-gen"),
-            handleDependency(dependencies, "ARPC_SCHEMA_VIEWER_VERSION", "@arpc/schema-viewer"),
+            handleDependency(dependencies, "ARPC_CORE_VERSION", "@arpc-packages/core"),
+            handleDependency(dependencies, "ARPC_SCHEMA_GEN_VERSION", "@arpc-packages/schema-gen"),
+            handleDependency(dependencies, "ARPC_SCHEMA_VIEWER_VERSION", "@arpc-packages/schema-viewer"),
             handleDependency(dependencies, "MSGPACK_VERSION", "@msgpack/msgpack"),
             handleDependency(dependencies, "ZOD_VERSION", "zod"),
             handleDependency(dependencies, "TYPESCRIPT_VERSION", "typescript"),

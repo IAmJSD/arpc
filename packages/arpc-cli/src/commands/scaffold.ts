@@ -1,7 +1,7 @@
 import { InvalidArgumentError, type Command } from "commander";
 import { join } from "path";
 import { statSync, writeFileSync, mkdirSync } from "fs";
-import { stringify } from "@arpc/lockfile";
+import { stringify } from "@arpc-packages/lockfile";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { error, success } from "../utils/console";
 import { argumentWithParser } from "../utils/argumentWithParser";
@@ -73,7 +73,7 @@ function scaffoldRatelimiting() {
         }
 
         // Write the file.
-        writeFileSync(ratelimitingFile, `${userImport}import { Ratelimited } from "@arpc/core";
+        writeFileSync(ratelimitingFile, `${userImport}import { Ratelimited } from "@arpc-packages/core";
 
 export default async function ratelimit(methodName: string, arg: any${userType}) {
     // TODO: Implement your ratelimiting logic here. If a user is ratelimited, you

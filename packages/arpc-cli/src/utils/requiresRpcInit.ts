@@ -1,6 +1,6 @@
 import { join } from "path";
 import { readFileSync } from "fs";
-import { Lockfile, parse } from "@arpc/lockfile";
+import { Lockfile, parse } from "@arpc-packages/lockfile";
 import { error } from "./console";
 import { findRepoFolderStructure } from "./findRepoFolderStructure";
 

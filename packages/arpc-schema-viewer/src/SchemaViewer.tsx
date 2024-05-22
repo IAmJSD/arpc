@@ -1,5 +1,5 @@
 import React from "react";
-import type { BuildData } from "@arpc/client-gen";
+import type { BuildData } from "@arpc-packages/client-gen";
 import Head from "next/head";
 
 type Props = {

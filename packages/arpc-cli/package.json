@@ -6,11 +6,12 @@
         "arpc": "./dist/index.js"
     },
     "scripts": {
-        "build": "tsup-node && chmod +x dist/index.js"
+        "build": "tsup-node && chmod +x dist/index.js",
+        "prepublish": "npm run build"
     },
     "dependencies": {
-        "@arpc/client-gen": "*",
-        "@arpc/lockfile": "*",
+        "@arpc-packages/client-gen": "*",
+        "@arpc-packages/lockfile": "*",
         "axios": "^1.6.8",
         "chokidar": "^3.6.0",
         "commander": "^12.0.0",

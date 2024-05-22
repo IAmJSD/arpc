@@ -1,5 +1,5 @@
 {
-    "name": "@arpc/schema-gen",
+    "name": "@arpc-packages/schema-gen",
     "version": "0.1.0",
     "main": "dist/index.js",
     "types": "src/index.ts",
@@ -12,20 +12,21 @@
         }
     },
     "dependencies": {
-        "@arpc/client-gen": "*",
-        "@arpc/lockfile": "*",
+        "@arpc-packages/client-gen": "*",
+        "@arpc-packages/lockfile": "*",
         "typescript-parser": "^2.6.1"
     },
     "peerDependencies": {
         "zod": "^3.23.8"
     },
     "devDependencies": {
-        "@arpc/core": "*",
+        "@arpc-packages/core": "*",
         "tsup": "^8.0.2",
         "typescript": "^5.4.5"
     },
     "scripts": {
         "build": "tsup-node",
-        "lint": "tsc --noEmit"
+        "lint": "tsc --noEmit",
+        "prepublish": "npm run build"
     }
 }

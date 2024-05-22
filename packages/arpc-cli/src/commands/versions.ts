@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import { writeFileSync, mkdirSync, rmSync, readFileSync } from "fs";
 import { readdir, rename, stat, mkdir } from "fs/promises";
 import { join, sep } from "path";
-import { stringify } from "@arpc/lockfile";
+import { stringify } from "@arpc-packages/lockfile";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { API_REVISION_REGEX, sortVersions } from "../utils/sortVersions";
 import { error, success } from "../utils/console";

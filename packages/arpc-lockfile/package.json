@@ -1,5 +1,5 @@
 {
-    "name": "@arpc/lockfile",
+    "name": "@arpc-packages/lockfile",
     "version": "0.1.0",
     "module": "dist/index.mjs",
     "main": "dist/index.js",
@@ -17,6 +17,7 @@
         "tsup": "^8.0.2"
     },
     "scripts": {
-        "build": "tsup"
+        "build": "tsup",
+        "prepublish": "npm run build"
     }
 }

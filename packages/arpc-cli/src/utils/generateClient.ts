@@ -1,5 +1,5 @@
 import { join } from "path";
-import * as ClientGen from "@arpc/client-gen";
+import * as ClientGen from "@arpc-packages/client-gen";
 import { writeFile } from "fs/promises";
 import { getBuildData } from "./getBuildData";
 import { error } from "./console";

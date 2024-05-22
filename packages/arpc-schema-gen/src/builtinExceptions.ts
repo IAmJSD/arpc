@@ -1,4 +1,4 @@
-import { Exception } from "@arpc/client-gen";
+import { Exception } from "@arpc-packages/client-gen";
 
 export const builtinExceptions: Exception[] = [
     // InvalidResponse is added in the client generator.

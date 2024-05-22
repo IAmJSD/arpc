@@ -1,10 +1,10 @@
 import { readFile } from "fs/promises";
 import { join } from "path";
-import { parse } from "@arpc/lockfile";
+import { parse } from "@arpc-packages/lockfile";
 import type {
     BuildData, Client, Enum, Exception, Method, Methods, Object,
-} from "@arpc/client-gen";
-import type { RPCRouter } from "@arpc/core";
+} from "@arpc-packages/client-gen";
+import type { RPCRouter } from "@arpc-packages/core";
 import {
     SourceFile, createProgram, getLeadingCommentRanges, isArrowFunction,
     isClassDeclaration, isEnumDeclaration, isFunctionExpression,

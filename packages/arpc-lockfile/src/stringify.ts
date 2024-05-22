@@ -79,7 +79,7 @@ function generateRoutes(routes: Routes, imports: Map<string, string>, spaces?: n
 export function stringify(lockfile: Lockfile): string {
     // Defines the body.
     let body = `${header}
-import { router } from "@arpc/core";
+import { router } from "@arpc-packages/core";
 
 `;
 
@@ -135,7 +135,7 @@ export const self = routerInstance.self;
 
 // NOTE: This is VERY slow. Only run this in dev or in the building of production.
 export const generateSchema = async () => {
-    const genImport = await import("@arpc/schema-gen");
+    const genImport = await import("@arpc-packages/schema-gen");
     return genImport.generateSchema(routerInstance);
 };
 `);

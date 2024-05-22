@@ -2,7 +2,7 @@ import { InvalidArgumentError, type Command } from "commander";
 import { join, dirname } from "path";
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { stat, writeFile, unlink } from "fs/promises";
-import { Lockfile, stringify } from "@arpc/lockfile";
+import { Lockfile, stringify } from "@arpc-packages/lockfile";
 import { versionParser, RPCVersionWithCache } from "../utils/versionParser";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { sortVersions } from "../utils/sortVersions";

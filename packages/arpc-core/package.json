@@ -1,5 +1,5 @@
 {
-    "name": "@arpc/core",
+    "name": "@arpc-packages/core",
     "version": "0.1.0",
     "module": "dist/index.mjs",
     "main": "dist/index.js",
@@ -24,6 +24,7 @@
     "scripts": {
         "benchmark": "node benchmarks/index.mjs",
         "build": "tsup",
-        "lint": "tsc --noEmit"
+        "lint": "tsc --noEmit",
+        "prepublish": "npm run build"
     }
 }

@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import { writeFileSync, readFileSync } from "fs";
 import type {
     BuildData, Enum, Method, Methods, Object, Signature,
-} from "@arpc/client-gen";
+} from "@arpc-packages/client-gen";
 import { getBuildData } from "../utils/getBuildData";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { error, success } from "../utils/console";

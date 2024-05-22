@@ -1,7 +1,7 @@
 import esbuild from "esbuild";
 import { join } from "path";
 import { mkdtemp, rm } from "fs/promises";
-import type { BuildData } from "@arpc/client-gen";
+import type { BuildData } from "@arpc-packages/client-gen";
 import { error } from "./console";
 import { exec } from "child_process";
 

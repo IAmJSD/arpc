@@ -1,5 +1,5 @@
 {
-    "name": "@arpc/client-gen",
+    "name": "@arpc-packages/client-gen",
     "version": "0.1.0",
     "module": "dist/index.mjs",
     "main": "dist/index.js",
@@ -21,6 +21,7 @@
     },
     "scripts": {
         "test": "jest",
-        "build": "tsup"
+        "build": "tsup",
+        "prepublish": "npm run build"
     }
 }

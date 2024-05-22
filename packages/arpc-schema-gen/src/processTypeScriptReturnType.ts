@@ -1,4 +1,4 @@
-import type { Enum, Object, Signature } from "@arpc/client-gen";
+import type { Enum, Object, Signature } from "@arpc-packages/client-gen";
 import {
     Type, SourceFile, TypeChecker, isEnumDeclaration, Symbol,
 } from "typescript";
