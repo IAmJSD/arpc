@@ -54,16 +54,17 @@ function figureOutSpacing(str: string): string {
 async function writeNextEntrypoints(nextFolder: string, isAppRouter: boolean) {
     // Make sure the app/page router folder exists. We will need the api
     // folder in both cases, so make sure it exists.
-    await mkdir(
-        join(nextFolder, isAppRouter ? "app" : "pages", "api"),
-        { recursive: true },
-    );
+    let p = join(nextFolder, isAppRouter ? "app" : "pages", "api");
+    if (isAppRouter) {
+        p = join(p, "rpc");
+    }
+    await mkdir(p, { recursive: true });
 
     if (isAppRouter) {
         await Promise.all([
             // Write /api/rpc.
             writeFile(
-                join(nextFolder, "app", "api", "rpc.ts"),
+                join(nextFolder, "app", "api", "rpc", "route.ts"),
                 `import { httpHandler } from "@/rpc";
 
 export const GET = httpHandler;
