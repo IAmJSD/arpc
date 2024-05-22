@@ -3,4 +3,4 @@
 
 arpc is a framework to build RPC API's cleanly. It is heavily CLI driven, and intends to build on top of the Next framework by adding cross platform client support.
 
-To begin, you can call `npx arpc init`. There are a lot of other commands within the CLI. Documentation pending!
+To begin, you can call `npx arpc init` in a Next project. There are a lot of other commands within the CLI. Documentation pending!
