@@ -80,7 +80,7 @@ function safeParseQuery(url) {
 }
 
 // Defines the function to handle the request.
-export default (routes, auth, exceptions, ratelimiter) => {
+export default (globalRoutes, auth, exceptions, ratelimiter) => {
     // Flat pack the supported token types into a map of lower case strings to the
     // token type.
     const tokenTypeMap = new Map();
@@ -177,7 +177,7 @@ export default (routes, auth, exceptions, ratelimiter) => {
         if (!version) {
             return builtInError("BadRequest", "MISSING_VERSION", "Missing version parameter");
         }
-        routes = routes[version];
+        const routes = globalRoutes[version];
         if (!routes) {
             return builtInError("BadRequest", "VERSION_NOT_FOUND", "Version not found");
         }
