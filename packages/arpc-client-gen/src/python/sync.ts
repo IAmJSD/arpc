@@ -10,7 +10,7 @@ import typing
 import urllib.parse
 import requests
 
-${sharedCode(true)}
+${sharedCode(false)}
 
 
 def _process_result(resp: requests.Response, batch):
