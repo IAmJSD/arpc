@@ -71,7 +71,7 @@ export function getZodInputSignature(
 
         // Get the best non-conflicting name.
         const name = getName();
-        let revision = 0;
+        let revision = 1;
         let fullName = name;
         while (uniqueNames.has(fullName)) {
             // Get this revision and check if it is the same.
@@ -121,7 +121,7 @@ export function getZodInputSignature(
 
         // Get the unique name.
         const name = getName();
-        let revision = 0;
+        let revision = 1;
         let fullName = name;
         while (uniqueNames.has(fullName)) {
             // Get this revision and check if it is the same.

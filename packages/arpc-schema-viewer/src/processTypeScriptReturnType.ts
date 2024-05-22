@@ -251,7 +251,7 @@ export function processTypeScriptReturnType(
             }
 
             // Get the revision.
-            let revision = 0;
+            let revision = 1;
             let fullName = typeAlias || getName();
             while (uniqueNames.has(fullName)) {
                 // Get this revision and check if it is the same.
@@ -317,7 +317,7 @@ export function processTypeScriptReturnType(
                 }
 
                 // Get the revision.
-                let revision = 0;
+                let revision = 1;
                 let fullName = typeAlias || getName();
                 while (uniqueNames.has(fullName)) {
                     // Get this revision and check if it is the same.
