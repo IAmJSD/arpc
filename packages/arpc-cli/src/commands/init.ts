@@ -77,7 +77,7 @@ import "@arpc/schema-viewer/styles.css";
 
 export default SchemaViewer;
 
-export async function getServerSideProps() {
+export async function getStaticProps() {
     const schema = await generateSchema();
 
     return { props: { schema } };
