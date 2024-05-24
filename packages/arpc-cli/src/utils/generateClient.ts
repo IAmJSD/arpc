@@ -12,6 +12,9 @@ type Generators = {
 
 export const generators: Generators = {
     typescript: [ClientGen.typescript, {}],
+    php: [ClientGen.php, {
+        namespace: "string",
+    }],
     "python-async": [ClientGen.pythonAsync, {}],
     "python-sync": [ClientGen.pythonSync, {}],
 } as const;
