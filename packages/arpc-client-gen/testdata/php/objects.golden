@@ -291,91 +291,91 @@ namespace Test
         public function __construct(array $data)
         {
             if (!isset($data['age']) || !is_int($data['age'])) {
-                throw new Exception("INVALID_TYPE", "Expected an integer.");
+                throw new \Exception("INVALID_TYPE", "Expected an integer.");
             }
             $this->age = $data['age'];
             if (!isset($data['drainer']) || !is_bool($data['drainer'])) {
-                throw new Exception("INVALID_TYPE", "Expected a boolean.");
+                throw new \Exception("INVALID_TYPE", "Expected a boolean.");
             }
             $this->drainer = $data['drainer'];
             if (isset($data['home']) && $data['home'] !== null) {
                 if (!isset($data['home']) || !is_string($data['home'])) {
-                    throw new Exception("INVALID_TYPE", "Expected a string.");
+                    throw new \Exception("INVALID_TYPE", "Expected a string.");
                 }
                 $this->home = $data['home'];
             } else {
                 $this->home = null;
             }
             if (!isset($data['id']) || !is_int($data['id'])) {
-                throw new Exception("INVALID_TYPE", "Expected an integer.");
+                throw new \Exception("INVALID_TYPE", "Expected an integer.");
             }
             $this->id = $data['id'];
             try {
                 if ($data['literals'] !== "hello") {
-                    throw new Exception("INVALID_TYPE", "Expected literal value.");
+                    throw new \Exception("INVALID_TYPE", "Expected literal value.");
                 }
                 goto literals;
-            } catch (Exception $e) {}
+            } catch (\Exception $e) {}
 
             try {
                 if ($data['literals'] !== 1) {
-                    throw new Exception("INVALID_TYPE", "Expected literal value.");
+                    throw new \Exception("INVALID_TYPE", "Expected literal value.");
                 }
                 goto literals;
-            } catch (Exception $e) {}
+            } catch (\Exception $e) {}
 
             try {
                 if ($data['literals'] !== 1) {
-                    throw new Exception("INVALID_TYPE", "Expected literal value.");
+                    throw new \Exception("INVALID_TYPE", "Expected literal value.");
                 }
                 goto literals;
-            } catch (Exception $e) {}
+            } catch (\Exception $e) {}
 
             try {
                 if ($data['literals'] !== true) {
-                    throw new Exception("INVALID_TYPE", "Expected literal value.");
+                    throw new \Exception("INVALID_TYPE", "Expected literal value.");
                 }
                 goto literals;
-            } catch (Exception $e) {}
+            } catch (\Exception $e) {}
 
             try {
                 if ($data['literals'] !== false) {
-                    throw new Exception("INVALID_TYPE", "Expected literal value.");
+                    throw new \Exception("INVALID_TYPE", "Expected literal value.");
                 }
                 goto literals;
-            } catch (Exception $e) {}
+            } catch (\Exception $e) {}
 
             if ($data['literals'] !== null) {
-                throw new Exception("INVALID_TYPE", "Expected literal value.");
+                throw new \Exception("INVALID_TYPE", "Expected literal value.");
             }
 
             literals:
             $this->literals = $data['literals'];
             if (!isset($data['name']) || !is_string($data['name'])) {
-                throw new Exception("INVALID_TYPE", "Expected a string.");
+                throw new \Exception("INVALID_TYPE", "Expected a string.");
             }
             $this->name = $data['name'];
             if (!isset($data['tags']) || !is_array($data['tags'])) {
-                throw new Exception("INVALID_TYPE", "Expected an array.");
+                throw new \Exception("INVALID_TYPE", "Expected an array.");
             }
             foreach ($data['tags'] as $key => $value) {
                 if (!is_numeric($key)) {
-                    throw new Exception("INVALID_TYPE", "Expected a numeric key.");
+                    throw new \Exception("INVALID_TYPE", "Expected a numeric key.");
                 }
                 if (!isset($value) || !is_string($value)) {
-                    throw new Exception("INVALID_TYPE", "Expected a string.");
+                    throw new \Exception("INVALID_TYPE", "Expected a string.");
                 }
             }
             $this->tags = $data['tags'];
             if (!isset($data['visited']) || !is_array($data['visited'])) {
-                throw new Exception("INVALID_TYPE", "Expected an array.");
+                throw new \Exception("INVALID_TYPE", "Expected an array.");
             }
             foreach ($data['visited'] as $key => $value) {
                 if (!isset($key) || !is_string($key)) {
-                    throw new Exception("INVALID_TYPE", "Expected a string.");
+                    throw new \Exception("INVALID_TYPE", "Expected a string.");
                 }
                 if (!isset($value) || !is_bool($value)) {
-                    throw new Exception("INVALID_TYPE", "Expected a boolean.");
+                    throw new \Exception("INVALID_TYPE", "Expected a boolean.");
                 }
             }
             $this->visited = $data['visited'];
@@ -407,7 +407,7 @@ namespace Test
             try {
                 new Object1($data['object']);
                 goto object;
-            } catch (Exception $e) {}
+            } catch (\Exception $e) {}
 
             new Object2($data['object']);
 

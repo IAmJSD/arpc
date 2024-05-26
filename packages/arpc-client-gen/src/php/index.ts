@@ -160,11 +160,11 @@ ${prefix}}`;
     switch (sig.type) {
     case "array":
         return assignIfVarName(varName, inputSyn, `${prefix}if (!isset(${inputSyn}) || !is_array(${inputSyn})) {
-${prefix}    throw new Exception("INVALID_TYPE", "Expected an array.");
+${prefix}    throw new \\Exception("INVALID_TYPE", "Expected an array.");
 ${prefix}}
 ${prefix}foreach (${inputSyn} as $key => $value) {
 ${prefix}    if (!is_numeric($key)) {
-${prefix}        throw new Exception("INVALID_TYPE", "Expected a numeric key.");
+${prefix}        throw new \\Exception("INVALID_TYPE", "Expected a numeric key.");
 ${prefix}    }
 ${createConversionLogic(prefix + "    ", null, "$value", sig.inner, `${namespace}[]`, enums, objects)}
 ${prefix}}`, prefix);
@@ -172,18 +172,18 @@ ${prefix}}`, prefix);
     case "bigint":
     case "number":
         return assignIfVarName(varName, inputSyn, `${prefix}if (!isset(${inputSyn}) || !is_int(${inputSyn})) {
-${prefix}    throw new Exception("INVALID_TYPE", "Expected an integer.");
+${prefix}    throw new \\Exception("INVALID_TYPE", "Expected an integer.");
 ${prefix}}`, prefix);
 
     case "boolean":
         return assignIfVarName(varName, inputSyn, `${prefix}if (!isset(${inputSyn}) || !is_bool(${inputSyn})) {
-${prefix}    throw new Exception("INVALID_TYPE", "Expected a boolean.");
+${prefix}    throw new \\Exception("INVALID_TYPE", "Expected a boolean.");
 ${prefix}}`, prefix);
 
     case "enum_key":
     case "string":
         return assignIfVarName(varName, inputSyn, `${prefix}if (!isset(${inputSyn}) || !is_string(${inputSyn})) {
-${prefix}    throw new Exception("INVALID_TYPE", "Expected a string.");
+${prefix}    throw new \\Exception("INVALID_TYPE", "Expected a string.");
 ${prefix}}`, prefix);
 
     case "enum_value":
@@ -192,12 +192,12 @@ ${prefix}}`, prefix);
 
     case "literal":
         return assignIfVarName(varName, inputSyn, `${prefix}if (${inputSyn} !== ${s(sig.value)}) {
-${prefix}    throw new Exception("INVALID_TYPE", "Expected literal value.");
+${prefix}    throw new \\Exception("INVALID_TYPE", "Expected literal value.");
 ${prefix}}`, prefix);
 
     case "map":
         return assignIfVarName(varName, inputSyn, `${prefix}if (!isset(${inputSyn}) || !is_array(${inputSyn})) {
-${prefix}    throw new Exception("INVALID_TYPE", "Expected an array.");
+${prefix}    throw new \\Exception("INVALID_TYPE", "Expected an array.");
 ${prefix}}
 ${prefix}foreach (${inputSyn} as $key => $value) {
 ${createConversionLogic(prefix + "    ", null, "$key", sig.key, `${namespace}[K]`, enums, objects)}
@@ -231,7 +231,7 @@ ${prefix}}`, prefix);
                 return `${prefix}try {
 ${createConversionLogic(prefix + "    ", null, inputSyn, item, namespace, enums, objects)}
 ${prefix}    goto ${label};
-${prefix}} catch (Exception $e) {}`;
+${prefix}} catch (\\Exception $e) {}`;
             }
             return createConversionLogic(prefix, null, inputSyn, item, namespace, enums, objects);
         });

@@ -309,7 +309,7 @@ namespace Test
         public function __construct(array $data)
         {
             if (!isset($data['key']) || !is_string($data['key'])) {
-                throw new Exception("INVALID_TYPE", "Expected a string.");
+                throw new \Exception("INVALID_TYPE", "Expected a string.");
             }
             $this->key = $data['key'];
             $this->value = $data['value'];
