@@ -76,9 +76,9 @@ class _BaseBatcher(object):
         self._batch = []
         self._client = client
 
-    async def execute(self):
+    def execute(self):
         """Executes the batch."""
-        return await self._client._do_request(self)
+        return self._client._do_request(self)
 
 
 def _all_non_mutation(batch):

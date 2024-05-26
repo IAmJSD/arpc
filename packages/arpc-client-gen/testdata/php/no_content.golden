@@ -1,5 +1,4 @@
-// https://www.youtube.com/watch?v=rksaoaqt3JA meirl
-export default (namespace: string) => `<?php
+<?php
 // This code is auto-generate by arpc. Do not edit manually!
 
 declare(strict_types = 1);
@@ -7,34 +6,34 @@ declare(strict_types = 1);
 // Polyfill msgpack_pack and msgpack_unpack with rybakit/msgpack if they aren't set.
 // This means you do not need PECL extensions if they aren't possible. Will be slower,
 // though.
-namespace ${namespace}\\Internal {
-    if (function_exists("\\msgpack_pack")) {
+namespace Test\Internal {
+    if (function_exists("\msgpack_pack")) {
         function pack($data): string
         {
-            return \\msgpack_pack($data);
+            return \msgpack_pack($data);
         }
     } else {
         function pack($data): string
         {
-            return \\MessagePack\\MessagePack::pack($data);
+            return \MessagePack\MessagePack::pack($data);
         }
     }
 
-    if (function_exists("\\msgpack_unpack")) {
+    if (function_exists("\msgpack_unpack")) {
         function unpack(string $data)
         {
-            return \\msgpack_unpack($data);
+            return \msgpack_unpack($data);
         }
     } else {
         function unpack(string $data)
         {
-            return \\MessagePack\\MessagePack::unpack($data);
+            return \MessagePack\MessagePack::unpack($data);
         }
     }
 }
 
 // Handle some internal utilities.
-namespace ${namespace}\\Internal {
+namespace Test\Internal {
     $builtin_exceptions = [];
     $custom_exceptions = [];
 
@@ -84,8 +83,8 @@ namespace ${namespace}\\Internal {
 }
 
 // Defines the BaseException in the main namespace since users may want to use it.
-namespace ${namespace} {
-    class BaseException extends \\Exception {
+namespace Test {
+    class BaseException extends \Exception {
         public $body;
 
         public function __construct($body) {
@@ -96,8 +95,8 @@ namespace ${namespace} {
 }
 
 // Defines the built-in error base.
-namespace ${namespace}\\Internal {
-    class BuiltInError extends \\${namespace}\\BaseException {
+namespace Test\Internal {
+    class BuiltInError extends \Test\BaseException {
         public string $error_code;
 
         public function __construct(string $code, string $message, $body = null) {
@@ -109,11 +108,11 @@ namespace ${namespace}\\Internal {
 }
 
 // Defines the exceptions that are used during the request handling.
-namespace ${namespace} {
-    class InvalidResponse extends \\${namespace}\\Internal\\BuiltInError {}
-    \\${namespace}\\Internal\\set_exception(InvalidResponse::class, true);
+namespace Test {
+    class InvalidResponse extends \Test\Internal\BuiltInError {}
+    \Test\Internal\set_exception(InvalidResponse::class, true);
 
-    class BatchError extends \\${namespace}\\BaseException {
+    class BatchError extends \Test\BaseException {
         public array $errors;
 
         public function __construct($errors) {
@@ -124,7 +123,7 @@ namespace ${namespace} {
 }
 
 // Defines the base handlers.
-namespace ${namespace}\\Internal {
+namespace Test\Internal {
     class ClientCore {
         public string $hostname;
         public string $url_params;
@@ -204,7 +203,7 @@ namespace ${namespace}\\Internal {
             // Check the x-is-arpc header is set.
             $info = curl_getinfo($ch);
             if (!isset($info["request_header"]) || strpos($info["request_header"], "x-is-arpc: true") === false) {
-                throw new \\${namespace}\\InvalidResponse("INVALID_RESPONSE", "The response is not a valid msgpack response.");
+                throw new \Test\InvalidResponse("INVALID_RESPONSE", "The response is not a valid msgpack response.");
             }
 
             // Handle the 204 case.
@@ -243,11 +242,11 @@ namespace ${namespace}\\Internal {
                 for ($i = 0; $i < count($response); $i++) {
                     try {
                         do_throw($response[$i]);
-                    } catch (\\Exception $e) {
+                    } catch (\Exception $e) {
                         $response[$i] = $e;
                     }
                 }
-                throw new \\${namespace}\\BatchError($response);
+                throw new \Test\BatchError($response);
             }
             do_throw($response);
         }
@@ -273,4 +272,9 @@ namespace ${namespace}\\Internal {
             $this->_client = new ClientCore($hostname, $url_params, $headers);
         }
     }
-}`;
+}
+
+namespace Test
+{
+
+}
