@@ -355,7 +355,7 @@ function createClientObject(
         const methodOrCat = methods[key];
         if (methodOrCat.description === undefined) {
             // Set a getter for this key.
-            const clsName = `${prefix}${titleCase(key)}`;
+            const clsName = `${prefix}${titleCase(key)}Client`;
             cats.push(`        public ${clsName} $${key};`);
             const v = isClient ? `$this->_client` : `$this->_batch`;
             catConstructors.push(`            $this->${key} = new ${clsName}(${v});`);
@@ -478,7 +478,7 @@ ${hostnameInit}
             }
             parent::__construct(
                 $scheme . "://" . $host . ($port ? ":" . $port : ""),
-                "api_version=${client.apiVersion}", headers,
+                "api_version=${client.apiVersion}", $headers,
             );
         }`;
 }

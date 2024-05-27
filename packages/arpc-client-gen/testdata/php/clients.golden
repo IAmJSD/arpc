@@ -309,12 +309,12 @@ namespace Test
     class APIV1EchoHelloBatcher
     {
         protected array $_batch;
-        public APIV1EchoHelloWorld $world;
+        public APIV1EchoHelloWorldClient $world;
 
         public function __construct(array $batch)
         {
             $this->_batch = $batch;
-            $this->world = new APIV1EchoHelloWorld($this->_batch);
+            $this->world = new APIV1EchoHelloWorldClient($this->_batch);
         }
 
         public function string(string $value)
@@ -337,12 +337,12 @@ namespace Test
     class APIV1EchoBatcher
     {
         protected array $_batch;
-        public APIV1EchoHello $hello;
+        public APIV1EchoHelloClient $hello;
 
         public function __construct(array $batch)
         {
             $this->_batch = $batch;
-            $this->hello = new APIV1EchoHello($this->_batch);
+            $this->hello = new APIV1EchoHelloClient($this->_batch);
         }
 
         public function boolean(bool $value)
@@ -396,12 +396,12 @@ namespace Test
 
     class APIV1Batcher extends Internal\BaseBatcher
     {
-        public APIV1Echo $echo;
+        public APIV1EchoClient $echo;
 
         public function __construct(Internal\ClientCore $client)
         {
             parent::__construct($client);
-            $this->echo = new APIV1Echo($this->_batch);
+            $this->echo = new APIV1EchoClient($this->_batch);
         }
 
         public function inputless()
@@ -457,12 +457,12 @@ namespace Test
     class APIV1EchoHelloClient
     {
         protected Internal\ClientCore $_client;
-        public APIV1EchoHelloWorld $world;
+        public APIV1EchoHelloWorldClient $world;
 
         public function __construct(Internal\ClientCore $client)
         {
             $this->_client = $client;
-            $this->world = new APIV1EchoHelloWorld($this->_client);
+            $this->world = new APIV1EchoHelloWorldClient($this->_client);
         }
 
         public function string(string $value): string
@@ -482,12 +482,12 @@ namespace Test
     class APIV1EchoClient
     {
         protected Internal\ClientCore $_client;
-        public APIV1EchoHello $hello;
+        public APIV1EchoHelloClient $hello;
 
         public function __construct(Internal\ClientCore $client)
         {
             $this->_client = $client;
-            $this->hello = new APIV1EchoHello($this->_client);
+            $this->hello = new APIV1EchoHelloClient($this->_client);
         }
 
         public function boolean(bool $value): bool
@@ -533,7 +533,7 @@ namespace Test
     // This is API V1. Hello World!
     class APIV1Client extends Internal\BaseClient
     {
-        public APIV1Echo $echo;
+        public APIV1EchoClient $echo;
 
         public function __construct(string $hostname = null) {
             if ($hostname === null) {
@@ -547,7 +547,7 @@ namespace Test
                 $scheme . "://" . $host . ($port ? ":" . $port : ""),
                 "api_version=v1", [],
             );
-            $this->echo = new APIV1Echo($this->_client);
+            $this->echo = new APIV1EchoClient($this->_client);
         }
 
         public function inputless(): null
@@ -615,7 +615,7 @@ namespace Test
             }
             parent::__construct(
                 $scheme . "://" . $host . ($port ? ":" . $port : ""),
-                "api_version=v2", headers,
+                "api_version=v2", $headers,
             );
         }
 
@@ -661,7 +661,7 @@ namespace Test
             }
             parent::__construct(
                 $scheme . "://" . $host . ($port ? ":" . $port : ""),
-                "api_version=v3", headers,
+                "api_version=v3", $headers,
             );
         }
 
