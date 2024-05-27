@@ -368,7 +368,7 @@ function createClientObject(
             // Build the body.
             let body = m.input ? createConversionLogic(
                 "            ", null, `$${m.input.name}`, m.input.signature, namespace, enums, objects,
-            ) : "";
+            ) + "\n" : "";
 
             const newNs = namespace === "" ? key : `${namespace}.${key}`;
             const mutation = m.mutation ? "true" : "false";
@@ -398,7 +398,7 @@ ${body}
 
     // Inject the category constructors into the constructor.
     if (catConstructors.length > 0) {
-        constructor = constructor.replace("        }", `${catConstructors.join("\n")}\n        }`);
+        constructor = constructor.replace(/^ {8}\}$/gm, `${catConstructors.join("\n")}\n        }`);
     }
     chunks.unshift(constructor);
 

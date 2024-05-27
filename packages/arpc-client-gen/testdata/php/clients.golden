@@ -321,7 +321,8 @@ namespace Test
         {
             if (!isset($value) || !is_string($value)) {
                 throw new \Exception("INVALID_TYPE", "Expected a string.");
-            }            $_mutator = function ($response) {
+            }
+            $_mutator = function ($response) {
                 if (!isset($response) || !is_string($response)) {
                     throw new \Exception("INVALID_TYPE", "Expected a string.");
                 }
@@ -348,7 +349,8 @@ namespace Test
         {
             if (!isset($value) || !is_bool($value)) {
                 throw new \Exception("INVALID_TYPE", "Expected a boolean.");
-            }            $_mutator = function ($response) {
+            }
+            $_mutator = function ($response) {
                 if (!isset($response) || !is_bool($response)) {
                     throw new \Exception("INVALID_TYPE", "Expected a boolean.");
                 }
@@ -363,7 +365,8 @@ namespace Test
         {
             if (!isset($value) || !is_int($value)) {
                 throw new \Exception("INVALID_TYPE", "Expected an integer.");
-            }            $_mutator = function ($response) {
+            }
+            $_mutator = function ($response) {
                 if (!isset($response) || !is_string($response)) {
                     throw new \Exception("INVALID_TYPE", "Expected a string.");
                 }
@@ -378,7 +381,8 @@ namespace Test
         {
             if (!isset($value) || !is_int($value)) {
                 throw new \Exception("INVALID_TYPE", "Expected an integer.");
-            }            $_mutator = function ($response) {
+            }
+            $_mutator = function ($response) {
                 if (!isset($response) || !is_int($response)) {
                     throw new \Exception("INVALID_TYPE", "Expected an integer.");
                 }
@@ -417,7 +421,8 @@ namespace Test
         {
             if (!isset($name) || !is_string($name)) {
                 throw new \Exception("INVALID_TYPE", "Expected a string.");
-            }            $_mutator = function ($response) {
+            }
+            $_mutator = function ($response) {
                 if ($response !== null) {
                     throw new \Exception("INVALID_TYPE", "Expected literal value.");
                 }
@@ -464,7 +469,8 @@ namespace Test
         {
             if (!isset($value) || !is_string($value)) {
                 throw new \Exception("INVALID_TYPE", "Expected a string.");
-            }            $response = $this->_client->_handle_request(new Internal\Request("echo.hello.string", true, $value));
+            }
+            $response = $this->_client->_handle_request(new Internal\Request("echo.hello.string", true, $value));
             if (!isset($response) || !is_string($response)) {
                 throw new \Exception("INVALID_TYPE", "Expected a string.");
             }
@@ -488,7 +494,8 @@ namespace Test
         {
             if (!isset($value) || !is_bool($value)) {
                 throw new \Exception("INVALID_TYPE", "Expected a boolean.");
-            }            $response = $this->_client->_handle_request(new Internal\Request("echo.boolean", false, $value));
+            }
+            $response = $this->_client->_handle_request(new Internal\Request("echo.boolean", false, $value));
             if (!isset($response) || !is_bool($response)) {
                 throw new \Exception("INVALID_TYPE", "Expected a boolean.");
             }
@@ -500,7 +507,8 @@ namespace Test
         {
             if (!isset($value) || !is_int($value)) {
                 throw new \Exception("INVALID_TYPE", "Expected an integer.");
-            }            $response = $this->_client->_handle_request(new Internal\Request("echo.itoa", false, $value));
+            }
+            $response = $this->_client->_handle_request(new Internal\Request("echo.itoa", false, $value));
             if (!isset($response) || !is_string($response)) {
                 throw new \Exception("INVALID_TYPE", "Expected a string.");
             }
@@ -512,7 +520,8 @@ namespace Test
         {
             if (!isset($value) || !is_int($value)) {
                 throw new \Exception("INVALID_TYPE", "Expected an integer.");
-            }            $response = $this->_client->_handle_request(new Internal\Request("echo.number", false, $value));
+            }
+            $response = $this->_client->_handle_request(new Internal\Request("echo.number", false, $value));
             if (!isset($response) || !is_int($response)) {
                 throw new \Exception("INVALID_TYPE", "Expected an integer.");
             }
@@ -529,8 +538,7 @@ namespace Test
         public function __construct(string $hostname = null) {
             if ($hostname === null) {
                 $hostname = "https://example.com";
-                $this->echo = new APIV1Echo($this->_client);
-        }
+            }
             $url = parse_url($hostname);
             $host = isset($url["host"]) ? $url["host"] : $hostname;
             $port = isset($url["port"]) ? $url["port"] : null;
@@ -539,6 +547,7 @@ namespace Test
                 $scheme . "://" . $host . ($port ? ":" . $port : ""),
                 "api_version=v1", [],
             );
+            $this->echo = new APIV1Echo($this->_client);
         }
 
         public function inputless(): null
@@ -555,7 +564,8 @@ namespace Test
         {
             if (!isset($name) || !is_string($name)) {
                 throw new \Exception("INVALID_TYPE", "Expected a string.");
-            }            $response = $this->_client->_handle_request(new Internal\Request("root", false, $name));
+            }
+            $response = $this->_client->_handle_request(new Internal\Request("root", false, $name));
             if ($response !== null) {
                 throw new \Exception("INVALID_TYPE", "Expected literal value.");
             }
