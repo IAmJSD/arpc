@@ -326,7 +326,7 @@ function createClientObject(
 
     // Build out the description.
     description = description
-        ? `// ${description.split("\n").join("\n    // ")}\n`
+        ? `    // ${description.split("\n").join("\n    // ")}\n`
         : "";
 
     // Defines the class name.
@@ -380,7 +380,7 @@ ${createConversionLogic("            ", "$out", "$response", m.output, namespace
             return $out;`;
             } else {
                 // Append the request to the batch.
-                body += `$_mutator = function ($response) {
+                body += `            $_mutator = function ($response) {
 ${createConversionLogic("                ", "$out", "$response", m.output, namespace, enums, objects)}
                 return $out;
             };
