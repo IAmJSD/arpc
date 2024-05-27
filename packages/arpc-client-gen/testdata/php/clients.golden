@@ -572,6 +572,11 @@ namespace Test
             $out = $response;
             return $out;
         }
+
+        public function batcher(): APIV1Batcher
+        {
+            return new APIV1Batcher($this->_client);
+        }
     }
 
     class APIV2Batcher extends Internal\BaseBatcher
@@ -613,6 +618,11 @@ namespace Test
                 "api_version=v2", headers,
             );
         }
+
+        public function batcher(): APIV2Batcher
+        {
+            return new APIV2Batcher($this->_client);
+        }
     }
 
     class APIV3Batcher extends Internal\BaseBatcher
@@ -653,6 +663,11 @@ namespace Test
                 $scheme . "://" . $host . ($port ? ":" . $port : ""),
                 "api_version=v3", headers,
             );
+        }
+
+        public function batcher(): APIV3Batcher
+        {
+            return new APIV3Batcher($this->_client);
         }
     }
 

@@ -407,6 +407,14 @@ ${body}
         chunks.unshift(cats.join("\n"));
     }
 
+    // If this is the client and not a category, add the batcher method.
+    if (extendsCls && isClient) {
+        chunks.push(`        public function batcher(): ${prefix}Batcher
+        {
+            return new ${prefix}Batcher($this->_client);
+        }`);
+    }
+
     // Return the joined chunks with all the previous content.
     return `${catsJoined}${description}    class ${clsName}${extendsCls}
     {
