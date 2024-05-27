@@ -380,7 +380,12 @@ ${createConversionLogic("            ", "$out", "$response", m.output, namespace
             return $out;`;
             } else {
                 // Append the request to the batch.
-                body += `            $this->_batch[] = [new Internal\\Request("${newNs}", ${mutation}, ${input})];`;
+                body += `$_mutator = function ($response) {
+${createConversionLogic("                ", "$out", "$response", m.output, namespace, enums, objects)}
+                return $out;
+            };
+            $a = [new Internal\\Request("${newNs}", ${mutation}, ${input}), $_mutator];
+            $this->_batch[] = $a;`;
             }
 
             // Build the function text.
@@ -398,10 +403,7 @@ ${body}
 
     // Inject the category constructors into the constructor.
     if (catConstructors.length > 0) {
-        if (constructor) {
-            // TODO: potentially problematic spacing wise?
-            constructor = constructor.replace("}", `${catConstructors.join("\n")}\n        }`);
-        }
+        constructor = constructor.replace("        }", `${catConstructors.join("\n")}\n        }`);
     }
 
     // Return the joined chunks with all the previous content.
@@ -415,13 +417,16 @@ function buildClientConstructor(client: Client): string {
     // TODO
 }
 
-const catConstructor = `TODO`;
+const batchConstructor = `        public function __construct(Internal\\ClientCore $client)
+        {
+            parent::__construct($client);
+        }`;
 
 function createClient(enums: Enum[], objects: Object[], client: Client) {
     // Build the batcher.
     const prefix = `API${client.apiVersion.toUpperCase()}`;
     const batcher = createClientObject(
-        enums, objects, client.methods, "", null, catConstructor,
+        enums, objects, client.methods, "", null, batchConstructor,
         "Internal\\BaseBatcher", prefix, false,
     );
 
