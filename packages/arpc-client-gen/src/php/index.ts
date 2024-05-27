@@ -71,7 +71,7 @@ function literal2type(literal: string | number | bigint | boolean | null) {
     case "boolean":
         return "bool";
     case "object":
-        return "null";
+        return "object";
     }
 }
 
@@ -355,7 +355,7 @@ function createClientObject(
         const methodOrCat = methods[key];
         if (methodOrCat.description === undefined) {
             // Set a getter for this key.
-            const clsName = `${prefix}${titleCase(key)}Client`;
+            const clsName = `${prefix}${titleCase(key)}${isClient ? "Client" : "Batcher"}`;
             cats.push(`        public ${clsName} $${key};`);
             const v = isClient ? `$this->_client` : `$this->_batch`;
             catConstructors.push(`            $this->${key} = new ${clsName}(${v});`);

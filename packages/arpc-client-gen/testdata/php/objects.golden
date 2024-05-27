@@ -289,7 +289,7 @@ namespace Test
         public bool $drainer;
         public ?string $home;
         public int $id;
-        public string|int|bool|null $literals;
+        public string|int|bool|object $literals;
         public string $name;
         public array $tags;
         public array $visited;

@@ -309,12 +309,12 @@ namespace Test
     class APIV1EchoHelloBatcher
     {
         protected array $_batch;
-        public APIV1EchoHelloWorldClient $world;
+        public APIV1EchoHelloWorldBatcher $world;
 
         public function __construct(array $batch)
         {
             $this->_batch = $batch;
-            $this->world = new APIV1EchoHelloWorldClient($this->_batch);
+            $this->world = new APIV1EchoHelloWorldBatcher($this->_batch);
         }
 
         public function string(string $value)
@@ -337,12 +337,12 @@ namespace Test
     class APIV1EchoBatcher
     {
         protected array $_batch;
-        public APIV1EchoHelloClient $hello;
+        public APIV1EchoHelloBatcher $hello;
 
         public function __construct(array $batch)
         {
             $this->_batch = $batch;
-            $this->hello = new APIV1EchoHelloClient($this->_batch);
+            $this->hello = new APIV1EchoHelloBatcher($this->_batch);
         }
 
         public function boolean(bool $value)
@@ -396,12 +396,12 @@ namespace Test
 
     class APIV1Batcher extends Internal\BaseBatcher
     {
-        public APIV1EchoClient $echo;
+        public APIV1EchoBatcher $echo;
 
         public function __construct(Internal\ClientCore $client)
         {
             parent::__construct($client);
-            $this->echo = new APIV1EchoClient($this->_batch);
+            $this->echo = new APIV1EchoBatcher($this->_batch);
         }
 
         public function inputless()
@@ -443,7 +443,7 @@ namespace Test
             $this->_client = $client;
         }
 
-        public function test(): null
+        public function test(): object
         {
             $response = $this->_client->_handle_request(new Internal\Request("echo.hello.world.test", true, null));
             if ($response !== null) {
@@ -550,7 +550,7 @@ namespace Test
             $this->echo = new APIV1EchoClient($this->_client);
         }
 
-        public function inputless(): null
+        public function inputless(): object
         {
             $response = $this->_client->_handle_request(new Internal\Request("inputless", false, null));
             if ($response !== null) {
@@ -560,7 +560,7 @@ namespace Test
             return $out;
         }
 
-        public function root(string $name): null
+        public function root(string $name): object
         {
             if (!isset($name) || !is_string($name)) {
                 throw new \Exception("INVALID_TYPE", "Expected a string.");
