@@ -414,7 +414,64 @@ ${chunks.join("\n\n")}
 }
 
 function buildClientConstructor(client: Client): string {
-    // TODO
+    // Defines the hostname init logic.
+    const hostnameInit = `            if ($hostname === null) {
+                $hostname = "${client.defaultProtocol}://${client.defaultHostname}";
+            }
+            $url = parse_url($hostname);
+            $host = isset($url["host"]) ? $url["host"] : $hostname;
+            $port = isset($url["port"]) ? $url["port"] : null;
+            $scheme = isset($url["scheme"]) ? $url["scheme"] : "${client.defaultProtocol}";`;
+
+    // Handle if the client doesn't have authentication.
+    if (!client.authentication) {
+        return `        public function __construct(string $hostname = null) {
+${hostnameInit}
+            parent::__construct(
+                $scheme . "://" . $host . ($port ? ":" . $port : ""),
+                "api_version=${client.apiVersion}", [],
+            );
+        }`;
+    }
+
+    // Build a literal type list of supported auth types.
+    let authTypesSig = "?string $auth_type";
+    if (client.authentication.defaultTokenType) {
+        authTypesSig += ` = "${client.authentication.defaultTokenType}"`;
+    } else {
+        authTypesSig += " = null";
+    }
+    let authTypesArr = "[";
+    for (const [key, value] of Object.entries(client.authentication.tokenTypes)) {
+        authTypesArr += `
+                "${key}" => "${value}",`;
+    }
+    authTypesArr += `
+            ];`;
+
+    // Return the constructor.
+    const throwOrDefault = client.authentication.defaultTokenType
+        ? `$auth_type = "${client.authentication.defaultTokenType}";`
+        : `throw new \\Exception("INVALID_AUTH_TYPE", "No auth type provided.");`;
+    return `        public function __construct($token = null, ${authTypesSig}, string $hostname = null) {
+${hostnameInit}
+            $headers = [];
+            $auth_map = ${authTypesArr}
+            if ($token !== null) {
+                if ($auth_type === null) {
+                    ${throwOrDefault}
+                }
+                if (!isset($auth_map[$auth_type])) {
+                    throw new \\Exception("INVALID_AUTH_TYPE", "Invalid auth type.");
+                }
+                $auth_header = $auth_map[$auth_type] . " " . $token;
+                $headers["Authorization"] = $auth_header;
+            }
+            parent::__construct(
+                $scheme . "://" . $host . ($port ? ":" . $port : ""),
+                "api_version=${client.apiVersion}", headers,
+            );
+        }`;
 }
 
 const batchConstructor = `        public function __construct(Internal\\ClientCore $client)
