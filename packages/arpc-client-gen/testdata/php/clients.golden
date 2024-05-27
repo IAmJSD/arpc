@@ -287,6 +287,11 @@ namespace Test
     {
         protected array $_batch;
 
+        public function __construct(array $batch)
+        {
+            $this->_batch = $batch;
+        }
+
         public function test()
         {
             $_mutator = function ($response) {
@@ -305,6 +310,12 @@ namespace Test
     {
         protected array $_batch;
         public APIV1EchoHelloWorld $world;
+
+        public function __construct(array $batch)
+        {
+            $this->_batch = $batch;
+            $this->world = new APIV1EchoHelloWorld($this->_batch);
+        }
 
         public function string(string $value)
         {
@@ -326,6 +337,12 @@ namespace Test
     {
         protected array $_batch;
         public APIV1EchoHello $hello;
+
+        public function __construct(array $batch)
+        {
+            $this->_batch = $batch;
+            $this->hello = new APIV1EchoHello($this->_batch);
+        }
 
         public function boolean(bool $value)
         {
@@ -377,6 +394,12 @@ namespace Test
     {
         public APIV1Echo $echo;
 
+        public function __construct(Internal\ClientCore $client)
+        {
+            parent::__construct($client);
+            $this->echo = new APIV1Echo($this->_batch);
+        }
+
         public function inputless()
         {
             $_mutator = function ($response) {
@@ -410,6 +433,11 @@ namespace Test
     {
         protected Internal\ClientCore $_client;
 
+        public function __construct(Internal\ClientCore $client)
+        {
+            $this->_client = $client;
+        }
+
         public function test(): null
         {
             $response = $this->_client->_handle_request(new Internal\Request("echo.hello.world.test", true, null));
@@ -425,6 +453,12 @@ namespace Test
     {
         protected Internal\ClientCore $_client;
         public APIV1EchoHelloWorld $world;
+
+        public function __construct(Internal\ClientCore $client)
+        {
+            $this->_client = $client;
+            $this->world = new APIV1EchoHelloWorld($this->_client);
+        }
 
         public function string(string $value): string
         {
@@ -443,6 +477,12 @@ namespace Test
     {
         protected Internal\ClientCore $_client;
         public APIV1EchoHello $hello;
+
+        public function __construct(Internal\ClientCore $client)
+        {
+            $this->_client = $client;
+            $this->hello = new APIV1EchoHello($this->_client);
+        }
 
         public function boolean(bool $value): bool
         {
@@ -486,6 +526,21 @@ namespace Test
     {
         public APIV1Echo $echo;
 
+        public function __construct(string $hostname = null) {
+            if ($hostname === null) {
+                $hostname = "https://example.com";
+                $this->echo = new APIV1Echo($this->_client);
+        }
+            $url = parse_url($hostname);
+            $host = isset($url["host"]) ? $url["host"] : $hostname;
+            $port = isset($url["port"]) ? $url["port"] : null;
+            $scheme = isset($url["scheme"]) ? $url["scheme"] : "https";
+            parent::__construct(
+                $scheme . "://" . $host . ($port ? ":" . $port : ""),
+                "api_version=v1", [],
+            );
+        }
+
         public function inputless(): null
         {
             $response = $this->_client->_handle_request(new Internal\Request("inputless", false, null));
@@ -511,24 +566,84 @@ namespace Test
 
     class APIV2Batcher extends Internal\BaseBatcher
     {
-
+        public function __construct(Internal\ClientCore $client)
+        {
+            parent::__construct($client);
+        }
     }
 
     // This is authentication without a default.
     class APIV2Client extends Internal\BaseClient
     {
-
+        public function __construct($token = null, ?string $auth_type = null, string $hostname = null) {
+            if ($hostname === null) {
+                $hostname = "http://memes.com";
+            }
+            $url = parse_url($hostname);
+            $host = isset($url["host"]) ? $url["host"] : $hostname;
+            $port = isset($url["port"]) ? $url["port"] : null;
+            $scheme = isset($url["scheme"]) ? $url["scheme"] : "http";
+            $headers = [];
+            $auth_map = [
+                "BEARER" => "Bearer",
+                "BOT" => "Bot",
+            ];
+            if ($token !== null) {
+                if ($auth_type === null) {
+                    throw new \Exception("INVALID_AUTH_TYPE", "No auth type provided.");
+                }
+                if (!isset($auth_map[$auth_type])) {
+                    throw new \Exception("INVALID_AUTH_TYPE", "Invalid auth type.");
+                }
+                $auth_header = $auth_map[$auth_type] . " " . $token;
+                $headers["Authorization"] = $auth_header;
+            }
+            parent::__construct(
+                $scheme . "://" . $host . ($port ? ":" . $port : ""),
+                "api_version=v2", headers,
+            );
+        }
     }
 
     class APIV3Batcher extends Internal\BaseBatcher
     {
-
+        public function __construct(Internal\ClientCore $client)
+        {
+            parent::__construct($client);
+        }
     }
 
     // This is authentication with a default.
     class APIV3Client extends Internal\BaseClient
     {
-
+        public function __construct($token = null, ?string $auth_type = "BEARER", string $hostname = null) {
+            if ($hostname === null) {
+                $hostname = "http://memes.com";
+            }
+            $url = parse_url($hostname);
+            $host = isset($url["host"]) ? $url["host"] : $hostname;
+            $port = isset($url["port"]) ? $url["port"] : null;
+            $scheme = isset($url["scheme"]) ? $url["scheme"] : "http";
+            $headers = [];
+            $auth_map = [
+                "BEARER" => "Bearer",
+                "BOT" => "Bot",
+            ];
+            if ($token !== null) {
+                if ($auth_type === null) {
+                    $auth_type = "BEARER";
+                }
+                if (!isset($auth_map[$auth_type])) {
+                    throw new \Exception("INVALID_AUTH_TYPE", "Invalid auth type.");
+                }
+                $auth_header = $auth_map[$auth_type] . " " . $token;
+                $headers["Authorization"] = $auth_header;
+            }
+            parent::__construct(
+                $scheme . "://" . $host . ($port ? ":" . $port : ""),
+                "api_version=v3", headers,
+            );
+        }
     }
 
 }

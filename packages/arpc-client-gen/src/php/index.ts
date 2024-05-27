@@ -396,14 +396,15 @@ ${body}
         }
     }
 
-    // Push the cats to the top of the chunks if they exist.
-    if (cats.length > 0) {
-        chunks.unshift(cats.join("\n"));
-    }
-
     // Inject the category constructors into the constructor.
     if (catConstructors.length > 0) {
         constructor = constructor.replace("        }", `${catConstructors.join("\n")}\n        }`);
+    }
+    chunks.unshift(constructor);
+
+    // Push the cats to the top of the chunks if they exist.
+    if (cats.length > 0) {
+        chunks.unshift(cats.join("\n"));
     }
 
     // Return the joined chunks with all the previous content.
