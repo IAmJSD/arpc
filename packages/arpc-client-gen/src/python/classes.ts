@@ -1,7 +1,7 @@
 import type { Client, Enum, Method, Methods, Object, Signature } from "../BuildData";
 
 // Renders the signature for a type.
-function renderSignature(signature: Signature, enums: Enum[]) {
+function renderSignature(signature: Signature, enums: Enum[]): string {
     // Handle the easy types.
     const v = typeMap[signature.type];
     if (v) return v;
@@ -35,6 +35,9 @@ function renderSignature(signature: Signature, enums: Enum[]) {
 
     // Handle the enum value type.
     if (signature.type === "enum_value") return `typing.Literal[${Array.from(enums.find((x) => x.name === signature.enum)!.data.keys()).sort().map((x) => `${signature.enum}.${x}`).join(", ")}]`;
+
+    // Throw an error.
+    throw new Error(`Unknown signature type ${signature.type}.`);
 }
 
 // Handles the union mapping.
@@ -315,7 +318,7 @@ const typeMap: { [key: string]: string } = {
     bigint: "int",
     boolean: "bool",
     null: "None",
-};
+} as const;
 
 // Renders the input.
 const renderInput = (input: { name: string; signature: Signature }, enums: Enum[]) => `, ${input.name}: ${renderSignature(input.signature, enums)}`;

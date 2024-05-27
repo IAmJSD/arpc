@@ -1,0 +1,286 @@
+<?php
+// This code is auto-generate by arpc. Do not edit manually!
+
+declare(strict_types = 1);
+
+// Polyfill msgpack_pack and msgpack_unpack with rybakit/msgpack if they aren't set.
+// This means you do not need PECL extensions if they aren't possible. Will be slower,
+// though.
+namespace Test\Internal {
+    if (function_exists("\msgpack_pack")) {
+        function pack($data): string
+        {
+            return \msgpack_pack($data);
+        }
+    } else {
+        function pack($data): string
+        {
+            return \MessagePack\MessagePack::pack($data);
+        }
+    }
+
+    if (function_exists("\msgpack_unpack")) {
+        function unpack(string $data)
+        {
+            return \msgpack_unpack($data);
+        }
+    } else {
+        function unpack(string $data)
+        {
+            return \MessagePack\MessagePack::unpack($data);
+        }
+    }
+}
+
+// Handle some internal utilities.
+namespace Test\Internal {
+    $builtin_exceptions = [];
+    $custom_exceptions = [];
+
+    function set_exception($exception_class, bool $built_in) {
+        // Get the class name.
+        $name = get_class($exception_class);
+
+        // Map the class name to the class.
+        if ($built_in) {
+            global $builtin_exceptions;
+            $builtin_exceptions[$name] = $exception_class;
+        } else {
+            global $custom_exceptions;
+            $custom_exceptions[$name] = $exception_class;
+        }
+    }
+
+    function do_throw(array $data) {
+        if ($data["builtIn"]) {
+            global $builtin_exceptions;
+            if (isset($builtin_exceptions[$data["name"]])) {
+                $body = null;
+                if (isset($data["body"])) {
+                    $body = $data["body"];
+                }
+                throw new $builtin_exceptions[$data["name"]]($data["code"], $data["message"], $body);
+            }
+        } else {
+            global $custom_exceptions;
+            if (isset($custom_exceptions[$data["name"]])) {
+                $body = null;
+                if (isset($data["body"])) {
+                    $body = $data["body"];
+                }
+                throw new $custom_exceptions[$data["name"]]($body);
+            }
+        }
+
+        throw new BuiltInError("UNKNOWN_EXCEPTION", "The exception '" . $data["name"] . "' is missing.", $data);
+    }
+
+    class Request {
+        public string $method;
+        public bool $mutation;
+        public $arg;
+
+        public function __construct(string $method, bool $mutation, $arg) {
+            $this->method = $method;
+            $this->mutation = $mutation;
+            $this->arg = $arg;
+        }
+    }
+}
+
+// Defines the BaseException in the main namespace since users may want to use it.
+namespace Test {
+    class BaseException extends \Exception {
+        public $body;
+
+        public function __construct($body) {
+            parent::__construct();
+            $this->body = $body;
+        }
+    }
+}
+
+// Defines the built-in error base.
+namespace Test\Internal {
+    class BuiltInError extends \Test\BaseException {
+        public string $error_code;
+
+        public function __construct(string $code, string $message, $body = null) {
+            parent::__construct($body);
+            $this->error_code = $code;
+            $this->message = $message;
+        }
+    }
+}
+
+// Defines the exceptions that are used during the request handling.
+namespace Test {
+    class InvalidResponse extends \Test\Internal\BuiltInError {}
+    \Test\Internal\set_exception(InvalidResponse::class, true);
+
+    class BatchError extends \Test\BaseException {
+        public array $errors;
+
+        public function __construct($errors) {
+            parent::__construct(null);
+            $this->errors = $errors;
+        }
+    }
+}
+
+// Defines the base handlers.
+namespace Test\Internal {
+    class ClientCore {
+        public string $hostname;
+        public string $url_params;
+        public array $headers;
+
+        public function __construct(string $hostname, string $url_params, array $headers) {
+            $this->hostname = $hostname;
+            $this->url_params = $url_params;
+            $this->headers = $headers;
+        }
+
+        public function _handle_request($request) {
+            // Build all the request data.
+            $_actually_null = [];
+            $data = &$_actually_null;
+            $headers = &$this->headers;
+            if (is_array($request)) {
+                // Build the request.
+                $params = $this->url_params . "&route=batch";
+                $batch = [];
+                $non_mutation = true;
+                for ($i = 0; $i < count($request); $i++) {
+                    $batch[] = [
+                        "methodName" => $request[$i][0]->method,
+                        "arg" => $request[$i][0]->arg,
+                    ];
+                    if ($request[$i]->mutation) {
+                        $non_mutation = false;
+                    }
+                }
+
+                // Handle if this is a mutation.
+                if ($non_mutation) {
+                    $params .= "&arg=" . urlencode(pack($batch));
+                } else {
+                    // Copy the headers and set the Content-Type to application/msgpack.
+                    global $headers, $data;
+                    $headers = $this->headers;
+                    $headers["Content-Type"] = "application/msgpack";
+
+                    // Set the data to this packed.
+                    $data = pack($batch);
+                }
+            } else {
+                // Build the request.
+                $params = $this->url_params . "&route=" . urlencode($request->method);
+                if ($request->mutation) {
+                    // Copy the headers and set the Content-Type to application/msgpack.
+                    global $headers, $data;
+                    $headers = $this->headers;
+                    $headers["Content-Type"] = "application/msgpack";
+
+                    // Set the data to this packed.
+                    $data = pack($request->arg);
+                } else {
+                    // Set the arguments in the params.
+                    $params .= "&arg=" . urlencode(pack($request->arg));
+                }
+            }
+
+            // Build curl.
+            $ch = curl_init($this->hostname . "/api/rpc?" . $params);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array_map(function($key, $value) {
+                return $key . ": " . $value;
+            }, array_keys($headers), $headers));
+
+            // If data doesn't point to _actually_null, set the data.
+            if ($data !== $_actually_null) {
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            }
+
+            // Execute the request.
+            $response = curl_exec($ch);
+
+            // Check the x-is-arpc header is set.
+            $info = curl_getinfo($ch);
+            if (!isset($info["request_header"]) || strpos($info["request_header"], "x-is-arpc: true") === false) {
+                throw new \Test\InvalidResponse("INVALID_RESPONSE", "The response is not a valid msgpack response.");
+            }
+
+            // Handle the 204 case.
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if ($http_code === 204) {
+                if (is_array($request)) {
+                    // Return $request number of nulls.
+                    $result = [];
+                    for ($i = 0; $i < count($request); $i++) {
+                        $result[] = null;
+                    }
+                    return $result;
+                }
+                return null;
+            }
+
+            // Unpack the response.
+            $response = unpack($response);
+
+            // Handle the happy path.
+            if ($http_code === 200) {
+                if (is_array($request)) {
+                    // Process the batch response.
+                    for ($i = 0; $i < count($request); $i++) {
+                        $mutator = $request[$i][1];
+                        if ($mutator !== null) {
+                            $response[$i] = $mutator($response[$i]);
+                        }
+                    }
+                }
+                return $response;
+            }
+
+            // Throw the correct error.
+            if (is_array($response)) {
+                for ($i = 0; $i < count($response); $i++) {
+                    try {
+                        do_throw($response[$i]);
+                    } catch (\Exception $e) {
+                        $response[$i] = $e;
+                    }
+                }
+                throw new \Test\BatchError($response);
+            }
+            do_throw($response);
+        }
+    }
+
+    class BaseBatcher {
+        protected array $_batch = [];
+        protected ClientCore $_client;
+
+        public function __construct(ClientCore $client) {
+            $this->_client = $client;
+        }
+
+        public function execute(): array {
+            return $this->_client->_handle_request($this->_batch);
+        }
+    }
+
+    class BaseClient {
+        protected ClientCore $_client;
+
+        protected function __construct(string $hostname, string $url_params, array $headers) {
+            $this->_client = new ClientCore($hostname, $url_params, $headers);
+        }
+    }
+}
+
+namespace Test
+{
+
+}
