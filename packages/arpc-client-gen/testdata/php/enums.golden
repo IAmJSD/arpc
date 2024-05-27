@@ -287,25 +287,25 @@ namespace Test
     {
         const HELLO = "Hi!";
         const WOW = "XD";
-}
+    }
 
     abstract class NumberEnum
     {
         const ONE = 1;
         const TWO = 2;
-}
+    }
 
     abstract class BigIntEnum
     {
         const ONE = 1;
         const TWO = 2;
-}
+    }
 
     abstract class BooleanEnum
     {
         const FALSE = false;
         const TRUE = true;
-}
+    }
 
     class EnumsObject
     {

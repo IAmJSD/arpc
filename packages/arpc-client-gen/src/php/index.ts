@@ -31,7 +31,7 @@ function createEnum(e: Enum) {
 
     if (inner !== "") inner += "\n";
 
-    return `    abstract class ${e.name}${start}${inner}}`;
+    return `    abstract class ${e.name}${start}${inner}    }`;
 }
 
 function createException(
