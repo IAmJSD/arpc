@@ -80,6 +80,12 @@ namespace ${namespace}\\Internal {
         public string $method;
         public bool $mutation;
         public $arg;
+
+        public function __construct(string $method, bool $mutation, $arg) {
+            $this->method = $method;
+            $this->mutation = $mutation;
+            $this->arg = $arg;
+        }
     }
 }
 
@@ -254,8 +260,8 @@ namespace ${namespace}\\Internal {
     }
 
     class BaseBatcher {
-        private array $_batch = [];
-        private ClientCore $_client;
+        protected array $_batch = [];
+        protected ClientCore $_client;
 
         public function __construct(ClientCore $client) {
             $this->_client = $client;
@@ -267,9 +273,9 @@ namespace ${namespace}\\Internal {
     }
 
     class BaseClient {
-        private ClientCore $_client;
+        protected ClientCore $_client;
 
-        private function __construct(string $hostname, string $url_params, array $headers) {
+        protected function __construct(string $hostname, string $url_params, array $headers) {
             $this->_client = new ClientCore($hostname, $url_params, $headers);
         }
     }
