@@ -20,12 +20,6 @@ type clientBase struct {
 	headers map[string]string
 }
 
-// ClientBase defines a client base object that is passed around. Note that this
-// interface should not be implemented by a third party.
-type ClientBase interface {
-	do(ctx context.Context, req any) (any, error)
-}
-
 // BatchError is a batch of errors that can be returned from a batch request.
 type BatchError struct {
 	// Errors is a list of errors that were returned from the batch request.
