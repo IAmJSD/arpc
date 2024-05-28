@@ -1,3 +1,4 @@
+import { Enum, Object, Methods, Client } from "../BuildData";
 import header from "./header";
 
 // Defines a function to generate a exception.
@@ -60,4 +61,209 @@ func init() {
 }`;
 }
 
+// Builds the client/batcher structs.
+function buildApiStruct(
+	enums: Enum[], objects: Object[], methods: Methods, namespace: string,
+    prefix: string, initial: boolean, isClient: boolean,
+) {
+	// Defines the struct name.
+	const structName = `api${prefix}${isClient ? "Client" : "Batcher"}`;
+}
 
+// Builds the API interface.
+function buildApiInterface(methods: Methods, prefix: string, isClient: boolean) {
+
+}
+
+// Defines the client constructor.
+function clientConstructor(client: Client) {
+	// Defines the URL logic.
+	const urlLogic = `if opts.Hostname == "" {
+		opts.Hostname = "${client.defaultProtocol}://${client.defaultHostname}"
+	}
+
+	protoStep := 0
+api${client.apiVersion}ClientProtoLoop:
+	for _, v := range opts.Hostname {
+		switch v {
+		case ':':
+			protoStep = 1
+		case '/':
+			if protoStep != 0 {
+				protoStep++
+			}
+			if protoStep == 3 {
+				break api${client.apiVersion}ClientProtoLoop
+			}
+		default:
+			protoStep = 0
+		}
+	}
+	if protoStep != 3 {
+		opts.Hostname = "${client.defaultProtocol}://" + opts.Hostname
+	}
+
+	u, err := url.Parse(opts.Hostname)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = "/api/rpc"
+	u.RawQuery = "version=${client.apiVersion}"
+	urlStr := u.String()`;
+
+	// Handle the no auth case.
+	const prefix = `API${client.apiVersion.toUpperCase()}`;
+	const optsStructName = `${prefix}Opts`;
+	if (!client.authentication) {
+		return `// ${optsStructName} defines the options for the API client.
+type ${optsStructName} struct {
+	// Client is the HTTP client to use. If left blank, defaults to http.DefaultClient.
+	Client *http.Client \`json:"client"\`
+
+	// Hostname is the hostname to connect to. If left blank, defaults to ${client.defaultHostname}.
+	Hostname string \`json:"hostname"\`
+}
+
+// New${prefix}Client creates a new API client.
+func New${prefix}Client(opts ${optsStructName}) (${prefix}Client, error) {
+	${urlLogic}
+
+	httpClient := opts.Client
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+
+	c := &clientBase{
+		c:   httpClient,
+		url: urlStr,
+	}
+	return newApi${client.apiVersion.toUpperCase()}Client(c), nil
+}`;
+	}
+
+	// Defines a enum for the token types.
+	const tokenKeys = Object.keys(client.authentication.tokenTypes).sort();
+	const tokenType = `// ${prefix}TokenType defines the type that all token types will use.
+type ${prefix}TokenType string
+
+const (
+${tokenKeys.map((key) => {
+	const value = client.authentication!.tokenTypes[key];
+	return `    // ${prefix}TokenType${key} is the token type for ${key}.
+	${prefix}TokenType${key} ${prefix}TokenType = "${value}"`;
+}).join("\n\n")}
+)`;
+
+	// Defines the defaults to comment.
+	const typeDefaultsTo = client.authentication.defaultTokenType
+		? `Defaults to ${client.authentication.defaultTokenType}.`
+		: "Will error if not set.";
+
+	// Handle if the token type is required.
+	const throwOrDefault = client.authentication.defaultTokenType
+		? `o.TokenType = ${prefix}TokenType${client.authentication.defaultTokenType}`
+		: `return "", errors.New("token type is required")`;
+
+	// Return the text.
+	return `${tokenType}
+
+// ${optsStructName}Auth defines the options for the API client with authentication.
+type ${optsStructName}Auth struct {
+	// Token defines the token to use for authentication. Will error if not set.
+	Token string \`json:"token"\`
+
+	// TokenType defines the type of token to use for authentication. ${typeDefaultsTo}
+	TokenType ${prefix}TokenType \`json:"token_type"\`
+}
+
+func (o ${optsStructName}Auth) str() (string, error) {
+	if o.Token == "" {
+		return "", errors.New("token is required")
+	}
+
+	if o.TokenType == "" {
+		${throwOrDefault}
+	}
+
+	typeMapping := map[${prefix}TokenType]string{
+${tokenKeys.map((key) => `		${prefix}TokenType${key}: "${client.authentication!.tokenTypes[key]}",`).join("\n")}
+	}
+	webTerm, ok := typeMapping[o.TokenType]
+	if !ok {
+		return "", errors.New("invalid token type")
+	}
+
+	return webTerm + " " + o.Token, nil
+}
+
+// ${optsStructName} defines the options for the API client.
+type ${optsStructName} struct {
+	// Authentication is the authentication options to use. If nil, no authentication is used.
+	Authentication *${optsStructName}Auth \`json:"authentication"\`
+
+	// Client is the HTTP client to use. If left blank, defaults to http.DefaultClient.
+	Client *http.Client \`json:"client"\`
+
+	// Hostname is the hostname to connect to. If left blank, defaults to ${client.defaultHostname}.
+	Hostname string \`json:"hostname"\`
+}
+
+// New${prefix}Client creates a new API client.
+func New${prefix}Client(opts ${optsStructName}) (${prefix}Client, error) {
+	${urlLogic}
+
+	httpClient := opts.Client
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+
+	headers := map[string]string{}
+	if opts.Authentication != nil {
+		auth, err := opts.Authentication.str()
+		if err != nil {
+			return nil, err
+		}
+		headers["Authorization"] = auth
+	}
+
+	c := &clientBase{
+		c:       httpClient,
+		url:     urlStr,
+		headers: headers,
+	}
+	return newApi${client.apiVersion.toUpperCase()}Client(c), nil
+}`;
+}
+
+// Creates the client structures and initializer.
+function createClient(enums: Enum[], objects: Object[], client: Client) {
+	// Build the batcher.
+	const prefix = `V${client.apiVersion}`;
+	const batcherIface = buildApiInterface(client.methods, prefix, false);
+	const batcherStruct = buildApiStruct(
+		enums, objects, client.methods, "", prefix, true, false,
+	);
+
+	// Build the client.
+	const clientIface = buildApiInterface(client.methods, prefix, true);
+	const clientStruct = buildApiStruct(
+		enums, objects, client.methods, "", prefix, true, true,
+	);
+
+	// Build the extra functions needed to bootstrap everything and return it with the structs.
+	return batcherIface + "\n\n"+  batcherStruct + "\n\n" + clientIface + "\n\n" + clientStruct + `
+
+func (c *api${prefix}Batcher) Execute(ctx context.Context) ([]any, error) {
+	resp, err := c.base.do(ctx, c.reqs)
+	if err != nil {
+		return nil, err
+	}
+	return resp.([]any), nil
+}
+
+func (c *api${prefix}Client) Batcher() API${prefix}Batcher {
+	return newApi${prefix}Batcher(c.base)
+}
+
+${clientConstructor(client)}`;
+}

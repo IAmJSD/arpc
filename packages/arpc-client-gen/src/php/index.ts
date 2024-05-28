@@ -438,7 +438,7 @@ function buildClientConstructor(client: Client): string {
 ${hostnameInit}
             parent::__construct(
                 $scheme . "://" . $host . ($port ? ":" . $port : ""),
-                "api_version=${client.apiVersion}", [],
+                "version=${client.apiVersion}", [],
             );
         }`;
     }
