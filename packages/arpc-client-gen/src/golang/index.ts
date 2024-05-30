@@ -64,10 +64,90 @@ func init() {
 // Builds the client/batcher structs.
 function buildApiStruct(
 	enums: Enum[], objects: Object[], methods: Methods, namespace: string,
-    prefix: string, initial: boolean, isClient: boolean,
+    prefix: string, description: string | null, pvt: boolean, isClient: boolean,
 ) {
 	// Defines the struct name.
-	const structName = `api${prefix}${isClient ? "Client" : "Batcher"}`;
+	const structName = `${pvt ? "api" : "API"}${prefix}${isClient ? "Client" : "Batcher"}`;
+
+	const chunks: string[] = [];
+	if (description) {
+		// Add the struct name to the description.
+		description = `${structName} defines ${description.substring(0, 1).toLowerCase()}${description.substring(1)}`;
+
+		if (!pvt) {
+			// Note that New<struct name> should be used to create a new instance.
+			const descSplit = description.split("\n");
+			descSplit[0] = `${descSplit[0]} Please use New${structName} to create a new instance.`;
+			description = descSplit.join("\n");
+		}
+
+		// Write the description.
+		chunks.push(
+			description.split("\n").map((x) => `// ${x}`).join("\n"),
+		);
+	}
+
+	// Write the header.
+	chunks.push(`type ${structName} struct {`);
+
+	// If this is a client or the first item in a batcher, include the client core.
+	if (isClient || namespace === "") {
+		chunks.push(`	core *clientCore`);
+	}
+
+	// If this isn't a client, include the request slice pointer.
+	if (!isClient) {
+		chunks.push(`	reqs *[]*request`);
+	}
+
+	// Go through and add the categories to the struct.
+	const keys = Object.keys(methods).sort();
+	let structItemLength = 0;
+	const structCats: [string, string][] = [];
+	const catChunks: string[] = [];
+	for (const key of keys) {
+		// Check if this is a category.
+		const isCat = typeof methods[key].mutation !== "boolean";
+		if (isCat) {
+			// Get the struct item name.
+			const itemName = key.slice(0, 1).toUpperCase() + key.slice(1);
+
+			// If itemName's length is greater than structItemLength, set it.
+			if (itemName.length > structItemLength) structItemLength = itemName.length;
+
+			// Push it to the struct categories.
+			const structName = `api${prefix}${itemName}${isClient ? "Client" : "Batcher"}`;
+			structCats.push([itemName, structName]);
+	
+			// Recurse the category.
+			catChunks.push(buildApiStruct(
+				enums, objects, methods[key] as Methods,
+				namespace === "" ? key : namespace + "." + key,
+				prefix + itemName, null, true, isClient,
+			));
+		}
+	}
+
+	// Handle if there is any struct items that need adding.
+	if (structItemLength > 0) {
+		// Add the struct items to the top.
+		chunks.unshift(catChunks.join("\n\n") + "\n");
+
+		// Go through each struct item.
+		chunks.push("");
+		for (let [attr, structName] of structCats) {
+			attr += " ".repeat(structItemLength - attr.length);
+			chunks.push(`	${attr} *${structName}`);
+		}
+	}
+
+	// Close the struct.
+	chunks.push("}");
+
+	// TODO: Methods
+
+	// Join the chunks by a newline.
+	return chunks.join("\n");
 }
 
 // Defines the client constructor.
@@ -204,7 +284,7 @@ type ${optsStructName} struct {
 }
 
 // New${prefix}Client creates a new API client.
-func New${prefix}Client(opts ${optsStructName}) (${prefix}Client, error) {
+func New${prefix}Client(opts ${optsStructName}) (*${prefix}Client, error) {
 	${urlLogic}
 
 	httpClient := opts.Client
@@ -235,20 +315,20 @@ function createClient(enums: Enum[], objects: Object[], client: Client) {
 	// Build the batcher.
 	const prefix = `V${client.apiVersion}`;
 	const batcherStruct = buildApiStruct(
-		enums, objects, client.methods, "", prefix, true, false,
+		enums, objects, client.methods, "", prefix, null, true, false,
 	);
 
 	// Build the client.
 	const clientStruct = buildApiStruct(
-		enums, objects, client.methods, "", prefix, true, true,
+		enums, objects, client.methods, "", prefix, client.description, false, true,
 	);
 
 	// Build the extra functions needed to bootstrap everything and return it with the structs.
 	return batcherStruct + "\n\n" + clientStruct + `
 
 // Execute executes the batch request.
-func (c *API${prefix}Batcher) Execute(ctx context.Context) ([]any, error) {
-	resp, err := c.base.do(ctx, c.reqs)
+func (c *api${prefix}Batcher) Execute(ctx context.Context) ([]any, error) {
+	resp, err := c.base.do(ctx, *c.reqs)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +336,7 @@ func (c *API${prefix}Batcher) Execute(ctx context.Context) ([]any, error) {
 }
 
 // Batcher returns a new batcher for the API.
-func (c *api${prefix}Client) Batcher() *API${prefix}Batcher {
+func (c *API${prefix}Client) Batcher() *api${prefix}Batcher {
 	return newApi${prefix}Batcher(c.base)
 }
 
