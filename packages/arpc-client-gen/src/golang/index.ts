@@ -70,11 +70,6 @@ function buildApiStruct(
 	const structName = `api${prefix}${isClient ? "Client" : "Batcher"}`;
 }
 
-// Builds the API interface.
-function buildApiInterface(methods: Methods, prefix: string, isClient: boolean) {
-
-}
-
 // Defines the client constructor.
 function clientConstructor(client: Client) {
 	// Defines the URL logic.
@@ -125,7 +120,7 @@ type ${optsStructName} struct {
 }
 
 // New${prefix}Client creates a new API client.
-func New${prefix}Client(opts ${optsStructName}) (${prefix}Client, error) {
+func New${prefix}Client(opts ${optsStructName}) (*${prefix}Client, error) {
 	${urlLogic}
 
 	httpClient := opts.Client
@@ -239,21 +234,20 @@ func New${prefix}Client(opts ${optsStructName}) (${prefix}Client, error) {
 function createClient(enums: Enum[], objects: Object[], client: Client) {
 	// Build the batcher.
 	const prefix = `V${client.apiVersion}`;
-	const batcherIface = buildApiInterface(client.methods, prefix, false);
 	const batcherStruct = buildApiStruct(
 		enums, objects, client.methods, "", prefix, true, false,
 	);
 
 	// Build the client.
-	const clientIface = buildApiInterface(client.methods, prefix, true);
 	const clientStruct = buildApiStruct(
 		enums, objects, client.methods, "", prefix, true, true,
 	);
 
 	// Build the extra functions needed to bootstrap everything and return it with the structs.
-	return batcherIface + "\n\n"+  batcherStruct + "\n\n" + clientIface + "\n\n" + clientStruct + `
+	return batcherStruct + "\n\n" + clientStruct + `
 
-func (c *api${prefix}Batcher) Execute(ctx context.Context) ([]any, error) {
+// Execute executes the batch request.
+func (c *API${prefix}Batcher) Execute(ctx context.Context) ([]any, error) {
 	resp, err := c.base.do(ctx, c.reqs)
 	if err != nil {
 		return nil, err
@@ -261,7 +255,8 @@ func (c *api${prefix}Batcher) Execute(ctx context.Context) ([]any, error) {
 	return resp.([]any), nil
 }
 
-func (c *api${prefix}Client) Batcher() API${prefix}Batcher {
+// Batcher returns a new batcher for the API.
+func (c *api${prefix}Client) Batcher() *API${prefix}Batcher {
 	return newApi${prefix}Batcher(c.base)
 }
 
