@@ -1,4 +1,4 @@
-import { Enum, Object, Methods, Client } from "../BuildData";
+import { Enum, Object, Methods, Client, Method } from "../BuildData";
 import header from "./header";
 
 // Defines a function to generate a exception.
@@ -59,6 +59,14 @@ func init() {
 		}
 	}
 }`;
+}
+
+// Builds the methods.
+function buildApiMethod(
+	enums: Enum[], objects: Object[], structName: string, key: string,
+	namespace: string, method: Method, isClient: boolean,
+) {
+	// TODO
 }
 
 // Builds the client/batcher structs.
@@ -144,7 +152,45 @@ function buildApiStruct(
 	// Close the struct.
 	chunks.push("}");
 
-	// TODO: Methods
+	// Build the methods.
+	for (const key of keys) {
+		const possibleMethod = methods[key];
+		if (typeof possibleMethod.mutation === "boolean") {
+			chunks.push("\n" + buildApiMethod(
+				enums, objects, structName, key,
+				namespace === "" ? key : `${namespace}.${key}`,
+				possibleMethod as Method, isClient,
+			));
+		}
+	}
+
+	// Build the constructor input.
+	let input = "core *clientCore";
+	let structInit = "core: core";
+	if (!isClient) {
+		if (namespace === "") {
+			// The main batcher has a different initializer.
+			structInit += ", reqs: &[]*request{}";
+		} else {
+			// Sub-categories of batchers take a different input.
+			input = "reqs *[]*request";
+			structInit = "reqs: reqs";
+		}
+	}
+
+	// Build all required dynamic bits.
+	const initChunks: string[] = [];
+	const subarg = isClient ? "core" : "s.reqs";
+	for (const [attr, structName] of structCats) {
+		initChunks.push(`\n	s.${attr} = newA${structName.substring(1)}(${subarg})`);
+	}
+
+	// Build the init.
+	chunks.push(`
+func newApi${structName.substring(3)}(${input}) *${structName} {
+	s := &${structName}{${structInit}}${initChunks.join("")}
+	return s
+}`);
 
 	// Join the chunks by a newline.
 	return chunks.join("\n");
