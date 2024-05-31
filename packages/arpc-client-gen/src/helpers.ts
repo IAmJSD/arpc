@@ -1,4 +1,4 @@
-import { Object, Signature } from "./BuildData";
+import type { Object, Signature } from "./BuildData";
 
 export function sortByObjectHeaviness(sigs: Signature[], objects: Object[]) {
     return sigs.sort((a, b) => {

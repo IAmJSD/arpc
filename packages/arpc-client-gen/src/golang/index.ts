@@ -1,4 +1,4 @@
-import { Enum, Object, Methods, Client, Method, BuildData } from "../BuildData";
+import type { Enum, Object, Methods, Client, Method, BuildData } from "../BuildData";
 import header from "./header";
 import { buildApiMethod } from "./methods";
 import { getReturnType } from "./returnTypes";

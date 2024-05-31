@@ -1,4 +1,4 @@
-import { Object, Signature, LiteralType } from "../BuildData";
+import type { Object, Signature, LiteralType } from "../BuildData";
 import { sortByObjectHeaviness } from "../helpers";
 
 // Defines the return type for a signature.
