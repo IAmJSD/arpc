@@ -146,9 +146,9 @@ function buildApiStruct(
 	// Write the header.
 	chunks.push(`type ${structName} struct {`);
 
-	// If this is a client or the first item in a batcher, include the client core.
+	// If this is a client or the first item in a batcher, include the client base.
 	if (isClient || namespace === "") {
-		chunks.push(`	core *clientCore`);
+		chunks.push(`	base *clientBase`);
 	}
 
 	// If this isn't a client, include the request slice pointer.
@@ -213,8 +213,8 @@ function buildApiStruct(
 	}
 
 	// Build the constructor input.
-	let input = "core *clientCore";
-	let structInit = "core: core";
+	let input = "base *clientBase";
+	let structInit = "base: base";
 	if (!isClient) {
 		if (namespace === "") {
 			// The main batcher has a different initializer.
@@ -228,7 +228,7 @@ function buildApiStruct(
 
 	// Build all required dynamic bits.
 	const initChunks: string[] = [];
-	const subarg = isClient ? "core" : "s.reqs";
+	const subarg = isClient ? "base" : "s.reqs";
 	for (const [attr, structName] of structCats) {
 		initChunks.push(`\n	s.${attr} = newA${structName.substring(1)}(${subarg})`);
 	}
