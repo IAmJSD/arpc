@@ -1,3 +1,4 @@
+import { getReturnType } from "./returnTypes";
 import { Enum, Object, Method } from "../BuildData";
 
 // Builds the methods.
