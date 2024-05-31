@@ -1,4 +1,5 @@
-import { Enum, Object, Methods, Client, Method } from "../BuildData";
+import { Enum, Object, Methods, Client, Method, Signature, ObjectSignature, LiteralType, BuildData } from "../BuildData";
+import { sortByObjectHeaviness } from "../helpers";
 import header from "./header";
 
 // Defines a function to generate a exception.
@@ -59,6 +60,171 @@ func init() {
 		}
 	}
 }`;
+}
+
+// Defines the return type for a signature.
+type ReturnType = {
+	type: string;
+	comment?: string;
+};
+
+// Turn the return type into an array.
+function arrRetType(ret: ReturnType) {
+	ret.type = "[]" + ret.type;
+	return ret;
+}
+
+// Handles union return types.
+function unionRetType(inner: Signature[], objects: Object[]) {
+	// Build the items.
+	const itemSigs = sortByObjectHeaviness(inner.slice(), objects).map((x) => {
+		return getReturnType(x, objects);
+	});
+
+	// Create the comment.
+	const comment = `The return type is one of: ${itemSigs.map((x) => x.type).join(", ")}`;
+
+	// Return the type.
+	return {
+		type: "any",
+		comment,
+	};
+}
+
+// Handle the map return type.
+function mapRetType(key: Signature, value: Signature, objects: Object[]) {
+	// Get the key and value types.
+	const keyType = getReturnType(key, objects);
+	const valueType = getReturnType(value, objects);
+
+	// Handle the comments if they are set.
+	const chunks: string[] = [];
+	if (keyType.comment) chunks.push(keyType.comment.replace(
+		/^The return type is /, "The key type is ",
+	));
+	if (valueType.comment) chunks.push(valueType.comment.replace(
+		/^The return type is /, "The value type is ",
+	));
+
+	// Return the result.
+	const mapType = `map[${keyType.type}]${valueType.type}`;
+	if (chunks.length > 0) {
+		return {
+			type: mapType,
+			comment: chunks.join("\n"),
+		};
+	}
+	return { type: mapType };
+}
+
+// Defines the nullable return type.
+function nullRetType(inner: Signature, objects: Object[]) {
+	// Ensure we eat all the nulls.
+	while (inner.type === "nullable") inner = inner.inner;
+
+	// Get the return type.
+	const ret = getReturnType(inner, objects);
+	ret.type = `*${ret.type}`;
+	return ret;
+}
+
+// Handle the literal return type.
+function literalRetType(value: LiteralType): ReturnType {
+	switch (typeof value) {
+	case "string":
+		return {type: "string"};
+	case "number":
+		return {type: "int"};
+	case "bigint":
+		return {type: "uint64"};
+	case "boolean":
+		return {type: "bool"};
+	case "object":
+		return {type: "*struct{}"};
+	}
+}
+
+// Get the return type for a signature and a comment that clarifies it if needed.
+function getReturnType(sig: Signature, objects: Object[]): ReturnType {
+	switch (sig.type) {
+	case "array":
+		return arrRetType(getReturnType(sig.inner, objects));
+	case "bigint":
+		return {type: "uint64"};
+	case "boolean":
+		return {type: "bool"};
+	case "union":
+		return unionRetType(sig.inner, objects);
+	case "string":
+	case "enum_key":
+		return {type: "string"};
+	case "map":
+		return mapRetType(sig.key, sig.value, objects);
+	case "nullable":
+		return nullRetType(sig.inner, objects);
+	case "number":
+		return {type: "int"};
+	case "object":
+		return {type: sig.key};
+	case "literal":
+		return literalRetType(sig.value);
+	case "enum_value":
+		return {type: sig.enum};
+	}
+}
+
+// Creates a enum.
+function createEnum(e: Enum, objects: Object[]) {
+	// Defines the chunks for the enum.
+	const chunks = [
+		`type ${e.name} ${getReturnType(e.valueType, objects).type}`,
+	];
+
+	// Return here if there is no data.
+	if (e.data.size === 0) return chunks[0];
+
+	// Build the const start.
+	chunks.push("\nconst (");
+
+	// Go through each enum key.
+	const keys = Array.from(e.data.keys()).sort();
+	const first = keys.shift();
+	function processKey(key: any, first: boolean) {
+		// Defines the prefix.
+		const prefix = first ? "" : "\n";
+
+		// Push the chunk.
+		chunks.push(`${prefix}	// ${e.name}${key} is the enum key for ${key}.
+	${e.name}${key} ${e.name} = ${e.data.get(key)}`);
+	}
+	processKey(first, true);
+	for (const key of keys) processKey(key, false);
+
+	// Add the const end.
+	chunks.push(")");
+
+	// Return the chunks.
+	return chunks.join("\n");
+}
+
+// Creates a object struct.
+function createObject(obj: Object, objects: Object[]) {
+	const keys = Object.keys(obj.fields).sort();
+	if (keys.length === 0) {
+		return `type ${obj.name} struct {}`;
+	}
+
+	const chunks: string[] = [];
+	chunks.push(`type ${obj.name} struct {`);
+	const longestKey = keys.reduce((a, b) => a.length > b.length ? a : b).length;
+	for (const key of keys) {
+		const field = obj.fields[key];
+		const ret = getReturnType(field, objects);
+		const attrName = key.slice(0, 1).toUpperCase() + key.slice(1);
+		chunks.push(`	${attrName}${" ".repeat(longestKey - attrName.length)} ${ret.type} \`json:"${key}"\``);
+	}
+	chunks.push("}");
+	return chunks.join("\n");
 }
 
 // Builds the methods.
@@ -387,4 +553,30 @@ func (c *API${prefix}Client) Batcher() *api${prefix}Batcher {
 }
 
 ${clientConstructor(client)}`;
+}
+
+export function golang(data: BuildData) {
+    const chunks = [header];
+
+    for (const e of data.enums) {
+        chunks.push(createEnum(e, data.objects));
+    }
+
+    for (const o of data.objects) {
+        chunks.push(createObject(o, data.objects));
+    }
+
+    for (const e of data.builtinExceptions) {
+        chunks.push(createException(e.name, e.description, true));
+    }
+
+    for (const e of data.customExceptions) {
+        chunks.push(createException(e.name, e.description, false));
+    }
+
+    for (const c of data.clients) {
+        chunks.push(createClient(data.enums, data.objects, c));
+    }
+
+    return chunks.join("\n\n"); 
 }
