@@ -1,5 +1,6 @@
-import { Enum, Object, Methods, Client, Method, Signature, ObjectSignature, LiteralType, BuildData } from "../BuildData";
+import { Enum, Object, Methods, Client, Method, Signature, LiteralType, BuildData } from "../BuildData";
 import { sortByObjectHeaviness } from "../helpers";
+import { buildApiMethod } from "./methods";
 import header from "./header";
 
 // Defines a function to generate a exception.
@@ -225,14 +226,6 @@ function createObject(obj: Object, objects: Object[]) {
 	}
 	chunks.push("}");
 	return chunks.join("\n");
-}
-
-// Builds the methods.
-function buildApiMethod(
-	enums: Enum[], objects: Object[], structName: string, key: string,
-	namespace: string, method: Method, isClient: boolean,
-) {
-	// TODO
 }
 
 // Builds the client/batcher structs.
