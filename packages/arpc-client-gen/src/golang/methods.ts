@@ -1,23 +1,58 @@
 import type { Enum, Object, Method, Signature } from "../BuildData";
+import { sortByObjectHeaviness } from "../helpers";
 import { getReturnType } from "./returnTypes";
 
 // Pushes the validator for the input.
 function pushValidator(
 	enums: Enum[], objects: Object[], name: string, signature: Signature, chunks: string[],
 ) {
-	
+	// TODO
 }
 
 // Builds the mutator for the method.
-function buildMutator(enums: Enum[], objects: Object[], output: Signature): string {
-ß
+function buildMutator(objects: Object[], output: Signature, indent: string): string {
+	if (output.type === "union") {
+		// In a union, we need to have many mutators which output the first successful.
+		const sorted = sortByObjectHeaviness(output.inner.slice(), objects);
+		const chunks = [];
+		for (let i = 0; i < sorted.length; i++) {
+			chunks.push(
+				`	${indent}i${i} := ${buildMutator(objects, sorted[i], indent + "\t")}`,
+			);
+			chunks.push(`${indent}	if internalVal, internalErr := i${i}(val); internalErr == nil {
+${indent}		return internalVal, nil
+${indent}	}`);
+		}
+		chunks.push(`${indent}return nil, fmt.Errorf("failed to validate union")`);
+		return `func(val []byte) (any, error) {
+${chunks.join("\n")}
+${indent}}`;
+	}
+
+	// Handle individual types.
+	const returnType = getReturnType(output, objects);
+	if (returnType.type === "any") {
+		// If the type is any, we need to return the raw value.
+		return `func(val []byte) (any, error) {
+${indent}	return val, nil
+${indent}}`;
+	}
+
+	// Handle the rest of the types by trying to unmarshal them.
+	return `func(val []byte) (any, error) {
+${indent}	var internalVal ${returnType.type}
+${indent}	if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
+${indent}		return nil, internalErr
+${indent}	}
+${indent}	return internalVal, nil
+${indent}}`;
 }
 
 // Builds the methods that are exposed by the API.
 export function buildApiMethod(
 	enums: Enum[], objects: Object[], structName: string, key: string,
 	namespace: string, method: Method, isClient: boolean,
-) {
+): string {
 	// Add the description.
 	let description: string;
 	if (method.description) {
@@ -49,7 +84,7 @@ export function buildApiMethod(
 	}
 
 	// Build the mutator.
-	chunks.push(buildMutator(enums, objects, method.output));
+	chunks.push("internalMutator := " + buildMutator(objects, method.output, "\t"));
 
 	// Push the request build.
 	chunks.push(`   reqBuildObj := request{
