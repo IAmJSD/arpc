@@ -5,8 +5,32 @@ import { getReturnType } from "./returnTypes";
 // Pushes the validator for the input.
 function pushValidator(
 	enums: Enum[], objects: Object[], name: string, signature: Signature, chunks: string[],
+	indent: string,
 ) {
-	// TODO
+	let newLen: number;
+	switch (signature.type) {
+	case "array":
+		chunks.push(`${indent}for _, v := range ${name} {`);
+		newLen = chunks.length;
+		pushValidator(enums, objects, "v", signature, chunks, indent + "\t");
+		if (newLen === chunks.length) {
+			chunks.pop();
+		} else {
+			chunks.push(`${indent}}`);
+		}
+		return;
+	case "nullable":
+		chunks.push(`${indent}if ${name} != nil {`);
+		newLen = chunks.length;
+		pushValidator(enums, objects, "*" + name, signature, chunks, indent + "\t");
+		if (newLen === chunks.length) {
+			chunks.pop();
+		} else {
+			chunks.push(`${indent}}`);
+		}
+		return;
+	case ""
+	}
 }
 
 // Builds the mutator for the method.
@@ -80,7 +104,7 @@ export function buildApiMethod(
 
 	// If the input needs validating, do it here.
 	if (method.input) {
-		pushValidator(enums, objects, method.input.name, method.input.signature, chunks);
+		pushValidator(enums, objects, method.input.name, method.input.signature, chunks, "\t");
 	}
 
 	// Build the mutator.
