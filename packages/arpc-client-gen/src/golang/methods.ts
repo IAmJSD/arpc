@@ -1,10 +1,10 @@
 import type { Enum, Object, Method, Signature, LiteralType } from "../BuildData";
 import { sortByObjectHeaviness } from "../helpers";
-import { getReturnType } from "./returnTypes";
+import { getReturnType, ReturnType } from "./returnTypes";
 
 // Pushes a object validator.
 function pushObjectValidator(
-	enums: Enum[], objects: Object[], name: string, sigObject: string, chunks: string[],
+	output: ReturnType, enums: Enum[], objects: Object[], name: string, sigObject: string, chunks: string[],
 	indent: string,
 ) {
 	// Get the object.
@@ -16,29 +16,80 @@ function pushObjectValidator(
 	for (const key of keys) {
 		const attr = key.substring(0, 1).toUpperCase() + key.substring(1);
 		const signature = obj.fields[key];
-		pushValidator(enums, objects, `${name}.${attr}`, signature, chunks, indent);
+		pushValidator(enums, objects, `${name}.${attr}`, signature, chunks, indent, output);
 	}
 }
 
 // Pushes a literal validator.
-function pushLiteralValidator(
-	enums: Enum[], objects: Object[], name: string, value: LiteralType, chunks: string[],
-	indent: string,
+function pushLiteralValidator(outputType: string, name: string, value: LiteralType, chunks: string[], indent: string) {
+	// Get the string value.
+	let valueStr: string;
+	switch (typeof value) {
+	case "bigint":
+		valueStr = value.toString();
+		break;
+	case "object":
+		if (value) {
+			// This should never happen.
+			throw new Error("non-nil object literals are not supported");
+		}
+		valueStr = "nil";
+		break;
+	default:
+		valueStr = JSON.stringify(value);
+	}
+
+	// Do the check.
+	chunks.push(`${indent}if ${name} != ${valueStr} {
+${indent}	var internalDefault ${outputType}
+${indent}	return internalDefault, errors.New("literal value does not match")
+${indent}}`);
+}
+
+// Pushes a union validator.
+function pushUnionValidator(
+	enums: Enum[], objects: Object[], name: string, inner: Signature[], chunks: string[], indent: string,
+	output: ReturnType,
 ) {
 	// TODO
+}
+
+// Pushes the enum keys for the input.
+function pushEnumKeyValidator(
+	enums: Enum[], name: string, enumName: string, chunks: string[], indent: string,
+	output: ReturnType,
+) {
+	// Get the enum.
+	const enumObj = enums.find((x) => x.name === enumName);
+	if (!enumObj) throw new Error(`Could not find enum ${enumName}`);
+
+	// Check if the value is in the enum.
+	const conditions = [...enumObj.data.keys()].sort();
+	if (conditions.length === 0) {
+		// Return early since there is nothing to push.
+		return;
+	}
+	chunks.push(`${indent}switch ${name} {`);
+	for (const condition of conditions) {
+		chunks.push(`${indent}case ${JSON.stringify(condition)}:`);
+	}
+	chunks.push(`${indent}default:
+${indent}	var internalDefault ${output.type}
+${indent}	return internalDefault, errors.New("enum key is not present")
+${indent}}`);
 }
 
 // Pushes the validator for the input.
 function pushValidator(
 	enums: Enum[], objects: Object[], name: string, signature: Signature, chunks: string[],
-	indent: string,
+	indent: string, output: ReturnType,
 ) {
 	let newLen: number;
 	switch (signature.type) {
 	case "array":
 		chunks.push(`${indent}for _, v := range ${name} {`);
 		newLen = chunks.length;
-		pushValidator(enums, objects, "v", signature, chunks, indent + "\t");
+		pushValidator(enums, objects, "v", signature, chunks, indent + "\t", output);
 		if (newLen === chunks.length) {
 			chunks.pop();
 		} else {
@@ -48,7 +99,7 @@ function pushValidator(
 	case "nullable":
 		chunks.push(`${indent}if ${name} != nil {`);
 		newLen = chunks.length;
-		pushValidator(enums, objects, "*" + name, signature, chunks, indent + "\t");
+		pushValidator(enums, objects, "*" + name, signature, chunks, indent + "\t", output);
 		if (newLen === chunks.length) {
 			chunks.pop();
 		} else {
@@ -58,8 +109,8 @@ function pushValidator(
 	case "map":
 		chunks.push(`${indent}for k, v := range ${name} {`);
 		newLen = chunks.length;
-		pushValidator(enums, objects, "k", signature.key, chunks, indent + "\t");
-		pushValidator(enums, objects, "v", signature.value, chunks, indent + "\t");
+		pushValidator(enums, objects, "k", signature.key, chunks, indent + "\t", output);
+		pushValidator(enums, objects, "v", signature.value, chunks, indent + "\t", output);
 		if (newLen === chunks.length) {
 			chunks.pop();
 		} else {
@@ -67,9 +118,13 @@ function pushValidator(
 		}
 		return;
 	case "object":
-		return pushObjectValidator(enums, objects, name, signature.key, chunks, indent);
+		return pushObjectValidator(output, enums, objects, name, signature.key, chunks, indent);
 	case "literal":
-		return pushLiteralValidator(enums, objects, name, signature.value, chunks, indent);
+		return pushLiteralValidator(output.type, name, signature.value, chunks, indent);
+	case "union":
+		return pushUnionValidator(enums, objects, name, signature.inner, chunks, indent, output);
+	case "enum_key":
+		return pushEnumKeyValidator(enums, name, signature.enum, chunks, indent, output);
 	}
 }
 
@@ -144,7 +199,7 @@ export function buildApiMethod(
 
 	// If the input needs validating, do it here.
 	if (method.input) {
-		pushValidator(enums, objects, method.input.name, method.input.signature, chunks, "\t");
+		pushValidator(enums, objects, method.input.name, method.input.signature, chunks, "\t", outputType);
 	}
 
 	// Build the mutator.
