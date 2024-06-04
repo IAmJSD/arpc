@@ -1,6 +1,32 @@
-import type { Enum, Object, Method, Signature } from "../BuildData";
+import type { Enum, Object, Method, Signature, LiteralType } from "../BuildData";
 import { sortByObjectHeaviness } from "../helpers";
 import { getReturnType } from "./returnTypes";
+
+// Pushes a object validator.
+function pushObjectValidator(
+	enums: Enum[], objects: Object[], name: string, sigObject: string, chunks: string[],
+	indent: string,
+) {
+	// Get the object.
+	const obj = objects.find((x) => x.name === sigObject);
+	if (!obj) throw new Error(`Could not find object ${sigObject}`);
+
+	// Go through the keys and validate each thing where applicable.
+	const keys = Object.keys(obj.fields).sort();
+	for (const key of keys) {
+		const attr = key.substring(0, 1).toUpperCase() + key.substring(1);
+		const signature = obj.fields[key];
+		pushValidator(enums, objects, `${name}.${attr}`, signature, chunks, indent);
+	}
+}
+
+// Pushes a literal validator.
+function pushLiteralValidator(
+	enums: Enum[], objects: Object[], name: string, value: LiteralType, chunks: string[],
+	indent: string,
+) {
+	// TODO
+}
 
 // Pushes the validator for the input.
 function pushValidator(
@@ -29,7 +55,21 @@ function pushValidator(
 			chunks.push(`${indent}}`);
 		}
 		return;
-	case ""
+	case "map":
+		chunks.push(`${indent}for k, v := range ${name} {`);
+		newLen = chunks.length;
+		pushValidator(enums, objects, "k", signature.key, chunks, indent + "\t");
+		pushValidator(enums, objects, "v", signature.value, chunks, indent + "\t");
+		if (newLen === chunks.length) {
+			chunks.pop();
+		} else {
+			chunks.push(`${indent}}`);
+		}
+		return;
+	case "object":
+		return pushObjectValidator(enums, objects, name, signature.key, chunks, indent);
+	case "literal":
+		return pushLiteralValidator(enums, objects, name, signature.value, chunks, indent);
 	}
 }
 
