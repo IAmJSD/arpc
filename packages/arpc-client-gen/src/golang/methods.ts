@@ -51,7 +51,22 @@ function pushUnionValidator(
 	enums: Enum[], objects: Object[], name: string, inner: Signature[], chunks: string[], indent: string,
 	output: ReturnType,
 ) {
-	// TODO
+	// Return now if there is nothing to validate.
+	if (inner.length === 0) return;
+
+	// Go through each inner type and validate it.
+	chunks.push(`${indent}switch ${name}Inner := ${name}.(type) {`);
+	const sorted = sortByObjectHeaviness(inner.slice(), objects);
+	for (const signature of sorted) {
+		const returnType = getReturnType(signature, objects);
+		chunks.push(`${indent}case ${returnType.type}:`);
+		pushValidator(enums, objects, name + "Inner", signature, chunks, indent + "\t", output);
+	}
+	chunks.push(`${indent}	break
+${indent}default:
+${indent}	var internalDefault ${output.type}
+${indent}	return internalDefault, errors.New("union type is not present")
+${indent}}`);
 }
 
 // Pushes the enum keys for the input.
@@ -73,7 +88,8 @@ function pushEnumKeyValidator(
 	for (const condition of conditions) {
 		chunks.push(`${indent}case ${JSON.stringify(condition)}:`);
 	}
-	chunks.push(`${indent}default:
+	chunks.push(`${indent}	break
+${indent}default:
 ${indent}	var internalDefault ${output.type}
 ${indent}	return internalDefault, errors.New("enum key is not present")
 ${indent}}`);
