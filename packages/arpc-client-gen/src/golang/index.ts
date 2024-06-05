@@ -205,7 +205,8 @@ function buildApiStruct(
 		const possibleMethod = methods[key];
 		if (typeof possibleMethod.mutation === "boolean") {
 			chunks.push("\n" + buildApiMethod(
-				enums, objects, structName, key,
+				enums, objects, structName,
+				key.substring(0, 1).toUpperCase() + key.substring(1),
 				namespace === "" ? key : `${namespace}.${key}`,
 				possibleMethod as Method, isClient,
 			));

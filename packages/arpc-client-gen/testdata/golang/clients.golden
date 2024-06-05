@@ -288,8 +288,8 @@ type apiV1EchoHelloWorldBatcher struct {
 	reqs *[]*request
 }
 
-// test void function.
-func (c *apiV1EchoHelloWorldBatcher) test() {
+// Test void function.
+func (c *apiV1EchoHelloWorldBatcher) Test() {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal *struct{}
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -317,8 +317,8 @@ type apiV1EchoHelloBatcher struct {
 	World *apiV1EchoHelloWorldBatcher
 }
 
-// string this is a echo function with hello returning a string.
-func (c *apiV1EchoHelloBatcher) string(value string) {
+// String this is a echo function with hello returning a string.
+func (c *apiV1EchoHelloBatcher) String(value string) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal string
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -347,8 +347,8 @@ type apiV1EchoBatcher struct {
 	Hello *apiV1EchoHelloBatcher
 }
 
-// boolean this is a echo function with a boolean returning a boolean.
-func (c *apiV1EchoBatcher) boolean(value bool) {
+// Boolean this is a echo function with a boolean returning a boolean.
+func (c *apiV1EchoBatcher) Boolean(value bool) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal bool
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -365,8 +365,8 @@ internalMutator := func(val []byte) (any, error) {
 	*c.reqs = append(*c.reqs, reqBuildObj)
 }
 
-// itoa this is a echo function with a number returning a string.
-func (c *apiV1EchoBatcher) itoa(value int) {
+// Itoa this is a echo function with a number returning a string.
+func (c *apiV1EchoBatcher) Itoa(value int) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal string
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -383,8 +383,8 @@ internalMutator := func(val []byte) (any, error) {
 	*c.reqs = append(*c.reqs, reqBuildObj)
 }
 
-// number this is a echo function with a number returning a number.
-func (c *apiV1EchoBatcher) number(value int) {
+// Number this is a echo function with a number returning a number.
+func (c *apiV1EchoBatcher) Number(value int) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal int
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -414,8 +414,8 @@ type apiV1Batcher struct {
 	Echo *apiV1EchoBatcher
 }
 
-// inputless this is a inputless function returning a void.
-func (c *apiV1Batcher) inputless() {
+// Inputless this is a inputless function returning a void.
+func (c *apiV1Batcher) Inputless() {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal *struct{}
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -432,8 +432,8 @@ internalMutator := func(val []byte) (any, error) {
 	*c.reqs = append(*c.reqs, reqBuildObj)
 }
 
-// root this is a root function with a string returning a void.
-func (c *apiV1Batcher) root(name string) {
+// Root this is a root function with a string returning a void.
+func (c *apiV1Batcher) Root(name string) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal *struct{}
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -460,8 +460,8 @@ type apiV1EchoHelloWorldClient struct {
 	base *clientBase
 }
 
-// test void function.
-func (c *apiV1EchoHelloWorldClient) test(ctx context.Context) (*struct{}, error) {
+// Test void function.
+func (c *apiV1EchoHelloWorldClient) Test(ctx context.Context) (*struct{}, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal *struct{}
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -494,8 +494,8 @@ type apiV1EchoHelloClient struct {
 	World *apiV1EchoHelloWorldClient
 }
 
-// string this is a echo function with hello returning a string.
-func (c *apiV1EchoHelloClient) string(ctx context.Context, value string) (string, error) {
+// String this is a echo function with hello returning a string.
+func (c *apiV1EchoHelloClient) String(ctx context.Context, value string) (string, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal string
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -529,8 +529,8 @@ type apiV1EchoClient struct {
 	Hello *apiV1EchoHelloClient
 }
 
-// boolean this is a echo function with a boolean returning a boolean.
-func (c *apiV1EchoClient) boolean(ctx context.Context, value bool) (bool, error) {
+// Boolean this is a echo function with a boolean returning a boolean.
+func (c *apiV1EchoClient) Boolean(ctx context.Context, value bool) (bool, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal bool
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -552,8 +552,8 @@ internalMutator := func(val []byte) (any, error) {
 	return internalRes.(bool), nil
 }
 
-// itoa this is a echo function with a number returning a string.
-func (c *apiV1EchoClient) itoa(ctx context.Context, value int) (string, error) {
+// Itoa this is a echo function with a number returning a string.
+func (c *apiV1EchoClient) Itoa(ctx context.Context, value int) (string, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal string
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -575,8 +575,8 @@ internalMutator := func(val []byte) (any, error) {
 	return internalRes.(string), nil
 }
 
-// number this is a echo function with a number returning a number.
-func (c *apiV1EchoClient) number(ctx context.Context, value int) (int, error) {
+// Number this is a echo function with a number returning a number.
+func (c *apiV1EchoClient) Number(ctx context.Context, value int) (int, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal int
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -611,8 +611,8 @@ type APIV1Client struct {
 	Echo *apiV1EchoClient
 }
 
-// inputless this is a inputless function returning a void.
-func (c *APIV1Client) inputless(ctx context.Context) (*struct{}, error) {
+// Inputless this is a inputless function returning a void.
+func (c *APIV1Client) Inputless(ctx context.Context) (*struct{}, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal *struct{}
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -634,8 +634,8 @@ internalMutator := func(val []byte) (any, error) {
 	return internalRes.(*struct{}), nil
 }
 
-// root this is a root function with a string returning a void.
-func (c *APIV1Client) root(ctx context.Context, name string) (*struct{}, error) {
+// Root this is a root function with a string returning a void.
+func (c *APIV1Client) Root(ctx context.Context, name string) (*struct{}, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal *struct{}
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
