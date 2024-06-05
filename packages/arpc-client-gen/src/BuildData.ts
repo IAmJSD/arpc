@@ -8,6 +8,8 @@ export type ObjectSignature = {
     key: string;
 };
 
+export type LiteralType = string | number | bigint | boolean | null;
+
 export type Signature = {
     type: "string" | "number" | "bigint" | "boolean";
 } | {
@@ -31,7 +33,7 @@ export type Signature = {
     enum: string;
 } | {
     type: "literal";
-    value: string | number | bigint | boolean | null;
+    value: LiteralType;
 };
 
 export type Enum = {

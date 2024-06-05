@@ -1,5 +1,6 @@
 import type { BuildData, Client, Enum, Method, Methods, Object, Signature } from "../BuildData";
 import header from "./header";
+import { sortByObjectHeaviness } from "../helpers";
 
 function buildDescription(description: string) {
     description = description.trim().replace(/\n/g, "\n    // ");
@@ -209,17 +210,7 @@ ${prefix}}`, prefix);
 
     case "union":
         // Sort by the largest objects first. Use the length of fields to determine this.
-        const items = sig.inner.slice().sort((a, b) => {
-            if (a.type === "object" && b.type === "object") {
-                // Get the objects.
-                const aObj = objects.find((o) => o.name === a.key);
-                const bObj = objects.find((o) => o.name === b.key);
-                if (aObj && bObj) {
-                    return Object.keys(bObj.fields).length - Object.keys(aObj.fields).length;
-                }
-            }
-            return 0;
-        });
+        const items = sortByObjectHeaviness(sig.inner.slice(), objects);
 
         // Build a PHP friendly label.
         const label = namespace.replaceAll(/[\[\].]/g, "_");
@@ -438,7 +429,7 @@ function buildClientConstructor(client: Client): string {
 ${hostnameInit}
             parent::__construct(
                 $scheme . "://" . $host . ($port ? ":" . $port : ""),
-                "api_version=${client.apiVersion}", [],
+                "version=${client.apiVersion}", [],
             );
         }`;
     }
