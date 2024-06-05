@@ -70,7 +70,7 @@ export const POST = httpHandler;
     await mkdir(pagesDir, { recursive: true }).then(() => {
         return writeFile(
             join(pagesDir, "arpc.tsx"),
-            `import * as schema from "@/rpc/build_data.json";
+            `import schema from "@/rpc/build_data.json";
 import { SchemaViewer } from "@arpc-packages/schema-viewer";
 
 // @ts-ignore: This might break some TS environments.
