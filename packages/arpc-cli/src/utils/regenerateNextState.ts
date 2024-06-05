@@ -7,5 +7,5 @@ export async function regenerateNextState(repoFolderStructure: RepoFolderStructu
     const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
     mkdirSync(clientsFolder, { recursive: true });
     const buildData = await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), "", "", {});
-    writeFileSync(join(rpcPath, "build_data.json"), JSON.stringify(buildData, null, 4));
+    writeFileSync(join(rpcPath, "build_data.json"), JSON.stringify(buildData, null, "\t"));
 }
