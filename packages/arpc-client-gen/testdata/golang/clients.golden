@@ -5,6 +5,7 @@ package client
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,6 +13,9 @@ import (
 
 	"github.com/vmihailenco/msgpack/v5"
 )
+
+// Added so that if it isn't imported, this is okay.
+var _ = errors.New("")
 
 // Defines the base that all clients will call.
 type clientBase struct {
@@ -280,12 +284,12 @@ func (c *clientBase) do(ctx context.Context, req any) (any, error) {
 	return nil, BatchError{Errors: errsIface}
 }
 
-type apiVv1EchoHelloWorldBatcher struct {
+type apiV1EchoHelloWorldBatcher struct {
 	reqs *[]*request
 }
 
 // test void function.
-func (c *apiVv1EchoHelloWorldBatcher) test() {
+func (c *apiV1EchoHelloWorldBatcher) test() {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal *struct{}
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -293,7 +297,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "echo.hello.world.test",
 		arg:	  nil,
 		mutation: true,
@@ -302,19 +306,19 @@ internalMutator := func(val []byte) (any, error) {
 	*c.reqs = append(*c.reqs, reqBuildObj)
 }
 
-func newApiVv1EchoHelloWorldBatcher(reqs *[]*request) *apiVv1EchoHelloWorldBatcher {
-	s := &apiVv1EchoHelloWorldBatcher{reqs: reqs}
+func newApiV1EchoHelloWorldBatcher(reqs *[]*request) *apiV1EchoHelloWorldBatcher {
+	s := &apiV1EchoHelloWorldBatcher{reqs: reqs}
 	return s
 }
 
-type apiVv1EchoHelloBatcher struct {
+type apiV1EchoHelloBatcher struct {
 	reqs *[]*request
 
-	World *apiVv1EchoHelloWorldBatcher
+	World *apiV1EchoHelloWorldBatcher
 }
 
 // string this is a echo function with hello returning a string.
-func (c *apiVv1EchoHelloBatcher) string(value string) {
+func (c *apiV1EchoHelloBatcher) string(value string) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal string
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -322,7 +326,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "echo.hello.string",
 		arg:	  value,
 		mutation: true,
@@ -331,20 +335,20 @@ internalMutator := func(val []byte) (any, error) {
 	*c.reqs = append(*c.reqs, reqBuildObj)
 }
 
-func newApiVv1EchoHelloBatcher(reqs *[]*request) *apiVv1EchoHelloBatcher {
-	s := &apiVv1EchoHelloBatcher{reqs: reqs}
-	s.World = newApiVv1EchoHelloWorldBatcher(s.reqs)
+func newApiV1EchoHelloBatcher(reqs *[]*request) *apiV1EchoHelloBatcher {
+	s := &apiV1EchoHelloBatcher{reqs: reqs}
+	s.World = newApiV1EchoHelloWorldBatcher(s.reqs)
 	return s
 }
 
-type apiVv1EchoBatcher struct {
+type apiV1EchoBatcher struct {
 	reqs *[]*request
 
-	Hello *apiVv1EchoHelloBatcher
+	Hello *apiV1EchoHelloBatcher
 }
 
 // boolean this is a echo function with a boolean returning a boolean.
-func (c *apiVv1EchoBatcher) boolean(value bool) {
+func (c *apiV1EchoBatcher) boolean(value bool) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal bool
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -352,7 +356,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "echo.boolean",
 		arg:	  value,
 		mutation: false,
@@ -362,7 +366,7 @@ internalMutator := func(val []byte) (any, error) {
 }
 
 // itoa this is a echo function with a number returning a string.
-func (c *apiVv1EchoBatcher) itoa(value int) {
+func (c *apiV1EchoBatcher) itoa(value int) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal string
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -370,7 +374,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "echo.itoa",
 		arg:	  value,
 		mutation: false,
@@ -380,7 +384,7 @@ internalMutator := func(val []byte) (any, error) {
 }
 
 // number this is a echo function with a number returning a number.
-func (c *apiVv1EchoBatcher) number(value int) {
+func (c *apiV1EchoBatcher) number(value int) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal int
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -388,7 +392,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "echo.number",
 		arg:	  value,
 		mutation: false,
@@ -397,21 +401,21 @@ internalMutator := func(val []byte) (any, error) {
 	*c.reqs = append(*c.reqs, reqBuildObj)
 }
 
-func newApiVv1EchoBatcher(reqs *[]*request) *apiVv1EchoBatcher {
-	s := &apiVv1EchoBatcher{reqs: reqs}
-	s.Hello = newApiVv1EchoHelloBatcher(s.reqs)
+func newApiV1EchoBatcher(reqs *[]*request) *apiV1EchoBatcher {
+	s := &apiV1EchoBatcher{reqs: reqs}
+	s.Hello = newApiV1EchoHelloBatcher(s.reqs)
 	return s
 }
 
-type apiVv1Batcher struct {
+type apiV1Batcher struct {
 	base *clientBase
 	reqs *[]*request
 
-	Echo *apiVv1EchoBatcher
+	Echo *apiV1EchoBatcher
 }
 
 // inputless this is a inputless function returning a void.
-func (c *apiVv1Batcher) inputless() {
+func (c *apiV1Batcher) inputless() {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal *struct{}
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -419,7 +423,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "inputless",
 		arg:	  nil,
 		mutation: false,
@@ -429,7 +433,7 @@ internalMutator := func(val []byte) (any, error) {
 }
 
 // root this is a root function with a string returning a void.
-func (c *apiVv1Batcher) root(name string) {
+func (c *apiV1Batcher) root(name string) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal *struct{}
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -437,7 +441,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "root",
 		arg:	  name,
 		mutation: false,
@@ -446,18 +450,18 @@ internalMutator := func(val []byte) (any, error) {
 	*c.reqs = append(*c.reqs, reqBuildObj)
 }
 
-func newApiVv1Batcher(base *clientBase) *apiVv1Batcher {
-	s := &apiVv1Batcher{base: base, reqs: &[]*request{}}
-	s.Echo = newApiVv1EchoBatcher(s.reqs)
+func newApiV1Batcher(base *clientBase) *apiV1Batcher {
+	s := &apiV1Batcher{base: base, reqs: &[]*request{}}
+	s.Echo = newApiV1EchoBatcher(s.reqs)
 	return s
 }
 
-type apiVv1EchoHelloWorldClient struct {
+type apiV1EchoHelloWorldClient struct {
 	base *clientBase
 }
 
 // test void function.
-func (c *apiVv1EchoHelloWorldClient) test(ctx context.Context) (*struct{}, error) {
+func (c *apiV1EchoHelloWorldClient) test(ctx context.Context) (*struct{}, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal *struct{}
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -465,7 +469,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "echo.hello.world.test",
 		arg:	  nil,
 		mutation: true,
@@ -479,19 +483,19 @@ internalMutator := func(val []byte) (any, error) {
 	return internalRes.(*struct{}), nil
 }
 
-func newApiVv1EchoHelloWorldClient(base *clientBase) *apiVv1EchoHelloWorldClient {
-	s := &apiVv1EchoHelloWorldClient{base: base}
+func newApiV1EchoHelloWorldClient(base *clientBase) *apiV1EchoHelloWorldClient {
+	s := &apiV1EchoHelloWorldClient{base: base}
 	return s
 }
 
-type apiVv1EchoHelloClient struct {
+type apiV1EchoHelloClient struct {
 	base *clientBase
 
-	World *apiVv1EchoHelloWorldClient
+	World *apiV1EchoHelloWorldClient
 }
 
 // string this is a echo function with hello returning a string.
-func (c *apiVv1EchoHelloClient) string(ctx context.Context, value string) (string, error) {
+func (c *apiV1EchoHelloClient) string(ctx context.Context, value string) (string, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal string
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -499,7 +503,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "echo.hello.string",
 		arg:	  value,
 		mutation: true,
@@ -513,20 +517,20 @@ internalMutator := func(val []byte) (any, error) {
 	return internalRes.(string), nil
 }
 
-func newApiVv1EchoHelloClient(base *clientBase) *apiVv1EchoHelloClient {
-	s := &apiVv1EchoHelloClient{base: base}
-	s.World = newApiVv1EchoHelloWorldClient(base)
+func newApiV1EchoHelloClient(base *clientBase) *apiV1EchoHelloClient {
+	s := &apiV1EchoHelloClient{base: base}
+	s.World = newApiV1EchoHelloWorldClient(base)
 	return s
 }
 
-type apiVv1EchoClient struct {
+type apiV1EchoClient struct {
 	base *clientBase
 
-	Hello *apiVv1EchoHelloClient
+	Hello *apiV1EchoHelloClient
 }
 
 // boolean this is a echo function with a boolean returning a boolean.
-func (c *apiVv1EchoClient) boolean(ctx context.Context, value bool) (bool, error) {
+func (c *apiV1EchoClient) boolean(ctx context.Context, value bool) (bool, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal bool
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -534,7 +538,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "echo.boolean",
 		arg:	  value,
 		mutation: false,
@@ -549,7 +553,7 @@ internalMutator := func(val []byte) (any, error) {
 }
 
 // itoa this is a echo function with a number returning a string.
-func (c *apiVv1EchoClient) itoa(ctx context.Context, value int) (string, error) {
+func (c *apiV1EchoClient) itoa(ctx context.Context, value int) (string, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal string
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -557,7 +561,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "echo.itoa",
 		arg:	  value,
 		mutation: false,
@@ -572,7 +576,7 @@ internalMutator := func(val []byte) (any, error) {
 }
 
 // number this is a echo function with a number returning a number.
-func (c *apiVv1EchoClient) number(ctx context.Context, value int) (int, error) {
+func (c *apiV1EchoClient) number(ctx context.Context, value int) (int, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal int
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -580,7 +584,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "echo.number",
 		arg:	  value,
 		mutation: false,
@@ -594,21 +598,21 @@ internalMutator := func(val []byte) (any, error) {
 	return internalRes.(int), nil
 }
 
-func newApiVv1EchoClient(base *clientBase) *apiVv1EchoClient {
-	s := &apiVv1EchoClient{base: base}
-	s.Hello = newApiVv1EchoHelloClient(base)
+func newApiV1EchoClient(base *clientBase) *apiV1EchoClient {
+	s := &apiV1EchoClient{base: base}
+	s.Hello = newApiV1EchoHelloClient(base)
 	return s
 }
 
-// APIVv1Client defines this is API V1. Hello World! Please use NewAPIVv1Client to create a new instance.
-type APIVv1Client struct {
+// APIV1Client defines this is API V1. Hello World! Please use NewAPIV1Client to create a new instance.
+type APIV1Client struct {
 	base *clientBase
 
-	Echo *apiVv1EchoClient
+	Echo *apiV1EchoClient
 }
 
 // inputless this is a inputless function returning a void.
-func (c *APIVv1Client) inputless(ctx context.Context) (*struct{}, error) {
+func (c *APIV1Client) inputless(ctx context.Context) (*struct{}, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal *struct{}
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -616,7 +620,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "inputless",
 		arg:	  nil,
 		mutation: false,
@@ -631,7 +635,7 @@ internalMutator := func(val []byte) (any, error) {
 }
 
 // root this is a root function with a string returning a void.
-func (c *APIVv1Client) root(ctx context.Context, name string) (*struct{}, error) {
+func (c *APIV1Client) root(ctx context.Context, name string) (*struct{}, error) {
 internalMutator := func(val []byte) (any, error) {
 		var internalVal *struct{}
 		if internalErr := msgpack.Unmarshal(val, &internalVal); internalErr != nil {
@@ -639,7 +643,7 @@ internalMutator := func(val []byte) (any, error) {
 		}
 		return internalVal, nil
 	}
-   reqBuildObj := request{
+   reqBuildObj := &request{
 		method:   "root",
 		arg:	  name,
 		mutation: false,
@@ -653,14 +657,14 @@ internalMutator := func(val []byte) (any, error) {
 	return internalRes.(*struct{}), nil
 }
 
-func newApiVv1Client(base *clientBase) *APIVv1Client {
-	s := &APIVv1Client{base: base}
-	s.Echo = newApiVv1EchoClient(base)
+func newApiV1Client(base *clientBase) *APIV1Client {
+	s := &APIV1Client{base: base}
+	s.Echo = newApiV1EchoClient(base)
 	return s
 }
 
 // Execute executes the batch request.
-func (c *apiVv1Batcher) Execute(ctx context.Context) ([]any, error) {
+func (c *apiV1Batcher) Execute(ctx context.Context) ([]any, error) {
 	resp, err := c.base.do(ctx, *c.reqs)
 	if err != nil {
 		return nil, err
@@ -669,8 +673,8 @@ func (c *apiVv1Batcher) Execute(ctx context.Context) ([]any, error) {
 }
 
 // Batcher returns a new batcher for the API.
-func (c *APIVv1Client) Batcher() *apiVv1Batcher {
-	return newApiVv1Batcher(c.base)
+func (c *APIV1Client) Batcher() *apiV1Batcher {
+	return newApiV1Batcher(c.base)
 }
 
 // APIV1Opts defines the options for the API client.
@@ -729,28 +733,28 @@ apiv1ClientProtoLoop:
 	return newApiV1Client(c), nil
 }
 
-type apiVv2Batcher struct {
+type apiV2Batcher struct {
 	base *clientBase
 	reqs *[]*request
 }
 
-func newApiVv2Batcher(base *clientBase) *apiVv2Batcher {
-	s := &apiVv2Batcher{base: base, reqs: &[]*request{}}
+func newApiV2Batcher(base *clientBase) *apiV2Batcher {
+	s := &apiV2Batcher{base: base, reqs: &[]*request{}}
 	return s
 }
 
-// APIVv2Client defines this is authentication without a default. Please use NewAPIVv2Client to create a new instance.
-type APIVv2Client struct {
+// APIV2Client defines this is authentication without a default. Please use NewAPIV2Client to create a new instance.
+type APIV2Client struct {
 	base *clientBase
 }
 
-func newApiVv2Client(base *clientBase) *APIVv2Client {
-	s := &APIVv2Client{base: base}
+func newApiV2Client(base *clientBase) *APIV2Client {
+	s := &APIV2Client{base: base}
 	return s
 }
 
 // Execute executes the batch request.
-func (c *apiVv2Batcher) Execute(ctx context.Context) ([]any, error) {
+func (c *apiV2Batcher) Execute(ctx context.Context) ([]any, error) {
 	resp, err := c.base.do(ctx, *c.reqs)
 	if err != nil {
 		return nil, err
@@ -759,8 +763,8 @@ func (c *apiVv2Batcher) Execute(ctx context.Context) ([]any, error) {
 }
 
 // Batcher returns a new batcher for the API.
-func (c *APIVv2Client) Batcher() *apiVv2Batcher {
-	return newApiVv2Batcher(c.base)
+func (c *APIV2Client) Batcher() *apiV2Batcher {
+	return newApiV2Batcher(c.base)
 }
 
 // APIV2TokenType defines the type that all token types will use.
@@ -873,28 +877,28 @@ apiv2ClientProtoLoop:
 	return newApiV2Client(c), nil
 }
 
-type apiVv3Batcher struct {
+type apiV3Batcher struct {
 	base *clientBase
 	reqs *[]*request
 }
 
-func newApiVv3Batcher(base *clientBase) *apiVv3Batcher {
-	s := &apiVv3Batcher{base: base, reqs: &[]*request{}}
+func newApiV3Batcher(base *clientBase) *apiV3Batcher {
+	s := &apiV3Batcher{base: base, reqs: &[]*request{}}
 	return s
 }
 
-// APIVv3Client defines this is authentication with a default. Please use NewAPIVv3Client to create a new instance.
-type APIVv3Client struct {
+// APIV3Client defines this is authentication with a default. Please use NewAPIV3Client to create a new instance.
+type APIV3Client struct {
 	base *clientBase
 }
 
-func newApiVv3Client(base *clientBase) *APIVv3Client {
-	s := &APIVv3Client{base: base}
+func newApiV3Client(base *clientBase) *APIV3Client {
+	s := &APIV3Client{base: base}
 	return s
 }
 
 // Execute executes the batch request.
-func (c *apiVv3Batcher) Execute(ctx context.Context) ([]any, error) {
+func (c *apiV3Batcher) Execute(ctx context.Context) ([]any, error) {
 	resp, err := c.base.do(ctx, *c.reqs)
 	if err != nil {
 		return nil, err
@@ -903,8 +907,8 @@ func (c *apiVv3Batcher) Execute(ctx context.Context) ([]any, error) {
 }
 
 // Batcher returns a new batcher for the API.
-func (c *APIVv3Client) Batcher() *apiVv3Batcher {
-	return newApiVv3Batcher(c.base)
+func (c *APIV3Client) Batcher() *apiV3Batcher {
+	return newApiV3Batcher(c.base)
 }
 
 // APIV3TokenType defines the type that all token types will use.

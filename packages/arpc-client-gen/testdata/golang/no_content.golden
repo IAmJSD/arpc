@@ -5,6 +5,7 @@ package client
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,6 +13,9 @@ import (
 
 	"github.com/vmihailenco/msgpack/v5"
 )
+
+// Added so that if it isn't imported, this is okay.
+var _ = errors.New("")
 
 // Defines the base that all clients will call.
 type clientBase struct {

@@ -407,7 +407,7 @@ func New${prefix}Client(opts ${optsStructName}) (*${prefix}Client, error) {
 // Creates the client structures and initializer.
 function createClient(enums: Enum[], objects: Object[], client: Client) {
 	// Build the batcher.
-	const prefix = `V${client.apiVersion}`;
+	const prefix = client.apiVersion.toUpperCase();
 	const batcherStruct = buildApiStruct(
 		enums, objects, client.methods, "", prefix, null, true, false,
 	);

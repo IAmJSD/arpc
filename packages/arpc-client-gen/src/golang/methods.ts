@@ -222,7 +222,7 @@ export function buildApiMethod(
 	chunks.push("internalMutator := " + buildMutator(objects, method.output, "\t"));
 
 	// Push the request build.
-	chunks.push(`   reqBuildObj := request{
+	chunks.push(`   reqBuildObj := &request{
 		method:   ${JSON.stringify(namespace)},
 		arg:	  ${method.input ? method.input.name : "nil"},
 		mutation: ${method.mutation ? "true" : "false"},
