@@ -11,6 +11,7 @@ type Generators = {
 };
 
 export const generators: Generators = {
+    golang: [ClientGen.golang, {}],
     typescript: [ClientGen.typescript, {}],
     php: [ClientGen.php, {
         namespace: "string",
