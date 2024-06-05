@@ -73,13 +73,21 @@ export const POST = httpHandler;
             `import schema from "@/rpc/build_data.json";
 import { SchemaViewer } from "@arpc-packages/schema-viewer";
 
-// @ts-ignore: This might break some TS environments.
+// Defines the title that is used for the page.
+const title: string = "API Documentation";
+
+// Defines the description that is used for the page.
+const description: string = "This is the arpc API documentation for this service.";
+
+// Load in the CSS for the viewer.
 import "@arpc-packages/schema-viewer/styles.css";
 
+// Load in the schema viewer and template used for the main page.
 export default SchemaViewer;
 
+// Load in the static props so this statically builds. Do not touch this, it isn't type checked.
 export async function getStaticProps() {
-    return { props: { schema } };
+    return { props: { schema, title, description } };
 }
 `);
     });
@@ -251,27 +259,6 @@ async function cmdAction() {
     // Validate scripts.
     if (typeof packageJson.scripts !== "object" || Array.isArray(packageJson.scripts)) {
         error("Scripts in package.json is not an object.");
-    }
-
-    // Find if this is app router.
-    let isAppRouter = false;
-    try {
-        const s = statSync(join(folderStructure.nextFolder, "app"));
-        if (!s.isDirectory()) throw new Error();
-        isAppRouter = true;
-    } catch {
-        // Make sure that pages either doesn't exist or is a directory.
-        try {
-            const s = statSync(join(folderStructure.nextFolder, "pages"));
-            if (s.isDirectory()) throw new Error();
-
-            // This error won't hit the catch.
-            error(
-                "both app and pages are files. Please remove one of them to continue.",
-            );
-        } catch {
-            // If one of these fails, we are okay.
-        }
     }
 
     // Log to the console our successes so far without waiting for the network.
