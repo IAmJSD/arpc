@@ -5,7 +5,7 @@ import { stringify } from "@arpc-packages/lockfile";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { error, success } from "../utils/console";
 import { argumentWithParser } from "../utils/argumentWithParser";
-import { generateClient } from "../utils/generateClient";
+import { regenerateNextState } from "../utils/regenerateNextState";
 
 async function scaffoldAuthentication() {
     const { rpcPath, lockfile, repoFolderStructure } = requiresRpcInit();
@@ -43,10 +43,7 @@ export type UserExport = Unpromisify<ReturnType<typeof validate>>;
         stringify(lockfile),
     );
 
-    const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
-    mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), "", "", {});
-
+    await regenerateNextState(repoFolderStructure, rpcPath);
     success("Authentication set up.");
 }
 

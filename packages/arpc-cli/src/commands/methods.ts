@@ -7,8 +7,8 @@ import { versionParser, RPCVersionWithCache } from "../utils/versionParser";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { sortVersions } from "../utils/sortVersions";
 import { error, success } from "../utils/console";
-import { generateClient } from "../utils/generateClient";
 import { argumentWithParser } from "../utils/argumentWithParser";
+import { regenerateNextState } from "../utils/regenerateNextState";
 
 const authRoutePlaceholder = `import z from "zod";
 import { UserExport } from "@/rpc/authentication";
@@ -110,10 +110,7 @@ async function create(namespace: string[], versionInit: RPCVersionWithCache | un
         unlink(join(rpcPath, "routes", ".keep")).catch(() => {}),
     ]);
     
-    const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
-    mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"),  "", "", {});
-
+    await regenerateNextState(repoFolderStructure, rpcPath);
     success("Method created.");
 }
 
@@ -206,10 +203,7 @@ async function drop(namespace: string[], versionInit: RPCVersionWithCache | unde
         ),
     ]);
 
-    const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
-    mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), "", "", {});
-
+    await regenerateNextState(repoFolderStructure, rpcPath);
     success("Method dropped.");
 }
 

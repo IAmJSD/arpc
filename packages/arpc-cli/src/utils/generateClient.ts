@@ -48,4 +48,6 @@ export async function generateClient<Key extends keyof typeof generators>(
         }
         error(`Failed to write client to ${filePath}: ${(err as Error).message}`);
     }
+
+    return res;
 }

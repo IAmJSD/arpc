@@ -3,6 +3,7 @@ import { statSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { join, sep } from "path";
 import axios from "axios";
+import type { BuildData } from "@arpc-packages/client-gen";
 import { stringify } from "@arpc-packages/lockfile";
 import { RepoFolderStructure, findRepoFolderStructure } from "../utils/findRepoFolderStructure";
 import { error, success } from "../utils/console";
@@ -99,18 +100,21 @@ function getRpcIndexRelPath(basePath: string, childPath: string) {
     return relative;
 }
 
-function addToIgnoreFile(ignore: string, rel: string) {
-    if (ignore !== "" && !ignore.endsWith("\n")) {
-        ignore += "\n";
+function addUniqueToIgnoreFile(ignore: string, rel: string) {
+    const lines = ignore.trim().split("\n");
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim() === rel) {
+            return ignore;
+        }
     }
-    ignore += rel + "\n";
-    return ignore;
+    lines.push(rel);
+    return lines.join("\n") + "\n";
 }
 
 async function handlePrettierIgnore(gitFolder: string | null, nextFolder: string) {
     // Check if the .prettierignore file exists in the Git folder.
     if (gitFolder) {
-        let ignore: string | null = null;
+        let ignore = "";
         try {
             ignore = await readFile(join(gitFolder, ".prettierignore"), "utf8");
         } catch {
@@ -119,11 +123,7 @@ async function handlePrettierIgnore(gitFolder: string | null, nextFolder: string
 
         if (ignore) {
             const rel = getRpcIndexRelPath(gitFolder, nextFolder);
-            if (ignore.includes(rel)) {
-                // The ignore file already contains the path.
-                return;
-            }
-            addToIgnoreFile(ignore, rel);
+            ignore = addUniqueToIgnoreFile(ignore, rel);
             await writeFile(join(gitFolder, ".prettierignore"), ignore);
             return;
         }
@@ -137,12 +137,8 @@ async function handlePrettierIgnore(gitFolder: string | null, nextFolder: string
     } catch {
         // If we error here, continue on.
     }
-    const rel = "rpc/index.ts";
-    if (ignore.includes(rel)) {
-        // The ignore file already contains the path.
-        return;
-    }
-    ignore = addToIgnoreFile(ignore, rel);
+    const rels = ["rpc/index.ts", "rpc/build_data.json"];
+    for (const rel of rels) ignore = addUniqueToIgnoreFile(ignore, rel);
     await writeFile(join(nextFolder, ".prettierignore"), ignore);
 }
 
@@ -158,11 +154,7 @@ async function handleEslintIgnore(gitFolder: string | null, nextFolder: string) 
 
         if (ignore) {
             const rel = getRpcIndexRelPath(gitFolder, nextFolder);
-            if (ignore.includes(rel)) {
-                // The ignore file already contains the path.
-                return;
-            }
-            addToIgnoreFile(ignore, rel);
+            ignore = addUniqueToIgnoreFile(ignore, rel);
             await writeFile(join(gitFolder, ".eslintignore"), ignore);
             return;
         }
@@ -176,12 +168,8 @@ async function handleEslintIgnore(gitFolder: string | null, nextFolder: string) 
     } catch {
         // If we error here, continue on.
     }
-    const rel = "rpc/index.ts";
-    if (ignore.includes(rel)) {
-        // The ignore file already contains the path.
-        return;
-    }
-    ignore = addToIgnoreFile(ignore, rel);
+    const rels = ["rpc/index.ts", "rpc/build_data.json"];
+    for (const rel of rels) ignore = addUniqueToIgnoreFile(ignore, rel);
     await writeFile(join(nextFolder, ".eslintignore"), ignore);
 }
 
@@ -347,6 +335,17 @@ async function cmdAction() {
         writeFile(
             join(folderStructure.nextFolder, "rpc", "index.ts"),
             index,
+        ),
+
+        writeFile(
+            join(folderStructure.nextFolder, "rpc", "build_data.json"),
+            JSON.stringify({
+                enums: [],
+                objects: [],
+                builtinExceptions: [],
+                customExceptions: [],
+                clients: [],
+            } satisfies BuildData, undefined, "\t"),
         ),
 
         writeFile(

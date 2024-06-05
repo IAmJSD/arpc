@@ -6,9 +6,9 @@ import { stringify } from "@arpc-packages/lockfile";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { API_REVISION_REGEX, sortVersions } from "../utils/sortVersions";
 import { error, success } from "../utils/console";
-import { generateClient } from "../utils/generateClient";
 import { RPCVersionWithCache, versionParser } from "../utils/versionParser";
 import { argumentWithParser } from "../utils/argumentWithParser";
+import { regenerateNextState } from "../utils/regenerateNextState";
 
 async function bump() {
     const { lockfile, repoFolderStructure, rpcPath } = requiresRpcInit();
@@ -30,10 +30,7 @@ async function bump() {
         stringify(lockfile),
     );
 
-    const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
-    mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), "", "", {});
-
+    await regenerateNextState(repoFolderStructure, rpcPath);
     success(`API bumped to ${newVersion}.`);
 }
 
@@ -68,10 +65,7 @@ async function alpha() {
         stringify(lockfile),
     );
 
-    const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
-    mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), "", "", {});
-
+    await regenerateNextState(repoFolderStructure, rpcPath);
     success(`API bumped to ${newVersion}.`);
 }
 
@@ -106,10 +100,7 @@ async function beta() {
         stringify(lockfile),
     );
 
-    const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
-    mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), "", "", {});
-
+    await regenerateNextState(repoFolderStructure, rpcPath);
     success(`API bumped to ${newVersion}.`);
 }
 
@@ -229,9 +220,7 @@ async function drop([init, version]: RPCVersionWithCache) {
     );
 
     // Re-generate the client and report a success.
-    const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
-    mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), "", "", {});
+    await regenerateNextState(repoFolderStructure, rpcPath);
     success(`API version ${version} dropped.`);
 }
 
@@ -262,10 +251,7 @@ async function deprecate([init, version]: RPCVersionWithCache, reason: string) {
         `${description}**Deprecated:** ${reason}`,
     );
 
-    const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
-    mkdirSync(clientsFolder, { recursive: true });
-    await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), "", "", {});
-
+    await regenerateNextState(repoFolderStructure, rpcPath);
     success(`API version ${version} deprecated.`);
 }
 
