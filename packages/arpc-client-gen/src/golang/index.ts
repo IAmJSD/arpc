@@ -461,5 +461,5 @@ export function golang(data: BuildData) {
         chunks.push(createClient(data.enums, data.objects, c));
     }
 
-    return chunks.join("\n\n"); 
+    return chunks.join("\n\n") + "\n"; 
 }
