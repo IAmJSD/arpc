@@ -70,7 +70,7 @@ export const POST = httpHandler;
     await mkdir(pagesDir, { recursive: true }).then(() => {
         return writeFile(
             join(pagesDir, "arpc.tsx"),
-            `import { generateSchema } from "@/rpc";
+            `import * as schema from "@/rpc/build_data.json";
 import { SchemaViewer } from "@arpc-packages/schema-viewer";
 
 // @ts-ignore: This might break some TS environments.
@@ -79,8 +79,6 @@ import "@arpc-packages/schema-viewer/styles.css";
 export default SchemaViewer;
 
 export async function getStaticProps() {
-    const schema = await generateSchema();
-
     return { props: { schema } };
 }
 `);
