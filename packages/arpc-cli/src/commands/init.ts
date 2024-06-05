@@ -82,7 +82,7 @@ const description: string = "This is the arpc API documentation for this service
 // Load in the CSS for the viewer.
 import "@arpc-packages/schema-viewer/styles.css";
 
-// Load in the schema viewer and template used for the main page.
+// Export the schema viewer and template used for the main page.
 export default SchemaViewer;
 
 // Load in the static props so this statically builds. Do not touch this, it isn't type checked.
