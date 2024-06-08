@@ -1,7 +1,7 @@
 "use client";
 
-import { BuildData, Client } from "@arpc-packages/client-gen";
-import { atom, useAtom } from "jotai";
+import type { BuildData, Client } from "@arpc-packages/client-gen";
+import { atom, useAtom } from "../utils/atoms";
 import React from "react";
 
 const apiAtom = atom<number | null>(null);
@@ -57,9 +57,6 @@ export function VersionSwitcher({ buildData }: { buildData: BuildData }) {
         return first;
     }, [clientIndex, buildData.clients]);
 
-    // If there is no client, return nothing.
-    if (!client) return null;
-
     // Build the list of items.
     const listItems = React.useMemo(
         () => buildData.clients.map((client, i) => {
@@ -78,7 +75,7 @@ export function VersionSwitcher({ buildData }: { buildData: BuildData }) {
     // Defines the paragraph to display for printing.
     const paragraph = (
         <p className="hidden print:block">
-            <span className="font-bold">API Version:</span> {client.apiVersion}
+            <span className="font-bold">API Version:</span> {client?.apiVersion}
         </p>
     );
 
@@ -134,6 +131,9 @@ export function VersionSwitcher({ buildData }: { buildData: BuildData }) {
             </label>
         </form>
     );
+
+    // If there is no client, return nothing.
+    if (!client) return null;
 
     // Return the content.
     return (

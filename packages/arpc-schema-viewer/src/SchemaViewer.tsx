@@ -4,6 +4,7 @@ import Head from "next/head";
 import { Container } from "./components/Container";
 import { Header } from "./components/Header";
 import { Divider } from "./components/Divider";
+import { Documentation } from "./Documentation";
 
 type Props = {
     title: string;
@@ -22,6 +23,7 @@ export function SchemaViewer({ title, description, schema }: Props) {
             <div className="my-6">
                 <Divider />
             </div>
+            <Documentation buildData={schema} />
         </Container>
     );
 }

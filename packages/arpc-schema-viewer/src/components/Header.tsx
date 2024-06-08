@@ -33,7 +33,7 @@ function ClientGenerators({ buildData }: { buildData: BuildData }) {
     );
 }
 
-export default function Header({ title, description, buildData }: Props) {
+export function Header({ title, description, buildData }: Props) {
     return (
         <header className="md:flex">
             <div className="md:flex-col md:flex-grow md:mr-5">
