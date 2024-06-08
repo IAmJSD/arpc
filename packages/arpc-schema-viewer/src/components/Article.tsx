@@ -73,13 +73,13 @@ let ticker = 0;
 
 function NoSearchWrapper({ text }: { text: string }) {
     const ref = React.createRef<HTMLSpanElement>();
-    const id = React.useMemo(() => `no-search-${ticker++}`, []);
 
     React.useEffect(() => {
         // Return early if we aren't rendered yet.
         if (!ref.current) return;
 
         // Create the style class.
+        const id = `no-search-${ticker++}`;
         const style = document.createElement("style");
         style.innerText = `.${id}:before {content: "${escapeCss(text)}"}`;
         document.head.appendChild(style);
@@ -96,7 +96,7 @@ function NoSearchWrapper({ text }: { text: string }) {
                 ref.current.innerText = text;   
             }
         };
-    }, [text, ref.current, id]);
+    }, [text, ref.current]);
 
     return (
         <span ref={ref}>
