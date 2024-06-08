@@ -72,6 +72,7 @@ function ProgressSidebar({ children, childrenRef }: {
     // Get the headings via analysing the initial content.
     const headings = useTagMatch(/^h[1-6]$/, children);
     const smallest = React.useMemo(() => {
+        if (headings.length === 0) return 0;
         return parseInt((headings[0].type as string).substring(1), 16);
     }, [children]);
 
@@ -87,17 +88,11 @@ function ProgressSidebar({ children, childrenRef }: {
         refs.push(ref);
 
         // Get the elements text content and make a paragraph.
-        const text = h.props.children;
         elements.push(
             <p style={{
                 marginLeft: `${(parseInt((h.type as string).substring(1), 16) - smallest)}rem`,
             }} data-labels={h.props.id} ref={ref} key={key}>
-                <a
-                    href={`#${h.props.id}`}
-                    onClick={() => ref.current?.scrollIntoView({ behavior: "smooth" })}
-                >
-                    {text}
-                </a>
+                {h.props.children}
             </p>,
         );
     }
