@@ -65,6 +65,62 @@ function watchRefs(
     return () => window.removeEventListener("scroll", hn);
 }
 
+function escapeCss(text: string) {
+    return text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+let ticker = 0;
+
+function NoSearchWrapper({ text }: { text: string }) {
+    const ref = React.createRef<HTMLSpanElement>();
+    const id = React.useMemo(() => `no-search-${ticker++}`, []);
+
+    React.useEffect(() => {
+        // Return early if we aren't rendered yet.
+        if (!ref.current) return;
+
+        // Create the style class.
+        const style = document.createElement("style");
+        style.innerText = `.${id}:before {content: "${escapeCss(text)}"}`;
+        document.head.appendChild(style);
+
+        // Set the class.
+        ref.current.classList.add(id);
+        ref.current.innerHTML = "";
+
+        // Cleanup the style.
+        return () => {
+            style.remove();
+            ref.current!.classList.remove(id);
+            ref.current!.innerText = text;
+        };
+    }, [text, ref.current, id]);
+
+    return (
+        <span ref={ref}>
+            {text}
+        </span>
+    );
+}
+
+function noSearch(children: React.ReactNode) {
+    const a = React.Children.toArray(children);
+    if (a.length === 0) return "";
+    const first = a[0];
+    if (React.isValidElement(first) && first.type === "a") {
+        const props = {...first.props};
+        if (typeof props.children === "string") {
+            props.children = (
+                <NoSearchWrapper
+                    text={props.children as string}
+                />
+            );
+        }
+        return React.createElement(first.type, props);
+    }
+    return children;
+}
+
 function ProgressSidebar({ children, childrenRef }: {
     children: React.ReactNode;
     childrenRef: React.RefObject<HTMLElement>;
@@ -92,7 +148,7 @@ function ProgressSidebar({ children, childrenRef }: {
             <p style={{
                 marginLeft: `${(parseInt((h.type as string).substring(1), 16) - smallest)}rem`,
             }} data-labels={h.props.id} ref={ref} key={key}>
-                {h.props.children}
+                {noSearch(h.props.children)}
             </p>,
         );
     }
