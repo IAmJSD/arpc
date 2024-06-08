@@ -1,3 +1,5 @@
+"use client";
+
 import { BuildData, Client } from "@arpc-packages/client-gen";
 import { atom, useAtom } from "jotai";
 import React from "react";
