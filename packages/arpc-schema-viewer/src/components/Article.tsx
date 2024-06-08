@@ -37,7 +37,7 @@ function watchRefs(
         ) {
             // Go through each ref.
             for (const ref of refs) {
-                if (ref.current!.dataset.labels === element.id) {
+                if (ref.current?.dataset?.labels === element.id) {
                     // Figure out if we want to bold this.
                     const rect = element.getBoundingClientRect();
                     const withinViewport = rect.top >= 0 && rect.bottom <= window.innerHeight;
@@ -80,7 +80,7 @@ function ProgressSidebar({ children, childrenRef }: {
     const elements: React.ReactElement[] = [];
     for (const h of headings) {
         // Defines the key within our local array.
-        const key = `${h.type}_${h.key}_${h.props.id}`;
+        const key = `${h.type}_${h.key}_${h.props.children}_${h.props.id}`;
 
         // Build the ref we will use locally.
         const ref = React.createRef<HTMLParagraphElement>();
