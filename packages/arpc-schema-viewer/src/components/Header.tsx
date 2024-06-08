@@ -6,6 +6,7 @@ import { ClientButtons } from "./ClientButtons";
 import { Button } from "./Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { VersionSwitcher } from "./VersionSwitcher";
 
 type Props = {
     title: string;
@@ -32,22 +33,25 @@ function ClientGenerators({ buildData }: { buildData: BuildData }) {
     );
 }
 
-export function Header({ title, description, buildData }: Props) {
+export default function Header({ title, description, buildData }: Props) {
     return (
         <header className="md:flex">
             <div className="md:flex-col md:flex-grow md:mr-5">
                 <h1 className="text-2xl mb-4">{title}</h1>
                 <h2>{description}</h2>
 
-                <div className="block mt-4 print:hidden">
+                <div className="block mt-4 select-none">
                     <div className="flex">
-                        <Button
-                            styles="regular"
-                            onClick={() => window.print()}
-                        >
-                            <FontAwesomeIcon icon={faFloppyDisk} className="mr-2" />
-                            Save or Print Documentation
-                        </Button>
+                        <span className="print:hidden my-auto mt-3">
+                            <Button
+                                styles="regular"
+                                onClick={() => window.print()}
+                            >
+                                <FontAwesomeIcon icon={faFloppyDisk} className="mr-2" />
+                                Save or Print Documentation
+                            </Button>
+                        </span>
+                        <VersionSwitcher buildData={buildData} />
                     </div>
                 </div>
             </div>

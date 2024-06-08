@@ -115,7 +115,7 @@ function ProgressSidebar({ children, childrenRef }: {
 export function Article(props: { children: React.ReactNode }) {
     const ref = React.useRef<HTMLDivElement>(null);
     return (
-        <article className="flex">
+        <article className="flex" id="__article">
             <div className="flex-col print:hidden max-md:hidden mt-[-1em]" aria-hidden="true">
                 <ProgressSidebar children={props.children} childrenRef={ref} />
             </div>
