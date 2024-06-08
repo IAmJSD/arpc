@@ -1,11 +1,18 @@
-import { BuildData } from "@arpc-packages/client-gen";
+import { BuildData, Client } from "@arpc-packages/client-gen";
 import { atom, useAtom } from "jotai";
 import React from "react";
 
-const apiAtom = atom(0);
+const apiAtom = atom<number | null>(null);
 
 export function useClient(buildData: BuildData) {
-    return buildData.clients[useAtom(apiAtom)[0]];
+    const [v] = useAtom(apiAtom);
+    if (v === null) {
+        // If the global atom is unset, find the first stable version.
+        const x = buildData.clients.find((client) => !client.apiVersion.match(/a|b[0-9]+$/g));
+        if (!x) return buildData.clients[0] as Client | undefined;
+        return x;
+    }
+    return buildData.clients[v];
 }
 
 enum VersionType {
@@ -21,8 +28,32 @@ const selectStyles = "ml-2 w-48 p-1 dark:bg-gray-800 rounded border-r-4 border-t
 
 export function VersionSwitcher({ buildData }: { buildData: BuildData }) {
     // Get the client from the context.
-    const [clientIndex, setClientIndex] = useAtom(apiAtom);
-    const client = buildData.clients[clientIndex];
+    let [clientIndex, setClientIndex] = useAtom(apiAtom);
+    const [alpha, setAlpha] = React.useState(false);
+    const [beta, setBeta] = React.useState(false);
+    const client = React.useMemo(() => {
+        // Set the default for when the page initially loads.
+        if (clientIndex === null) {
+            // Find the first stable version.
+            for (let i = 0; i < buildData.clients.length; i++) {
+                if (!buildData.clients[i].apiVersion.match(/a|b[0-9]+$/g)) {
+                    // In this local scope, set the client index.
+                    clientIndex = i;
+                    break;
+                }
+            }
+        }
+
+        // If there is a client index, return the client.
+        if (clientIndex !== null) return buildData.clients[clientIndex];
+
+        // Turn on the flag to show the first client.
+        const first = buildData.clients[0];
+        if (!first) return undefined;
+        if (first.apiVersion.match(ALPHA_REGEX)) setAlpha(true);
+        if (first.apiVersion.match(BETA_REGEX)) setBeta(true);
+        return first;
+    }, [clientIndex, buildData.clients]);
 
     // If there is no client, return nothing.
     if (!client) return null;
@@ -50,8 +81,6 @@ export function VersionSwitcher({ buildData }: { buildData: BuildData }) {
     );
 
     // Defines the form element to display for switching.
-    const [alpha, setAlpha] = React.useState(false);
-    const [beta, setBeta] = React.useState(false);
     const selectId = React.useId();
     const change = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const id = parseInt(e.target.value, 10);
