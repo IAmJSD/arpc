@@ -91,8 +91,10 @@ function NoSearchWrapper({ text }: { text: string }) {
         // Cleanup the style.
         return () => {
             style.remove();
-            ref.current!.classList.remove(id);
-            ref.current!.innerText = text;
+            if (ref.current) {
+                ref.current.classList.remove(id);
+                ref.current.innerText = text;   
+            }
         };
     }, [text, ref.current, id]);
 
