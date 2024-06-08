@@ -108,7 +108,7 @@ export function VersionSwitcher({ buildData }: { buildData: BuildData }) {
     return (
         <>
             {paragraph}
-            <div className="block ml-5">
+            <div className="block mt-2">
                 {selectMenu}
                 {checkboxes}
             </div>

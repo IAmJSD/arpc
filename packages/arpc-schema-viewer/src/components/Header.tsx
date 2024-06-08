@@ -41,8 +41,8 @@ export default function Header({ title, description, buildData }: Props) {
                 <h2>{description}</h2>
 
                 <div className="block mt-4 select-none">
-                    <div className="flex">
-                        <span className="print:hidden my-auto mt-3">
+                    <div className="flex flex-wrap">
+                        <span className="print:hidden pt-3 my-auto mr-5">
                             <Button
                                 styles="regular"
                                 onClick={() => window.print()}
