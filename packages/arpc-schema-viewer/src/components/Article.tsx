@@ -157,7 +157,7 @@ function ProgressSidebar({ children, childrenRef }: {
 
     // Use an effect to watch the scroll position and update the active element.
     React.useEffect(() => watchRefs(refs, childrenRef), [
-        refs.length, childrenRef.current, ...refs.map((r) => r.current),
+        refs.length, childrenRef.current, refs,
     ]);
 
     // Return the elements.
