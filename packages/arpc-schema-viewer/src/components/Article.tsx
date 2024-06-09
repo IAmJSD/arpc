@@ -163,7 +163,7 @@ function ProgressSidebar({ children, childrenRef }: {
 
     // Return the elements.
     return (
-        <nav className="top-0 left-0 select-none w-24 overflow-scroll sticky">
+        <nav className="top-0 left-0 select-none w-36 overflow-scroll sticky">
             <div className="mt-[1em]">
                 {elements}
             </div>
