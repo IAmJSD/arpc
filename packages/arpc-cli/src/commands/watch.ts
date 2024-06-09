@@ -13,8 +13,9 @@ function cmdAction() {
         hundredMillisPassed = true;
     }, 100);
 
-    chokidar.watch(rpcPath).on("all", () => {
+    chokidar.watch(rpcPath).on("all", (_, path) => {
         if (!hundredMillisPassed) return;
+        if (path.endsWith("build_data.json")) return;
         regenerateNextState(repoFolderStructure, rpcPath)
             .catch((err) => {
                 const text = (err as Error).message;
