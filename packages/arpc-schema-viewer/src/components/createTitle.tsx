@@ -10,7 +10,7 @@ const styleClasses = {
     subheading: "text-lg my-4",
 } satisfies typeof headings;
 
-function slugify(title: string) {
+export function slugify(title: string) {
     return title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
