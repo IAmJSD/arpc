@@ -14,7 +14,8 @@ function flattenChildren(children: React.ReactNode): React.ReactElement[] {
 function useTagMatch(tag: RegExp, children: React.ReactNode) {
     return React.useMemo(() => {
         return flattenChildren(children).filter((child) => {
-            return React.isValidElement(child) && tag.test(child.type as string);
+            return React.isValidElement(child) && typeof child.type === "string"
+                && tag.test(child.type);
         });
     }, [children]);
 }
@@ -175,7 +176,7 @@ export function Article(props: { children: React.ReactNode }) {
     return (
         <article className="flex" id="__article">
             <div className="flex-col print:hidden max-md:hidden mt-[-1em]" aria-hidden="true">
-                <ProgressSidebar children={props.children} childrenRef={ref} />
+                <ProgressSidebar childrenRef={ref}>{props.children}</ProgressSidebar>
             </div>
             <div className="border-l-2 border-gray-200 dark:border-gray-700 pl-4 ml-8 mr-6 print:hidden max-md:hidden" />
             <div className="flex-grow flex-col">

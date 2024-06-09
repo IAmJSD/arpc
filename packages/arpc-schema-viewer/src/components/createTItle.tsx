@@ -6,8 +6,8 @@ const headings = {
 };
 
 const styleClasses = {
-    heading: "text-xl mb-2",
-    subheading: "text-lg mb-2",
+    heading: "text-xl mb-4",
+    subheading: "text-lg my-4",
 } satisfies typeof headings;
 
 function slugify(title: string) {
