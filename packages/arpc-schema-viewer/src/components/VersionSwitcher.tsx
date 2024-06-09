@@ -11,7 +11,7 @@ export function useClient(buildData: BuildData) {
     if (v === null) {
         // If the global atom is unset, find the first stable version.
         const x = buildData.clients.find((client) => !client.apiVersion.match(/a|b[0-9]+$/g));
-        if (!x) return buildData.clients[0] as Client | undefined;
+        if (!x) return buildData.clients[buildData.clients.length - 1] as Client | undefined;
         return x;
     }
     return buildData.clients[v];
@@ -36,12 +36,11 @@ export function VersionSwitcher({ buildData }: { buildData: BuildData }) {
     const client = React.useMemo(() => {
         // Set the default for when the page initially loads.
         if (clientIndex === null) {
-            // Find the first stable version.
-            for (let i = 0; i < buildData.clients.length; i++) {
+            // Find the last stable client.
+            for (let i = buildData.clients.length - 1; i >= 0; i--) {
                 if (!buildData.clients[i].apiVersion.match(/a|b[0-9]+$/g)) {
-                    // In this local scope, set the client index.
-                    clientIndex = i;
-                    break;
+                    setClientIndex(i);
+                    return buildData.clients[i];
                 }
             }
         }
@@ -49,12 +48,12 @@ export function VersionSwitcher({ buildData }: { buildData: BuildData }) {
         // If there is a client index, return the client.
         if (clientIndex !== null) return buildData.clients[clientIndex];
 
-        // Turn on the flag to show the first client.
-        const first = buildData.clients[0];
-        if (!first) return undefined;
-        if (first.apiVersion.match(ALPHA_REGEX)) setAlpha(true);
-        if (first.apiVersion.match(BETA_REGEX)) setBeta(true);
-        return first;
+        // Turn on the flag to show the last client.
+        const last = buildData.clients[buildData.clients.length - 1];
+        if (!last) return undefined;
+        if (last.apiVersion.match(ALPHA_REGEX)) setAlpha(true);
+        if (last.apiVersion.match(BETA_REGEX)) setBeta(true);
+        return last;
     }, [clientIndex, buildData.clients]);
 
     // Build the list of items.
