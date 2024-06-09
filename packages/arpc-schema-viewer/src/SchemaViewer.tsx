@@ -1,18 +1,30 @@
 import React from "react";
 import type { BuildData } from "@arpc-packages/client-gen";
 import Head from "next/head";
+import { Container } from "./components/Container";
+import { Header } from "./components/Header";
+import { Divider } from "./components/Divider";
+import { Documentation } from "./Documentation";
 
 type Props = {
+    title: string;
+    description: string;
     schema: BuildData;
 };
 
-export function SchemaViewer({ schema }: Props) {
+export function SchemaViewer({ title, description, schema }: Props) {
     return (
-        <div>
-            <div className="text-center text-2xl font-bold p-4">
-                Coming soon!
+        <Container>
+            <Header
+                title={title}
+                description={description}
+                buildData={schema}
+            />
+            <div className="my-6">
+                <Divider />
             </div>
-        </div>
+            <Documentation buildData={schema} />
+        </Container>
     );
 }
 
