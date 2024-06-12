@@ -242,18 +242,8 @@ async function cmdAction() {
     if (typeof packageJson.dependencies !== "object" || Array.isArray(packageJson.dependencies)) {
         error("Dependencies in package.json is not an object.");
     }
-
-    // Check if typescript is in devDependencies and if it is then move it.
-    if (!packageJson.devDependencies) {
-        packageJson.devDependencies = {};
-    }
     if (typeof packageJson.devDependencies !== "object" || Array.isArray(packageJson.devDependencies)) {
         error("devDependencies in package.json is not an object.");
-    }
-    const t = packageJson.devDependencies.typescript;
-    if (t) {
-        packageJson.dependencies.typescript = t;
-        delete packageJson.devDependencies.typescript;
     }
 
     // Validate scripts.
@@ -282,7 +272,6 @@ async function cmdAction() {
             handleDependency(dependencies, "ARPC_SCHEMA_VIEWER_VERSION", "@arpc-packages/schema-viewer"),
             handleDependency(dependencies, "MSGPACK_VERSION", "@msgpack/msgpack"),
             handleDependency(dependencies, "ZOD_VERSION", "zod"),
-            handleDependency(dependencies, "TYPESCRIPT_VERSION", "typescript"),
             handleDependency(devDependencies, "ARPC_VERSION", "arpc"),
             handleDependency(devDependencies, "CONCURRENTLY_VERSION", "concurrently"),
         ]);
@@ -296,6 +285,9 @@ async function cmdAction() {
     packageJson.scripts["dev:next"] = packageJson.scripts.dev;
     packageJson.scripts["dev:arpc"] = "arpc watch";
     packageJson.scripts.dev = "concurrently --raw 'npm:dev:next' 'npm:dev:arpc'";
+    packageJson.scripts["lint:arpc"] = "arpc lint";
+    packageJson.scripts["lint:next"] = packageJson.scripts.lint;
+    packageJson.scripts.lint = "concurrently --raw 'npm:lint:next' 'npm:lint:arpc'";
 
     // Write the package.json.
     writeFileSync(
