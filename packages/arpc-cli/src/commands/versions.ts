@@ -1,6 +1,6 @@
 import type { Command } from "commander";
-import { writeFileSync, mkdirSync, rmSync, readFileSync } from "fs";
-import { readdir, rename, stat, mkdir } from "fs/promises";
+import { mkdirSync, rmSync, readFileSync, writeFileSync } from "fs";
+import { readdir, rename, stat, mkdir, writeFile, unlink } from "fs/promises";
 import { join, sep } from "path";
 import { stringify } from "@arpc-packages/lockfile";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
@@ -9,6 +9,19 @@ import { error, success } from "../utils/console";
 import { RPCVersionWithCache, versionParser } from "../utils/versionParser";
 import { argumentWithParser } from "../utils/argumentWithParser";
 import { regenerateNextState } from "../utils/regenerateNextState";
+
+async function writeMdFile(rpcPath: string, version: string) {
+    const descFolder = join(rpcPath, "descriptions");
+    await mkdir(descFolder, { recursive: true });
+    const mdPath = join(descFolder, `${version}.md`);
+    try {
+        // Check if the file already exists.
+        await stat(mdPath);
+    } catch {
+        // Write the file.
+        await writeFile(mdPath, "You can write markdown here to describe your API version.\n");
+    }
+}
 
 async function bump() {
     const { lockfile, repoFolderStructure, rpcPath } = requiresRpcInit();
@@ -25,10 +38,13 @@ async function bump() {
 
     lockfile.routes[newVersion] = lockfile.routes[latestVersion] || {};
 
-    writeFileSync(
-        join(rpcPath, "index.ts"),
-        stringify(lockfile),
-    );
+    await Promise.all([
+        writeMdFile(rpcPath, newVersion),
+        writeFile(
+            join(rpcPath, "index.ts"),
+            stringify(lockfile),
+        ),
+    ]);
 
     await regenerateNextState(repoFolderStructure, rpcPath);
     success(`API bumped to ${newVersion}.`);
@@ -60,10 +76,13 @@ async function alpha() {
         `v${latestVersionNumber + 1}a1`;
     lockfile.routes[newVersion] = lockfile.routes[latestVersion] || {};
 
-    writeFileSync(
-        join(rpcPath, "index.ts"),
-        stringify(lockfile),
-    );
+    await Promise.all([
+        writeMdFile(rpcPath, newVersion),
+        writeFile(
+            join(rpcPath, "index.ts"),
+            stringify(lockfile),
+        ),
+    ]);
 
     await regenerateNextState(repoFolderStructure, rpcPath);
     success(`API bumped to ${newVersion}.`);
@@ -95,10 +114,13 @@ async function beta() {
         `v${latestVersionNumber}b1`;
     lockfile.routes[newVersion] = lockfile.routes[latestVersion] || {};
 
-    writeFileSync(
-        join(rpcPath, "index.ts"),
-        stringify(lockfile),
-    );
+    await Promise.all([
+        writeMdFile(rpcPath, newVersion),
+        writeFile(
+            join(rpcPath, "index.ts"),
+            stringify(lockfile),
+        ),
+    ]);
 
     await regenerateNextState(repoFolderStructure, rpcPath);
     success(`API bumped to ${newVersion}.`);
@@ -213,11 +235,14 @@ async function drop([init, version]: RPCVersionWithCache) {
     }
     delete lockfile.routes[version];
 
-    // Write the lockfile.
-    writeFileSync(
-        join(rpcPath, "index.ts"),
-        stringify(lockfile),
-    );
+    // Write the lockfile and delete the description.
+    await Promise.all([
+        writeFile(
+            join(rpcPath, "index.ts"),
+            stringify(lockfile),
+        ),
+        unlink(join(rpcPath, "descriptions", `${version}.md`)).catch(() => {}),
+    ]);
 
     // Re-generate the client and report a success.
     await regenerateNextState(repoFolderStructure, rpcPath);
