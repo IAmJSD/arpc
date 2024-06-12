@@ -5,7 +5,6 @@
         "allowJs": true,
         "moduleResolution": "Node",
         "allowSyntheticDefaultImports": true,
-        "downlevelIteration": true,
         "target": "ESNext",
         "module": "ES2022"
     }

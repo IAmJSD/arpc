@@ -79,7 +79,7 @@ function pushEnumKeyValidator(
 	if (!enumObj) throw new Error(`Could not find enum ${enumName}`);
 
 	// Check if the value is in the enum.
-	const conditions = [...enumObj.data.keys()].sort();
+	const conditions = new Array(enumObj.data.keys()).sort();
 	if (conditions.length === 0) {
 		// Return early since there is nothing to push.
 		return;
