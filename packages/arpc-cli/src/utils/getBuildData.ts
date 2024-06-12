@@ -13,7 +13,7 @@ const evalString = (fp: string) =>
 
 export async function getBuildData(nextFolder: string) {
     // Create a temporary folder.
-    const tmpFolder = await mkdtemp(join(nextFolder, ".arpc-"));
+    const tmpFolder = await mkdtemp(join(nextFolder, "node_modules", ".arpc-"));
     async function tidy() {
         try {
             await rm(tmpFolder, { recursive: true });
@@ -48,19 +48,14 @@ export async function getBuildData(nextFolder: string) {
     const env = { ...process.env };
     delete env.PWD;
 
-    // Add path to node requires.
-    env.NODE_PATH = join(nextFolder, "node_modules");
-
     try {
         // Run node.
         const res = await new Promise<string>((res, rej) => exec(`node --enable-source-maps -e '${evalStr}'`, {
             cwd: nextFolder, shell: env.SHELL || undefined, env,
-        }, (err, stdout, stderr) => {
+        }, (err, stdout) => {
             if (err) {
                 rej(err);
-            }
-            if (stderr) {
-                rej(new Error(`Could not run the RPC: ${stderr}`));
+                return;
             }
             res(stdout);
         }));
