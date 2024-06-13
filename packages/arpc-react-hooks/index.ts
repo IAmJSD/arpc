@@ -195,3 +195,73 @@ export function useRequestBatcher<
         return p;
     }, deps);
 }
+
+// A hook to manage making a single API request and then rerunning it when the client changes (unless turned off).
+export function useRequest<
+    Atom extends APIClientAtom<any, any, any, any>,
+    Instance extends Exclude<GetReturn<Atom>, "batch">,
+    MethodKey extends keyof Instance,
+    Method extends Instance[MethodKey],
+>(atom: Atom, key: MethodKey, arg: Parameters<Method>[0], options?: RequestOptions) {
+    // Call the low level hook to get the client.
+    const client = useClientAtomInstance(atom);
+
+    // Defines the abort controller to cancel the request.
+    const controller = React.useMemo(() => new AbortController(), []);
+    React.useEffect(() => () => controller.abort(), [controller]);
+
+    // Get the cache key and purge function.
+    const [cacheKey, purgeCacheKey] = useCacheKey(client);
+
+    // Get the dependencies for the async hook.
+    const deps: any[] = [options?.cacheKeys, options?.rerun, client];
+    if (options?.rerun === false) {
+        // If rerun is explicitly set to false, we need to pop client since we don't want to re-render.
+        deps.pop();
+    }
+
+    // Call the async hook to make the request.
+    return useAsync(async () => {
+        // Call the method.
+        const result = client[key](arg, controller.signal);
+
+        // Build the cache key.
+        const thisCacheKey = JSON.stringify([
+            options?.cacheKeys,
+            key,
+            arg,
+            result,
+        ]);
+        let incr = false;
+        if (cacheKey.current !== thisCacheKey) {
+            // Purge our old cache key.
+            purgeCacheKey();
+
+            // Set the cache key.
+            cacheKey.current = thisCacheKey;
+
+            // If we have a cache value, we should increment the reference count.
+            incr = true;
+        }
+
+        // Check if we have a cache value.
+        const cacheValue = cache.get(client)?.get(thisCacheKey);
+        if (cacheValue) {
+            // Increment the reference count if we haven't already.
+            if (incr) cacheValue[1]++;
+
+            // Return the cache value.
+            return cacheValue[0];
+        }
+
+        // Run the method and return the promise.
+        const p = result;
+        let clientsMap = cache.get(client);
+        if (!clientsMap) {
+            clientsMap = new Map();
+            cache.set(client, clientsMap);
+        }
+        clientsMap.set(thisCacheKey, [p, 1]);
+        return p;
+    }, deps);
+}
