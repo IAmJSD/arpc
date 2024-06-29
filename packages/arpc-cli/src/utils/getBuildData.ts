@@ -1,15 +1,9 @@
 import esbuild from "esbuild";
 import { join } from "path";
-import { mkdtemp, rm } from "fs/promises";
+import { mkdtemp, rm, writeFile, readFile } from "fs/promises";
 import type { BuildData } from "@arpc-packages/client-gen";
 import { error } from "./console";
-import { exec } from "child_process";
-
-// Defines a string to give to node to evaluate the RPC schema.
-const evalString = (fp: string) =>
-    `require(${JSON.stringify(fp)}).generateSchema().`
-    + "then(x => console.log(JSON.stringify(x)))."
-    + "catch(err => { console.error(err); process.exit(1); })";
+import { spawn } from "child_process";
 
 export async function getBuildData(nextFolder: string) {
     // Create a temporary folder.
@@ -43,22 +37,47 @@ export async function getBuildData(nextFolder: string) {
         process.exit(1);
     }
 
-    // Run node in the same shell with the RPC.
-    const evalStr = evalString(outfile);
+    // Defines the environment the bootstrapper will run in.
     const env = { ...process.env };
     delete env.PWD;
 
+    // Write a bootstrapper to get the JSON out of the RPC.
+    const bootstapper = `const { generateSchema } = require("./rpc.cjs");
+const { join } = require("path");
+const { writeFileSync } = require("fs");
+
+generateSchema().then(s => {
+    writeFileSync(join(__dirname, "schema.json"), JSON.stringify(s));
+}).catch(e => {
+    console.error("Could not generate the schema:", e);
+    process.exit(1);
+});
+`;
+    const bootstrapperFile = join(tmpFolder, "bootstrapper.cjs");
+    await writeFile(bootstrapperFile, bootstapper);
+
     try {
         // Run node.
-        const res = await new Promise<string>((res, rej) => exec(`node --enable-source-maps -e '${evalStr}'`, {
-            cwd: nextFolder, shell: env.SHELL || undefined, env,
-        }, (err, stdout) => {
-            if (err) {
-                rej(err);
-                return;
-            }
-            res(stdout);
-        }));
+        await new Promise<string>((res, rej) => {
+            const buffers: Buffer[] = [];
+            const proc = spawn(
+                "node", ["--enable-source-maps", bootstrapperFile], {
+                    cwd: nextFolder, shell: env.SHELL || true, env,
+                    stdio: ["inherit", "inherit", "inherit"],
+                },
+            );
+            proc.on("error", rej);
+            proc.on("exit", (code) => {
+                if (code !== 0) {
+                    rej(new Error(`Node exited with code ${code}`));
+                    return;
+                }
+                res(Buffer.concat(buffers).toString());
+            });
+        });
+
+        // Read the output.
+        const res = await readFile(join(tmpFolder, "schema.json"), "utf8");
 
         // Parse the output.
         let x: BuildData;
