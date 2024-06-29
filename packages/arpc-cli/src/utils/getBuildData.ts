@@ -58,8 +58,7 @@ generateSchema().then(s => {
 
     try {
         // Run node.
-        await new Promise<string>((res, rej) => {
-            const buffers: Buffer[] = [];
+        await new Promise<void>((res, rej) => {
             const proc = spawn(
                 "node", ["--enable-source-maps", bootstrapperFile], {
                     cwd: nextFolder, shell: env.SHELL || true, env,
@@ -72,7 +71,7 @@ generateSchema().then(s => {
                     rej(new Error(`Node exited with code ${code}`));
                     return;
                 }
-                res(Buffer.concat(buffers).toString());
+                res();
             });
         });
 
