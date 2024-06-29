@@ -61,7 +61,12 @@ export async function getBuildData(nextFolder: string) {
         }));
 
         // Parse the output.
-        const x = JSON.parse(res) as BuildData;
+        let x: BuildData;
+        try {
+            x = JSON.parse(res);
+        } catch (e) {
+            throw new Error(`Could not parse ${res}: ${(e as Error).message}`);
+        }
         await tidy();
         return x;
     } catch (e) {
