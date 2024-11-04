@@ -133,7 +133,7 @@ export const httpHandler = routerInstance.buildHttpHandler();
 
 export const self = routerInstance.self;
 
-// NOTE: This is VERY slow. Only run this in dev or in the building of production.
+/** NOTE: This is VERY slow. Only run this in dev or in the building of production. */
 export const generateSchema = async () => {
     const genImport = await import("@arpc-packages/schema-gen");
     return genImport.generateSchema(routerInstance);
