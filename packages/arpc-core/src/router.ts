@@ -21,7 +21,7 @@ export class RPCRouter<
     private _exceptions: Exceptions | null = null;
     private _ratelimiting: RateLimitingMiddleware<User, AuthSet> | null = null;
 
-    // Set the rate limiting middleware.
+    /** Set the rate limiting middleware. */
     setRateLimiting(
         ratelimiting: RateLimitingMiddleware<User, AuthSet>
     ): RPCRouter<Handler, Routes, Auth, Exceptions, User, AuthSet> {
@@ -34,7 +34,7 @@ export class RPCRouter<
         return new_;
     }
 
-    // Set exceptions on the builder.
+    /** Set exceptions on the builder. */
     setExceptions<Exceptions extends {[name: string]: BodyErrorConstructor}>(exceptions: Exceptions): RPCRouter<
         Handler, Routes, Auth, Exceptions, User, AuthSet
     > {
@@ -47,7 +47,7 @@ export class RPCRouter<
         return new_;
     }
 
-    // Set routes on the builder.
+    /** Set routes on the builder. */
     setRoutes<
         Routes extends { [key: string]: HandlerMapping<Handler> }
     >(routes: Routes): RPCRouter<Handler, Routes, Auth, Exceptions, User, AuthSet> {
@@ -60,7 +60,7 @@ export class RPCRouter<
         return new_;
     }
 
-    // Set the authentication handler.
+    /** Set the authentication handler. */
     setAuthHandler<
         Auth extends AuthHandler<any, any>, User = ExtractUser<Auth>,
     >(
@@ -76,17 +76,19 @@ export class RPCRouter<
         return new_;
     }
 
-    // Build the handler for web requests.
+    /** Build the handler for web requests. */
     buildHttpHandler(): (req: Request) => Promise<Response> {
         return request(this._routes, this._auth, this._exceptions, this._ratelimiting);
     }
 
-    // Build the handler for the internal API client. The signature of this
-    // function changes based on the presence of an auth handler.
+    /** 
+     * Build the handler for the internal API client. The signature of this function changes
+     * based on the presence of an auth handler.
+    */
     get self() {
         return selfClient<User, Routes, AuthSet>(this._routes || {} as Routes, !!this._auth as AuthSet);
     }
 }
 
-// Helper function to create a new router.
+/** Helper function to create a new router. */
 export const router = () => new RPCRouter<UnauthenticatedRequestHandler<any, any>>();

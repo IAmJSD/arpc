@@ -1,4 +1,4 @@
-// Defines the error that is thrown when you are ratelimited.
+/** Defines the error that is thrown when you are ratelimited. */
 export class Ratelimited extends Error {
     public readonly code: string;
     public readonly body: any;
@@ -10,7 +10,7 @@ export class Ratelimited extends Error {
     }
 }
 
-// Defines a in-memory bucket.
+/** Defines a in-memory bucket. */
 export class InMemoryBucket<Key> {
     private readonly _map: Map<Key, [number, number]> = new Map();
 
@@ -47,7 +47,7 @@ export class InMemoryBucket<Key> {
     }
 }
 
-// Defines the rate limiting middleware.
+/** Defines the rate limiting middleware. */
 export type RateLimitingMiddleware<User, AuthSet> = AuthSet extends true ?
     (methodName: string, arg: any, user: User) => Promise<void> :
     (methodName: string, arg: any) => Promise<void>;

@@ -1,6 +1,6 @@
 import { workerContext } from "./workerContext";
 
-// Wraps the function in a proxy to dedupe the result of function calls within each network call.
+/** Wraps the function in a proxy to dedupe the result of function calls within each network call. */
 export function dedupe<
     T extends (...args: any[]) => Promise<any>,
 >(fn: T): T {
@@ -42,7 +42,7 @@ export function dedupe<
 // Gets the arguments of a function.
 type Args<T> = T extends (...args: infer A) => any ? A : never;
 
-// Defines if the function has already been called with the arguments specified.
+/** Defines if the function has already been called with the arguments specified. */
 export function alreadyDeduped<
     T extends (...args: any[]) => Promise<any>,
 >(fn: T, ...args: Args<T>) {

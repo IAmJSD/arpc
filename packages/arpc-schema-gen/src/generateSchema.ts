@@ -49,10 +49,12 @@ function isTokenType(value: string | undefined): string | undefined {
     return match[1];
 }
 
-// Generates a schema using the TypeScript processor and the files on disk. Note that this is VERY
-// slow and partially blocking, so should only be ran during page build in production.
-//
-// NOTE: Default protocol/hostname are omitted. These should be added by the client.
+/**
+ * Generates a schema using the TypeScript processor and the files on disk. Note that this is VERY
+ * slow and partially blocking, so should only be ran during page build in production.
+ *
+ * NOTE: Default protocol/hostname are omitted. These should be added by the client.
+*/
 export async function generateSchema(router: RPCRouter<any, any, any, any, any, any>): Promise<BuildData> {
     // Get the lockfile.
     const base = join(process.cwd(), "rpc");

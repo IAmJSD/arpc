@@ -1,7 +1,7 @@
 import { _requestMagicKey } from "./request";
 import { workerContext } from "./workerContext";
 
-// Get the request from the current arpc worker context.
+/** Get the request from the current arpc worker context. */
 export function useRequest(): Request {
     const ctx = workerContext();
     if (!ctx) {
@@ -13,7 +13,7 @@ export function useRequest(): Request {
 
 const _mapMagicKey = Symbol("arpcMap");
 
-// Defines a map which you can use to store data in the current arpc worker context.
+/** Defines a map which you can use to store data in the current arpc worker context. */
 export function useContext(): Map<any, any> {
     const ctx = workerContext();
     if (!ctx) {
