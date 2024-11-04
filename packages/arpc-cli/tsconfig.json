@@ -4,9 +4,10 @@
         "strict": true,
         "allowJs": true,
         "moduleResolution": "Node",
+        "jsx": "react-jsx",
         "allowSyntheticDefaultImports": true,
         "downlevelIteration": true,
-        "noEmit": true,
+        "resolveJsonModule": true,
         "target": "ESNext",
         "module": "ES2022"
     }

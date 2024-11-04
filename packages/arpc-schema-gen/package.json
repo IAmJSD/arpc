@@ -13,8 +13,7 @@
     },
     "dependencies": {
         "@arpc-packages/client-gen": "*",
-        "@arpc-packages/lockfile": "*",
-        "typescript-parser": "^2.6.1"
+        "@arpc-packages/lockfile": "*"
     },
     "peerDependencies": {
         "zod": "^3.23.8"

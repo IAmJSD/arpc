@@ -9,13 +9,12 @@ import {
     SourceFile, createProgram, getLeadingCommentRanges, isArrowFunction,
     isClassDeclaration, isEnumDeclaration, isFunctionExpression,
     isMethodDeclaration, isStringLiteral, isTypeAliasDeclaration,
-    isVariableStatement, Symbol, SignatureKind, isFunctionDeclaration,
+    isVariableStatement, isFunctionDeclaration,
 } from "typescript";
 import z from "zod";
 import { builtinExceptions } from "./builtinExceptions";
-import { getZodInputSignature } from "./getZodInputSignature";
+import { getZodSignature } from "./getZodSignature";
 import { dequotify } from "./helpers";
-import { processTypeScriptReturnType } from "./processTypeScriptReturnType";
 
 type AuthenticationType = {
     tokenTypes: { [humanName: string]: string };
@@ -79,9 +78,6 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
         allowJs: true,
         alwaysStrict: false,
     });
-
-    // Load the type checker.
-    const typeChecker = tsProgram.getTypeChecker();
 
     // Handle authentication.
     let authentication: AuthenticationType | null = null;
@@ -179,7 +175,8 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
     // Defines a super slim partial of what a routers routes look like.
     type RoutesRoutesPartial = {
         [key: string]: {
-            schema: z.ZodType<any, any, any>;
+            input: z.ZodType<any, any, any>;
+            output: z.ZodType<any, any, any>;
             mutation?: boolean;
         } | RoutesRoutesPartial;
     };
@@ -197,7 +194,8 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
     function createMethod(src: SourceFile, path: string[], version: string): Method {
         // Find the route in the current router.
         let currentPathItem = (routerRoutes || {})[version];
-        let schema: z.ZodType<any, any, any> | null = null;
+        let inputSchema: z.ZodType<any, any, any> | null = null;
+        let outputSchema: z.ZodType<any, any, any> | null = null;
         let mutation: boolean | undefined = undefined;
         let pathIndex = 0;
         while (currentPathItem) {            
@@ -205,8 +203,9 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
             const nextItem = currentPathItem[path[pathIndex]];
 
             // If this contains a Zod schema, we are at the end of the path.
-            if (nextItem.schema && nextItem.schema instanceof z.ZodType) {
-                schema = nextItem.schema;
+            if (nextItem.input && nextItem.input instanceof z.ZodType) {
+                inputSchema = nextItem.input;
+                outputSchema = nextItem.output as z.ZodType<any, any, any>;
                 mutation = nextItem.mutation as boolean;
                 break;
             }
@@ -215,7 +214,7 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
             currentPathItem = nextItem as RoutesRoutesPartial;
             pathIndex++;
         }
-        if (!schema) {
+        if (!inputSchema || !outputSchema) {
             throw new Error("Lockfile and router routes are out of sync");
         }
 
@@ -280,8 +279,7 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
             throw new Error("Method must have at least one argument");
         }
 
-        // Check the type is a type reference or a type literal that equals
-        // z.infer<typeof schema>.
+        // Check the type is a type reference or a type literal that equals z.infer<typeof schema>.
         let inputTypeName: string | null = null;
         if (arg.type) {
             // Not having a type is bizarre, but technically allowed, so we'll permit it too :)
@@ -299,26 +297,16 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
         // Process the Zod schema to get the input type.
         const input = {
             name: arg.name.getText(),
-            signature: getZodInputSignature(
-                schema, enums, objects, uniqueNames, () => inputTypeName || (path.map(
+            signature: getZodSignature(
+                inputSchema, enums, objects, uniqueNames, () => inputTypeName || (path.map(
                     (x) => x[0].toUpperCase() + x.slice(1)).join("") + "Opts"),
             ),
         };
 
-        // Process the output type by using the TS return type (either inferred or explicitly set).
-        // @ts-ignore: For some reason, this isn't exported?
-        const methodSym: Map<string, Symbol> = src.locals;
-        let sym = methodSym.get("method")!;
-        // @ts-ignore: idk why this is a error.
-        if (sym.exportSymbol) sym = sym.exportSymbol;
-        const symType = typeChecker.getTypeOfSymbolAtLocation(sym, sym.valueDeclaration!);
-        const signatures = typeChecker.getSignaturesOfType(symType, SignatureKind.Call);
-        const lastSignature = signatures[signatures.length - 1];
-        const returnType = typeChecker.getReturnTypeOfSignature(lastSignature);
-
-        // Get the output type.
-        const output = processTypeScriptReturnType(
-            returnType, typeChecker, enums, objects, uniqueNames, typeAliases, path,
+        // Process the Zod schema to get the output type.
+        const output = getZodSignature(
+            outputSchema, enums, objects, uniqueNames, () => path.map(
+                (x) => x[0].toUpperCase() + x.slice(1)).join("") + "Response",
         );
 
         // Get the description from the comment above the method.

@@ -280,7 +280,7 @@ export default (globalRoutes, auth, exceptions, ratelimiter) => {
                     const workers = chunks.map(([route, arg], i) => (async () => {
                         // Call the route schema.
                         try {
-                            arg = await route.schema.parseAsync(arg);
+                            arg = await route.input.parseAsync(arg);
                         } catch (err) {
                             return builtInError("BadRequest", "INVALID_ARG", "The argument specified failed validation.", err.errors, true);
                         }
@@ -303,7 +303,7 @@ export default (globalRoutes, auth, exceptions, ratelimiter) => {
                             if (resp !== null) {
                                 allNull = false;
                             }
-                            responses[indexStart + i] = resp;
+                            responses[indexStart + i] = await route.output.parseAsync(resp);
                             return null;
                         } catch (err) {
                             return handleExceptions(err, true);
@@ -399,16 +399,16 @@ export default (globalRoutes, auth, exceptions, ratelimiter) => {
                     return builtInError("Unauthorized", "UNAUTHENTICATED", "Route requires authentication");
                 }
     
-                // Call the route schema.
+                // Call the route input schema.
                 try {
-                    arg = await route.schema.parseAsync(arg);
+                    arg = await route.input.parseAsync(arg);
                 } catch (err) {
                     return builtInError("BadRequest", "INVALID_ARG", "The argument specified failed validation.", err.errors);
                 }
     
                 // Call the route method.
                 try {
-                    resp = await route.method(arg, user);
+                    resp = await route.output.parseAsync(await route.method(arg, user));
                 } catch (err) {
                     // Run all of the rollback functions.
                     const [, rollbackFns] = ctx.get(_txMagicKey) || [null, []];

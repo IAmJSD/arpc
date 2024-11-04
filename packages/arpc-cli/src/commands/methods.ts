@@ -14,10 +14,13 @@ const authRoutePlaceholder = `import z from "zod";
 import { UserExport } from "@/rpc/authentication";
 
 // Defines the schema for the input.
-export const schema = z.object({});
+export const input = z.object({});
+
+// Defines the schema for the output.
+export const output = z.string();
 
 // Defines the method that will be called.
-export async function method(input: z.infer<typeof schema>, user: UserExport) {
+export async function method(input: z.infer<typeof input>, user: UserExport): Promise<z.infer<typeof output>> {
     return "Hello, world!";
 }
 
@@ -34,10 +37,13 @@ export const authenticated = true;
 const noAuthRoutePlaceholder = `import z from "zod";
 
 // Defines the schema for the input.
-export const schema = z.object({});
+export const input = z.object({});
+
+// Defines the schema for the output.
+export const output = z.string();
 
 // Defines the method that will be called.
-export async function method(input: z.infer<typeof schema>) {
+export async function method(input: z.infer<typeof schema>): Promise<z.infer<typeof output>> {
     return "Hello, world!";
 }
 

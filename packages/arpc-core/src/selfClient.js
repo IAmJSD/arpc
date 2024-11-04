@@ -22,10 +22,10 @@ function buildProxy(user, routes) {
                 }
 
                 // Check if there's a schema and if there is wrap the method.
-                if (route.schema) {
+                if (route.input) {
                     return async (arg) => {
-                        const res = await route.schema.parseAsync(arg);
-                        return m(res);
+                        const res = await route.input.parseAsync(arg);
+                        return await route.output.parseAsync(await m(res));
                     };
                 }
                 return m;

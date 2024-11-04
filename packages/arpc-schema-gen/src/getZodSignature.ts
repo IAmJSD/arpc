@@ -1,7 +1,7 @@
 import type { Enum, Object, Signature } from "@arpc-packages/client-gen";
 import z from "zod";
 
-export function getZodInputSignature(
+export function getZodSignature(
     schema: z.ZodType<any, any, any>, enums: Enum[],
     objects: Object[], uniqueNames: Set<string>, getName: () => string,
 ): Signature {
@@ -15,7 +15,7 @@ export function getZodInputSignature(
     if (schema instanceof z.ZodNullable || schema instanceof z.ZodOptional) {
         return {
             type: "nullable",
-            inner: getZodInputSignature(schema._def.innerType, enums, objects, uniqueNames, getName),
+            inner: getZodSignature(schema._def.innerType, enums, objects, uniqueNames, getName),
         };
     }
 
@@ -23,7 +23,7 @@ export function getZodInputSignature(
     if (schema instanceof z.ZodArray) {
         return {
             type: "array",
-            inner: getZodInputSignature(schema._def.type, enums, objects, uniqueNames, getName),
+            inner: getZodSignature(schema._def.type, enums, objects, uniqueNames, getName),
         };
     }
 
@@ -43,7 +43,7 @@ export function getZodInputSignature(
         return {
             type: "union",
             inner: options.map(
-                (option, index) => getZodInputSignature(
+                (option, index) => getZodSignature(
                     option, enums, objects, uniqueNames, () => `${getName()}Variant${index}`),
             ),
         };
@@ -53,8 +53,8 @@ export function getZodInputSignature(
     if (schema instanceof z.ZodRecord || schema instanceof z.ZodMap) {
         return {
             type: "map",
-            key: getZodInputSignature(schema._def.keyType, enums, objects, uniqueNames, getName),
-            value: getZodInputSignature(schema._def.valueType, enums, objects, uniqueNames, getName),
+            key: getZodSignature(schema._def.keyType, enums, objects, uniqueNames, getName),
+            value: getZodSignature(schema._def.valueType, enums, objects, uniqueNames, getName),
         };
     }
 
@@ -63,7 +63,7 @@ export function getZodInputSignature(
         // Build out the fields.
         const fields: { [key: string]: Signature } = {};
         for (const [shapeKey, shapeValue] of Object.entries(schema.shape)) {
-            fields[shapeKey] = getZodInputSignature(
+            fields[shapeKey] = getZodSignature(
                 shapeValue as z.ZodType<any, any, any>, enums, objects, uniqueNames,
                 () => `${getName()}${shapeKey[0].toUpperCase()}${shapeKey.slice(1)}`,
             );

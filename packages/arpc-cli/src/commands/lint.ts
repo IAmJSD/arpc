@@ -167,7 +167,7 @@ function compareInputs(
     // Handle if the type is changed to a union that contains our type.
     if (new_.type === "union" && old.type !== "union") {
         for (const inner of new_.inner) {
-            const innerErrors = [];
+            const innerErrors: string[] = [];
             compareInputs(old, inner, namespace, innerErrors);
             if (innerErrors.length === 0) {
                 // The input type that the client will use is valid.
@@ -201,7 +201,7 @@ function compareInputs(
         for (const inner of old.inner) {
             let found = false;
             for (const newInner of (new_ as any).inner) {
-                const innerErrors = [];
+                const innerErrors: string[] = [];
                 compareInputs(inner, newInner, namespace, innerErrors);
                 if (innerErrors.length === 0) {
                     found = true;
@@ -282,7 +282,7 @@ function compareOutputs(
         for (const inner of (new_ as any).inner) {
             let found = false;
             for (const oldInner of old.inner) {
-                const innerErrors = [];
+                const innerErrors: string[] = [];
                 compareOutputs(oldInner, inner, namespace, innerErrors);
                 if (innerErrors.length === 0) {
                     found = true;

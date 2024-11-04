@@ -19,7 +19,7 @@ function cmdAction() {
         regenerateNextState(repoFolderStructure, rpcPath)
             .catch((err) => {
                 const text = (err as Error).message;
-                console.error(`\x1b[31m✖  Failed to generate local JS client: ${text}\x1b[0m`)
+                console.error(`\x1b[31m✖  Failed to generate local JS client: ${text}\x1b[0m`);
             })
             .then(() => {
                 success("Generated local JS client.");
