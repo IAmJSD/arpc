@@ -458,6 +458,11 @@ async function cmdAction(options: { [key: string]: string }) {
         }
     }
 
+    // Make sure that the lock file stringifies the same. This is to stop arbitrary code execution.
+    if (lockfileText !== stringify(lockfile)) {
+        error("The lock file was changed from the expected output.");
+    }
+
     // If we have nothing to compare to, this is fine.
     if (!options.compare) {
         success("Build data is valid.");
@@ -486,11 +491,6 @@ async function cmdAction(options: { [key: string]: string }) {
 
     // Compare the clients.
     compateClients(buildData, compareData, options.compare, errors);
-
-    // Make sure that the lock file stringifies the same. This is to stop arbitrary code execution.
-    if (lockfileText !== stringify(lockfile)) {
-        errors.push("The lock file was changed.");
-    }
 
     // Handle the error result.
     if (errors.length === 0) {
