@@ -2,9 +2,9 @@ import { AuthenticatedRequestHandler, HandlerMapping, UnauthenticatedRequestHand
 
 type AuthenticationUserNullRoutes<
     User,
-    Routes extends { [key: string]: HandlerMapping<AuthenticatedRequestHandler<User>> },
+    Routes extends { [key: string]: HandlerMapping<AuthenticatedRequestHandler<User, any, any>> },
 > = {
-    [K in keyof Routes]: Routes[K] extends AuthenticatedRequestHandler<User> ?
+    [K in keyof Routes]: Routes[K] extends AuthenticatedRequestHandler<User, any, any> ?
         Routes[K]["authenticated"] extends false ?
             (input: Parameters<Routes[K]["method"]>[0]) => ReturnType<Routes[K]["method"]> :
             never
@@ -19,6 +19,7 @@ interface Method {
 
 type AllUserRoutes<
     Handler extends Method,
+    // @ts-expect-error: The input/output types are not used here. They don't matter.
     Routes extends { [key: string]: HandlerMapping<Handler> },
 >  = {
     [K in keyof Routes]: Routes[K] extends Handler ?
@@ -32,7 +33,7 @@ type AuthenticatedMethodWrap<
     Routes extends { [key: string]: HandlerMapping<any> },
 > =
     ((user: null) => AuthenticationUserNullRoutes<User, Routes>) &
-    ((user: User) => AllUserRoutes<AuthenticatedRequestHandler<User>, Routes>);
+    ((user: User) => AllUserRoutes<AuthenticatedRequestHandler<User, any, any>, Routes>);
 
 type MethodInput<
     User,
@@ -41,7 +42,7 @@ type MethodInput<
 > =
     AuthSet extends true ?
         AuthenticatedMethodWrap<User, Routes> :
-        () => AllUserRoutes<UnauthenticatedRequestHandler, Routes>;
+        () => AllUserRoutes<UnauthenticatedRequestHandler<any, any>, Routes>;
 
 export default function<
     User,
