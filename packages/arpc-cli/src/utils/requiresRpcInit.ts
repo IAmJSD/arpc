@@ -24,5 +24,5 @@ export function requiresRpcInit() {
         error(`Could not parse the lock file: ${(err as Error).message}`);
     }
 
-    return { repoFolderStructure, rpcPath: rpc, lockfile };
+    return { repoFolderStructure, rpcPath: rpc, lockfile, lockfileText };
 }

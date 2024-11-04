@@ -6,6 +6,7 @@ import type {
 import { getBuildData } from "../utils/getBuildData";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { error, success } from "../utils/console";
+import { stringify } from "@arpc-packages/lockfile";
 
 // Handles checking if a item is still used.
 class UsageChecker {
@@ -443,7 +444,7 @@ function compateClients(
 // Handle the command action.
 async function cmdAction(options: { [key: string]: string }) {
     // Make sure we are in a RPC project.
-    const { repoFolderStructure } = requiresRpcInit();
+    const { repoFolderStructure, lockfile, lockfileText } = requiresRpcInit();
 
     // Get the build data and write it if applicable.
     const buildData = await getBuildData(repoFolderStructure.nextFolder);
@@ -485,6 +486,11 @@ async function cmdAction(options: { [key: string]: string }) {
 
     // Compare the clients.
     compateClients(buildData, compareData, options.compare, errors);
+
+    // Make sure that the lock file stringifies the same. This is to stop arbitrary code execution.
+    if (lockfileText !== stringify(lockfile)) {
+        errors.push("The lock file was changed.");
+    }
 
     // Handle the error result.
     if (errors.length === 0) {
