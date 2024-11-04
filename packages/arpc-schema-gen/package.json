@@ -1,6 +1,6 @@
 {
     "name": "@arpc-packages/schema-gen",
-    "version": "0.2.1",
+    "version": "0.2.4",
     "main": "dist/index.js",
     "types": "src/index.ts",
     "exports": {

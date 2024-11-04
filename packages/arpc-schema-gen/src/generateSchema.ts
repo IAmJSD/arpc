@@ -79,6 +79,9 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
         alwaysStrict: false,
     });
 
+    // This shouldn't work, but it does. Force TypeScript to parse the files properly.
+    tsProgram.getTypeChecker();
+
     // Handle authentication.
     let authentication: AuthenticationType | null = null;
     if (lockfile.hasAuthentication) {
