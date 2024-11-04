@@ -20,7 +20,7 @@ export const input = z.object({});
 export const output = z.string();
 
 // Defines the method that will be called.
-export async function method(input: z.infer<typeof input>, user: UserExport): Promise<z.infer<typeof output>> {
+export async function method(arg: z.infer<typeof input>, user: UserExport): Promise<z.infer<typeof output>> {
     return "Hello, world!";
 }
 
@@ -43,7 +43,7 @@ export const input = z.object({});
 export const output = z.string();
 
 // Defines the method that will be called.
-export async function method(input: z.infer<typeof schema>): Promise<z.infer<typeof output>> {
+export async function method(arg: z.infer<typeof input>): Promise<z.infer<typeof output>> {
     return "Hello, world!";
 }
 

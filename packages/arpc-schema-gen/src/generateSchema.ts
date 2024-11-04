@@ -279,16 +279,16 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
             throw new Error("Method must have at least one argument");
         }
 
-        // Check the type is a type reference or a type literal that equals z.infer<typeof schema>.
+        // Check the type is a type reference or a type literal that equals z.infer<typeof input>.
         let inputTypeName: string | null = null;
         if (arg.type) {
             // Not having a type is bizarre, but technically allowed, so we'll permit it too :)
 
             const typeText = arg.type.getText();
-            if (typeText !== "z.infer<typeof schema>") {
+            if (typeText !== "z.infer<typeof input>") {
                 const t = typeAliases.get(typeText);
-                if (t !== "z.infer<typeof schema>") {
-                    throw new Error(`Method argument must be of type or alias a type that is equal to z.infer<typeof schema> in the same file, got ${typeText}`);
+                if (t !== "z.infer<typeof input>") {
+                    throw new Error(`Method argument must be of type or alias a type that is equal to z.infer<typeof input> in the same file, got ${typeText}`);
                 }
                 inputTypeName = typeText;
             }

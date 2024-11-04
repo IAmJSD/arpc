@@ -1,7 +1,10 @@
 import z from "zod";
 
 // Defines a unauthenticated RPC request handler.
-export type UnauthenticatedRequestHandler = {
+export type UnauthenticatedRequestHandler<
+    InputSchema extends z.ZodType<any, any, any>,
+    OutputSchema extends z.ZodType<any, any, any>,
+> = {
     // Defines if this request handler does a mutation. If this is unset,
     // defaults to true.
     mutation?: boolean;
@@ -11,23 +14,30 @@ export type UnauthenticatedRequestHandler = {
     parallel?: boolean;
 
     // Defines the input schema for this handler.
-    schema: z.ZodType<any, any, any>;
+    input: InputSchema;
+
+    // Defines the output schema for this handler.
+    output: OutputSchema;
 
     // Defines the method that will be called when this handler is invoked.
-    method: (input: any) => Promise<any>;
+    method: (input: z.infer<InputSchema>) => Promise<z.infer<OutputSchema>>;
 };
 
 // Handle authenticated requests.
-export type AuthenticatedRequestHandler<User> = Omit<UnauthenticatedRequestHandler, "method"> & ({
+export type AuthenticatedRequestHandler<
+    User,
+    InputSchema extends z.ZodType<any, any, any>,
+    OutputSchema extends z.ZodType<any, any, any>,
+> = Omit<UnauthenticatedRequestHandler<InputSchema, OutputSchema>, "method"> & ({
     // Defines the method that will be called when this handler is invoked.
-    method: (input: any, user: User) => Promise<any>;
+    method: (input: z.infer<InputSchema>, user: User) => Promise<z.infer<OutputSchema>>;
 
     // Defines if the user must be authenticated to use this handler. If this is
     // unset, defaults to true.
     authenticated?: true;
 } | {
     // Defines the method that will be called when this handler is invoked.
-    method: (input: any, user: User | null) => Promise<any>;
+    method: (input: z.infer<InputSchema>, user: User | null) => Promise<z.infer<OutputSchema>>;
 
     // Defines if the user must be authenticated to use this handler. If this is
     // unset, defaults to true.
@@ -35,7 +45,7 @@ export type AuthenticatedRequestHandler<User> = Omit<UnauthenticatedRequestHandl
 });
 
 // Defines a mapping that either points to more mappings or a handler.
-export type HandlerMapping<Handler = UnauthenticatedRequestHandler> = Handler | {
+export type HandlerMapping<Handler extends UnauthenticatedRequestHandler<any, any>> = Handler | {
     [key: string]: HandlerMapping<Handler>;
 };
 
