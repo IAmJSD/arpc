@@ -351,7 +351,7 @@ async function cmdAction() {
 
 You can access the client that your consumers will use within their client-side (or their server-side) JS by importing @/clients/rpc. If you need the RPC routes on the Next server (for example in a Server Action), you can use the self export in @/rpc.
 
-To get started, you should make a new API revision. You can do this by running \x1b[36marpc versions create\x1b[0m. If you wish to setup ratelimiting, you can run \x1b[36marpc scaffold ratelimiting\x1b[0m, or authentication with \x1b[36marpc scaffold authentication\x1b[0m.
+To get started, you should make a new API revision. You can do this by running \x1b[36marpc versions bump\x1b[0m. If you wish to setup ratelimiting, you can run \x1b[36marpc scaffold ratelimiting\x1b[0m, or authentication with \x1b[36marpc scaffold authentication\x1b[0m.
 `);
 }
 
