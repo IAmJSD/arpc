@@ -11,7 +11,8 @@ type BodyErrorConstructor = new (body: any) => Error;
 
 // Defines a router for creating RPC handlers.
 export class RPCRouter<
-    Handler, Routes extends { [key: string]: HandlerMapping<Handler> } = {},
+    Handler extends UnauthenticatedRequestHandler<any, any> | AuthenticatedRequestHandler<any, any, any>,
+    Routes extends { [key: string]: HandlerMapping<Handler> } = {},
     Auth extends AuthHandler<User, any> = AuthHandler<any, any>,
     Exceptions extends {[name: string]: BodyErrorConstructor} = {}, User = unknown, AuthSet = false
 > {
@@ -64,11 +65,11 @@ export class RPCRouter<
         Auth extends AuthHandler<any, any>, User = ExtractUser<Auth>,
     >(
         auth: Auth
-    ): RPCRouter<AuthenticatedRequestHandler<User>, {}, Auth, Exceptions, User, true> {
+    ): RPCRouter<AuthenticatedRequestHandler<User, any, any>, {}, Auth, Exceptions, User, true> {
         if (this._auth) throw new Error("Auth handler already set");
         if (this._routes) throw new Error("Routes must be set after auth handler");
         const new_ = new RPCRouter<
-            AuthenticatedRequestHandler<User>, {}, Auth, Exceptions, User, true
+            AuthenticatedRequestHandler<User, any, any>, {}, Auth, Exceptions, User, true
         >();
         new_._auth = auth;
         new_._exceptions = this._exceptions;
@@ -88,4 +89,4 @@ export class RPCRouter<
 }
 
 // Helper function to create a new router.
-export const router = () => new RPCRouter<UnauthenticatedRequestHandler>();
+export const router = () => new RPCRouter<UnauthenticatedRequestHandler<any, any>>();

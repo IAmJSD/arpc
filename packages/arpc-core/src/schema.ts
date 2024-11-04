@@ -39,13 +39,14 @@ export type AuthenticatedRequestHandler<
     // Defines the method that will be called when this handler is invoked.
     method: (input: z.infer<InputSchema>, user: User | null) => Promise<z.infer<OutputSchema>>;
 
-    // Defines if the user must be authenticated to use this handler. If this is
-    // unset, defaults to true.
+    // Defines if the user must be authenticated to use this handler. If this is unset, defaults to true.
     authenticated: false;
 });
 
 // Defines a mapping that either points to more mappings or a handler.
-export type HandlerMapping<Handler extends UnauthenticatedRequestHandler<any, any>> = Handler | {
+export type HandlerMapping<
+    Handler extends UnauthenticatedRequestHandler<any, any> | AuthenticatedRequestHandler<any, any, any>,
+> = Handler | {
     [key: string]: HandlerMapping<Handler>;
 };
 
