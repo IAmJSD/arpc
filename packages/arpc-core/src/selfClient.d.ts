@@ -13,19 +13,13 @@ type AuthenticationUserNullRoutes<
         AuthenticationUserNullRoutes<User, Routes[K]>;
 };
 
-interface Method {
-    method(input: any, unneeded?: any): Promise<any>;
-}
-
-type AllUserRoutes<
-    Handler extends Method,
-    // @ts-expect-error: The input/output types are not used here. They don't matter.
-    Routes extends { [key: string]: HandlerMapping<Handler> },
+type AuthenticatedUserRoutes<
+    Routes extends { [key: string]: HandlerMapping<AuthenticatedRequestHandler<any, any, any>> },
 >  = {
-    [K in keyof Routes]: Routes[K] extends Handler ?
+    [K in keyof Routes]: Routes[K] extends AuthenticatedRequestHandler<any, any, any> ?
         (input: Parameters<Routes[K]["method"]>[0]) => ReturnType<Routes[K]["method"]> :
         // @ts-expect-error: If this is hit, we cannot satisfy the handler type.
-        AllUserRoutes<Handler, Routes[K]>;
+        AuthenticatedUserRoutes<Routes[K]>;
 };
 
 type AuthenticatedMethodWrap<
@@ -33,7 +27,16 @@ type AuthenticatedMethodWrap<
     Routes extends { [key: string]: HandlerMapping<any> },
 > =
     ((user: null) => AuthenticationUserNullRoutes<User, Routes>) &
-    ((user: User) => AllUserRoutes<AuthenticatedRequestHandler<User, any, any>, Routes>);
+    ((user: User) => AuthenticatedUserRoutes<Routes>);
+
+type UnauthenticatedRoutes<
+    Routes extends { [key: string]: HandlerMapping<UnauthenticatedRequestHandler<any, any>> },
+>  = {
+    [K in keyof Routes]: Routes[K] extends UnauthenticatedRequestHandler<any, any> ?
+        (input: Parameters<Routes[K]["method"]>[0]) => ReturnType<Routes[K]["method"]> :
+        // @ts-expect-error: If this is hit, we cannot satisfy the handler type.
+        UnauthenticatedRoutes<Routes[K]>;
+};
 
 type MethodInput<
     User,
@@ -42,7 +45,7 @@ type MethodInput<
 > =
     AuthSet extends true ?
         AuthenticatedMethodWrap<User, Routes> :
-        () => AllUserRoutes<UnauthenticatedRequestHandler<any, any>, Routes>;
+        () => UnauthenticatedRoutes<Routes>;
 
 export default function<
     User,

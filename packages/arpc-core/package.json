@@ -1,6 +1,6 @@
 {
     "name": "@arpc-packages/core",
-    "version": "0.3.3",
+    "version": "0.3.4",
     "module": "dist/index.mjs",
     "main": "dist/index.js",
     "types": "src/index.ts",
