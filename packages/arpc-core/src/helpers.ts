@@ -26,5 +26,5 @@ export function useContext(): Map<any, any> {
         map = new Map();
         ctx.set(_mapMagicKey, map);
     }
-    return map;    
+    return map;
 }
