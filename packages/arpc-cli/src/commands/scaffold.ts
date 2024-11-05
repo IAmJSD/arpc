@@ -34,7 +34,7 @@ export async function validate(token: string, tokenType: TokenTypes) {
 
 type Unpromisify<T> = T extends Promise<infer U> ? U : T;
 
-export type UserExport = Unpromisify<ReturnType<typeof validate>>;
+export type UserExport = Exclude<Unpromisify<ReturnType<typeof validate>>, null>;
 `);
     }
 
