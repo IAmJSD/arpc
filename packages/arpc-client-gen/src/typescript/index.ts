@@ -80,7 +80,7 @@ function createObject(obj: Object) {
 function createException(name: string, description: string, builtIn: boolean) {
     if (description !== "") {
         description = `/**
-${description.trim().split("\n").join("\n// ")}
+${description.trim().split("\n").join("\n* ")}
 */
 `;
     }
