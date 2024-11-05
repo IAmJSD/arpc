@@ -119,7 +119,7 @@ export default (globalRoutes, auth, exceptions, ratelimiter) => {
                 },
             },
         );
-    }
+    };
 
     // Handle custom exceptions.
     const handleExceptions = (err, bulk) => {
