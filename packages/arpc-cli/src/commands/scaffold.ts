@@ -5,7 +5,7 @@ import { stringify } from "@arpc-packages/lockfile";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { error, success } from "../utils/console";
 import { argumentWithParser } from "../utils/argumentWithParser";
-import { regenerateNextState } from "../utils/regenerateNextState";
+import { regenerateFrameworkState } from "../utils/regenerateFrameworkState";
 
 async function scaffoldAuthentication() {
     const { rpcPath, lockfile, repoFolderStructure } = requiresRpcInit();
@@ -43,7 +43,7 @@ export type UserExport = Exclude<Unpromisify<ReturnType<typeof validate>>, null>
         stringify(lockfile),
     );
 
-    await regenerateNextState(repoFolderStructure, rpcPath);
+    await regenerateFrameworkState(repoFolderStructure, rpcPath);
     success("Authentication set up.");
 }
 

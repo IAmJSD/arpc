@@ -7,9 +7,9 @@ import { findRepoFolderStructure } from "./findRepoFolderStructure";
 export function requiresRpcInit() {
     const repoFolderStructure = findRepoFolderStructure();
     if (!repoFolderStructure) {
-        error("Could not find a Next.js project.");
+        error("Could not find a project in a compatible framework.");
     }
-    const rpc = join(repoFolderStructure.nextFolder, "rpc");
+    const rpc = join(repoFolderStructure.framework.folder, "rpc");
 
     let lockfileText: string;
     try {

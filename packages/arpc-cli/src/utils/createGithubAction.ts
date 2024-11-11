@@ -57,10 +57,10 @@ export async function createGithubAction(repoFolderStructure: RepoFolderStructur
         if (repoFolderStructure.gitFolder) {
             try {
                 // Check if the file exists.
-                await stat(join(repoFolderStructure.nextFolder, "bun.lockb"));
+                await stat(join(repoFolderStructure.framework.folder, "bun.lockb"));
     
                 // Get the difference between the two folders.
-                let diff = repoFolderStructure.nextFolder.slice(repoFolderStructure.gitFolder.length);
+                let diff = repoFolderStructure.framework.folder.slice(repoFolderStructure.gitFolder.length);
                 if (!diff.startsWith(sep)) diff = sep + diff;
                 cdPart = `cd .${diff.replace(
                     new RegExp("\\" + sep, "g"),
@@ -81,10 +81,10 @@ export async function createGithubAction(repoFolderStructure: RepoFolderStructur
     let nvmrcPath = ".nvmrc";
     try {
         // Check if the file exists.
-        await stat(join(repoFolderStructure.nextFolder, ".nvmrc"));
+        await stat(join(repoFolderStructure.framework.folder, ".nvmrc"));
 
         // If it does, compare it to the root.
-        let diff = repoFolderStructure.nextFolder.slice(repoFolderStructure.gitFolder!.length);
+        let diff = repoFolderStructure.framework.folder.slice(repoFolderStructure.gitFolder!.length);
         if (diff.startsWith(sep)) diff = diff.slice(1);
         nvmrcPath = `${diff.replace(new RegExp("\\" + sep, "g"), "/")}.nvmrc`;
     } catch {}
@@ -97,7 +97,7 @@ export async function createGithubAction(repoFolderStructure: RepoFolderStructur
     // Figure out where the package manager is.
     let fp: string | null = null;
     if (repoFolderStructure.monorepo) {
-        let diff = repoFolderStructure.nextFolder.slice(repoFolderStructure.gitFolder!.length);
+        let diff = repoFolderStructure.framework.folder.slice(repoFolderStructure.gitFolder!.length);
         if (diff.startsWith(sep)) diff = diff.slice(1);
         fp = diff.replace(new RegExp("\\" + sep, "g"), "/");
     }

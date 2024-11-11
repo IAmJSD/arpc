@@ -5,9 +5,9 @@ import type { BuildData } from "@arpc-packages/client-gen";
 import { error } from "./console";
 import { spawn } from "child_process";
 
-export async function getBuildData(nextFolder: string) {
+export async function getBuildData(frameworkFolder: string) {
     // Create a temporary folder.
-    const tmpFolder = await mkdtemp(join(nextFolder, "node_modules", ".arpc-"));
+    const tmpFolder = await mkdtemp(join(frameworkFolder, "node_modules", ".arpc-"));
     async function tidy() {
         try {
             await rm(tmpFolder, { recursive: true });
@@ -22,8 +22,8 @@ export async function getBuildData(nextFolder: string) {
     try {
         // Build the RPC.
         await esbuild.build({
-            absWorkingDir: nextFolder,
-            entryPoints: [join(nextFolder, "rpc/index.ts")],
+            absWorkingDir: frameworkFolder,
+            entryPoints: [join(frameworkFolder, "rpc/index.ts")],
             target: "node18",
             platform: "node",
             bundle: true,
@@ -61,7 +61,7 @@ generateSchema().then(s => {
         await new Promise<void>((res, rej) => {
             const proc = spawn(
                 "node", ["--enable-source-maps", bootstrapperFile], {
-                    cwd: nextFolder, shell: env.SHELL || true, env,
+                    cwd: frameworkFolder, shell: env.SHELL || true, env,
                     stdio: ["inherit", "inherit", "inherit"],
                 },
             );

@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import chokidar from "chokidar";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { success } from "../utils/console";
-import { regenerateNextState } from "../utils/regenerateNextState";
+import { regenerateFrameworkState } from "../utils/regenerateFrameworkState";
 
 function cmdAction() {
     const { repoFolderStructure, rpcPath } = requiresRpcInit();
@@ -16,7 +16,7 @@ function cmdAction() {
     chokidar.watch(rpcPath).on("all", (_, path) => {
         if (!hundredMillisPassed) return;
         if (path.endsWith("build_data.json")) return;
-        regenerateNextState(repoFolderStructure, rpcPath)
+        regenerateFrameworkState(repoFolderStructure, rpcPath)
             .catch((err) => {
                 const text = (err as Error).message;
                 console.error(`\x1b[31m✖  Failed to generate local JS client: ${text}\x1b[0m`);

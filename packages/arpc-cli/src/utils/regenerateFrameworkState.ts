@@ -3,8 +3,8 @@ import { mkdirSync, writeFileSync } from "fs";
 import { RepoFolderStructure } from "./findRepoFolderStructure";
 import { generateClient } from "./generateClient";
 
-export async function regenerateNextState(repoFolderStructure: RepoFolderStructure, rpcPath: string) {
-    const clientsFolder = join(repoFolderStructure.nextFolder, "clients");
+export async function regenerateFrameworkState(repoFolderStructure: RepoFolderStructure, rpcPath: string) {
+    const clientsFolder = join(repoFolderStructure.framework.folder, "clients");
     mkdirSync(clientsFolder, { recursive: true });
     const buildData = await generateClient("typescript", rpcPath, join(clientsFolder, "rpc.ts"), "", "", {});
     writeFileSync(join(rpcPath, "build_data.json"), JSON.stringify(buildData, null, "\t"));

@@ -8,7 +8,7 @@ import { API_REVISION_REGEX, sortVersions } from "../utils/sortVersions";
 import { error, success } from "../utils/console";
 import { RPCVersionWithCache, versionParser } from "../utils/versionParser";
 import { argumentWithParser } from "../utils/argumentWithParser";
-import { regenerateNextState } from "../utils/regenerateNextState";
+import { regenerateFrameworkState } from "../utils/regenerateFrameworkState";
 
 async function writeMdFile(rpcPath: string, version: string) {
     const descFolder = join(rpcPath, "descriptions");
@@ -46,7 +46,7 @@ async function bump() {
         ),
     ]);
 
-    await regenerateNextState(repoFolderStructure, rpcPath);
+    await regenerateFrameworkState(repoFolderStructure, rpcPath);
     success(`API bumped to ${newVersion}.`);
 }
 
@@ -84,7 +84,7 @@ async function alpha() {
         ),
     ]);
 
-    await regenerateNextState(repoFolderStructure, rpcPath);
+    await regenerateFrameworkState(repoFolderStructure, rpcPath);
     success(`API bumped to ${newVersion}.`);
 }
 
@@ -122,7 +122,7 @@ async function beta() {
         ),
     ]);
 
-    await regenerateNextState(repoFolderStructure, rpcPath);
+    await regenerateFrameworkState(repoFolderStructure, rpcPath);
     success(`API bumped to ${newVersion}.`);
 }
 
@@ -245,7 +245,7 @@ async function drop([init, version]: RPCVersionWithCache) {
     ]);
 
     // Re-generate the client and report a success.
-    await regenerateNextState(repoFolderStructure, rpcPath);
+    await regenerateFrameworkState(repoFolderStructure, rpcPath);
     success(`API version ${version} dropped.`);
 }
 
@@ -276,7 +276,7 @@ async function deprecate([init, version]: RPCVersionWithCache, reason: string) {
         `${description}**Deprecated:** ${reason}`,
     );
 
-    await regenerateNextState(repoFolderStructure, rpcPath);
+    await regenerateFrameworkState(repoFolderStructure, rpcPath);
     success(`API version ${version} deprecated.`);
 }
 

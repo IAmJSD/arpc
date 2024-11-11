@@ -1,12 +1,12 @@
 import type { Command } from "commander";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { success } from "../utils/console";
-import { regenerateNextState } from "../utils/regenerateNextState";
+import { regenerateFrameworkState } from "../utils/regenerateFrameworkState";
 
 async function cmdAction() {
     const { repoFolderStructure, rpcPath } = requiresRpcInit();
 
-    await regenerateNextState(repoFolderStructure, rpcPath);
+    await regenerateFrameworkState(repoFolderStructure, rpcPath);
     success("RPC client regenerated.");
 }
 

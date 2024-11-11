@@ -447,7 +447,7 @@ async function cmdAction(options: { [key: string]: string }) {
     const { repoFolderStructure, lockfile, lockfileText } = requiresRpcInit();
 
     // Get the build data and write it if applicable.
-    const buildData = await getBuildData(repoFolderStructure.nextFolder);
+    const buildData = await getBuildData(repoFolderStructure.framework.folder);
     if (options.output) {
         // Write the build data to a file.
         const j = JSON.stringify(buildData, null, 4);

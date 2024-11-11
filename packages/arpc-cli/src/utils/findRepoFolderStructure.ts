@@ -1,16 +1,15 @@
 import { readdirSync, statSync } from "fs";
 import { join } from "path";
+import { Framework, findFramework } from "./frameworks";
 
 export type PackageManager = "bun" | "npm" | "pnpm" | "yarn";
 
 export type RepoFolderStructure = {
     packageManager: PackageManager;
     monorepo: boolean;
-    nextFolder: string;
+    framework: Framework;
     gitFolder: string | null;
 };
-
-const NEXT_CONFIG_REGEX = /^next\.config\.[mc]?[tj]sx?$/;
 
 function findPackageManager(folder: string): PackageManager | null {
     const files = new Set(readdirSync(folder));
@@ -25,34 +24,12 @@ function findPackageManager(folder: string): PackageManager | null {
 // This is synchronous because it is only ran once at the start. Making this async
 // would actually make it slower.
 export function findRepoFolderStructure() {
-    let folder = process.cwd();
-
-    // Task 1: Find where Next is.
-nextHunting:
-    for (;;) {
-        try {
-            // See if this is the next root.
-            const files = readdirSync(folder);
-            for (const f of files) {
-                if (NEXT_CONFIG_REGEX.test(f)) {
-                    break nextHunting;
-                }
-            }
-
-            // Go up a folder.
-            folder = join(folder, "..");
-            if (folder === "/") {
-                // We are at the root. Return null.
-                return null;
-            }
-        } catch {
-            // Too far. Return null.
-            return null;
-        }
-    }
-    const nextFolder = folder;
+    // Task 1: Find where the framework is.
+    const framework = findFramework();
+    if (!framework) return null;
 
     // Task 2: Find the git folder.
+    let folder = framework.folder;
     let gitFolder: string | null = null;
     for (;;) {
         // Join .git to the folder.
@@ -78,7 +55,7 @@ nextHunting:
     }
 
     // Task 3: Find the package manager.
-    let packageManager = findPackageManager(nextFolder);
+    let packageManager = findPackageManager(framework.folder);
     let monorepo = false;
     if (!packageManager) {
         // No package lock information found in the next folder. If there isn't a Git
@@ -95,5 +72,5 @@ nextHunting:
     }
 
     // Return the result.
-    return { packageManager, monorepo, nextFolder, gitFolder };
+    return { packageManager, monorepo, framework, gitFolder };
 }

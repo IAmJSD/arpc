@@ -8,7 +8,7 @@ import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { sortVersions } from "../utils/sortVersions";
 import { error, success } from "../utils/console";
 import { argumentWithParser } from "../utils/argumentWithParser";
-import { regenerateNextState } from "../utils/regenerateNextState";
+import { regenerateFrameworkState } from "../utils/regenerateFrameworkState";
 
 const authRoutePlaceholder = `import * as v from "valibot";
 import { UserExport } from "@/rpc/authentication";
@@ -116,7 +116,7 @@ async function create(namespace: string[], versionInit: RPCVersionWithCache | un
         unlink(join(rpcPath, "routes", ".keep")).catch(() => {}),
     ]);
     
-    await regenerateNextState(repoFolderStructure, rpcPath);
+    await regenerateFrameworkState(repoFolderStructure, rpcPath);
     success("Method created.");
 }
 
@@ -209,7 +209,7 @@ async function drop(namespace: string[], versionInit: RPCVersionWithCache | unde
         ),
     ]);
 
-    await regenerateNextState(repoFolderStructure, rpcPath);
+    await regenerateFrameworkState(repoFolderStructure, rpcPath);
     success("Method dropped.");
 }
 
