@@ -182,6 +182,7 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
         [key: string]: {
             input: BaseSchema<any, any, any>;
             output: BaseSchema<any, any, any>;
+            method: () => void;
             mutation?: boolean;
         } | RoutesRoutesPartial;
     };
@@ -207,9 +208,8 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
             // Get the next path item.
             const nextItem = currentPathItem[path[pathIndex]];
 
-            // If this contains a compliant schema, we are at the end of the path.
-            // @ts-expect-error: This is technically not valid TS, but the worst result will be undefined.
-            if (typeof nextItem.input?.["~standard"] === "number") {
+            // If this contains a method, we are at the end of the path.
+            if (typeof nextItem.method === "function") {
                 inputSchema = nextItem.input as BaseSchema<any, any, any>;
                 outputSchema = nextItem.output as BaseSchema<any, any, any>;
                 mutation = nextItem.mutation as boolean;
@@ -291,10 +291,10 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
             // Not having a type is bizarre, but technically allowed, so we'll permit it too :)
 
             const typeText = arg.type.getText();
-            if (typeText !== "z.infer<typeof input>") {
+            if (typeText !== "v.InferOutput<typeof input>") {
                 const t = typeAliases.get(typeText);
-                if (t !== "z.infer<typeof input>") {
-                    throw new Error(`Method argument must be of type or alias a type that is equal to z.infer<typeof input> in the same file, got ${typeText}`);
+                if (t !== "v.InferOutput<typeof input>") {
+                    throw new Error(`Method argument must be of type or alias a type that is equal to v.InferOutput<typeof input> in the same file, got ${typeText}`);
                 }
                 inputTypeName = typeText;
             }

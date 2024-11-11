@@ -20,7 +20,7 @@ export const input = v.object({});
 export const output = v.string();
 
 // Defines the method that will be called.
-export async function method(arg: v.InferOutput<typeof input>, user: UserExport): Promise<z.InferOutput<typeof output>> {
+export async function method(arg: v.InferOutput<typeof input>, user: UserExport): Promise<v.InferOutput<typeof output>> {
     return "Hello, world!";
 }
 
@@ -43,7 +43,7 @@ export const input = v.object({});
 export const output = v.string();
 
 // Defines the method that will be called.
-export async function method(arg: z.InferOutput<typeof input>): Promise<z.InferOutput<typeof output>> {
+export async function method(arg: v.InferOutput<typeof input>): Promise<v.InferOutput<typeof output>> {
     return "Hello, world!";
 }
 

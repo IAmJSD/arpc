@@ -161,5 +161,5 @@ export function getValibotSignature(
     }
 
     // Throw an error if we don't know how to handle the type.
-    throw new Error(`arpc doesn't support the type ${schema.constructor.name} yet`);
+    throw new Error(`arpc doesn't support the type ${schema.type} yet`);
 }
