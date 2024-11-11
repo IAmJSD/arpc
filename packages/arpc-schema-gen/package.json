@@ -1,12 +1,13 @@
 {
     "name": "@arpc-packages/schema-gen",
-    "version": "0.2.5",
+    "version": "0.2.6",
+    "module": "dist/index.mjs",
     "main": "dist/index.js",
     "types": "src/index.ts",
     "exports": {
         ".": {
-            "browser": "./dist/index.js",
-            "import": "./dist/index.js",
+            "browser": "./dist/index.mjs",
+            "import": "./dist/index.mjs",
             "require": "./dist/index.js",
             "types": "./src/index.ts"
         }
@@ -16,7 +17,7 @@
         "@arpc-packages/lockfile": "*"
     },
     "peerDependencies": {
-        "zod": "^3.23.8"
+        "zod": "*"
     },
     "devDependencies": {
         "@arpc-packages/core": "*",

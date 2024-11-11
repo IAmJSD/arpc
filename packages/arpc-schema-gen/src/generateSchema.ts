@@ -11,7 +11,7 @@ import {
     isMethodDeclaration, isStringLiteral, isTypeAliasDeclaration,
     isVariableStatement, isFunctionDeclaration,
 } from "typescript";
-import z from "zod";
+import * as z from "zod";
 import { builtinExceptions } from "./builtinExceptions";
 import { getZodSignature } from "./getZodSignature";
 import { dequotify } from "./helpers";

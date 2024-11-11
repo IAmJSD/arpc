@@ -1,5 +1,5 @@
 import type { Enum, Object, Signature } from "@arpc-packages/client-gen";
-import z from "zod";
+import * as z from "zod";
 
 export function getZodSignature(
     schema: z.ZodType<any, any, any>, enums: Enum[],
