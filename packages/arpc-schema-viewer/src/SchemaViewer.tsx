@@ -1,6 +1,4 @@
-import React from "react";
 import type { BuildData } from "@arpc-packages/client-gen";
-import Head from "next/head";
 import { Container } from "./components/Container";
 import { Header } from "./components/Header";
 import { Divider } from "./components/Divider";
@@ -27,15 +25,3 @@ export function SchemaViewer({ title, description, schema }: Props) {
         </Container>
     );
 }
-
-SchemaViewer.getLayout = function getLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <>
-            <Head>
-                <title>arpc schema viewer</title>
-            </Head>
-
-            {children}
-        </>
-    );
-};
