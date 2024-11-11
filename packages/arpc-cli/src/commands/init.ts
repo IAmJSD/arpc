@@ -271,7 +271,7 @@ async function cmdAction() {
             handleDependency(dependencies, "ARPC_SCHEMA_GEN_VERSION", "@arpc-packages/schema-gen"),
             handleDependency(dependencies, "ARPC_SCHEMA_VIEWER_VERSION", "@arpc-packages/schema-viewer"),
             handleDependency(dependencies, "MSGPACK_VERSION", "@msgpack/msgpack"),
-            handleDependency(dependencies, "ZOD_VERSION", "zod"),
+            handleDependency(dependencies, "VALIBOT_VERSION", "valibot"),
             handleDependency(devDependencies, "ARPC_VERSION", "arpc"),
             handleDependency(devDependencies, "CONCURRENTLY_VERSION", "concurrently"),
         ]);

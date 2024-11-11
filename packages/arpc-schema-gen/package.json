@@ -1,6 +1,6 @@
 {
     "name": "@arpc-packages/schema-gen",
-    "version": "0.2.6",
+    "version": "0.3.0",
     "module": "dist/index.mjs",
     "main": "dist/index.js",
     "types": "src/index.ts",
@@ -17,7 +17,7 @@
         "@arpc-packages/lockfile": "*"
     },
     "peerDependencies": {
-        "zod": "*"
+        "valibot": "*"
     },
     "devDependencies": {
         "@arpc-packages/core": "*",

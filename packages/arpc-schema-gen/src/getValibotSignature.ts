@@ -1,70 +1,80 @@
 import type { Enum, Object, Signature } from "@arpc-packages/client-gen";
-import * as z from "zod";
+import type {
+    BaseSchema, NullableSchema, OptionalSchema, ArraySchema, UnionSchema,
+    LiteralSchema, MapSchema, ObjectSchema, EnumSchema,
+} from "valibot";
 
-export function getZodSignature(
-    schema: z.ZodType<any, any, any>, enums: Enum[],
+const SIMPLE_TYPES = ["string", "number", "bigint", "boolean"] as const;
+
+export function getValibotSignature(
+    schema: BaseSchema<any, any, any>, enums: Enum[],
     objects: Object[], uniqueNames: Set<string>, getName: () => string,
 ): Signature {
     // Handle simple types.
-    if (schema instanceof z.ZodString) return { type: "string" };
-    if (schema instanceof z.ZodNumber) return { type: "number" };
-    if (schema instanceof z.ZodBigInt) return { type: "bigint" };
-    if (schema instanceof z.ZodBoolean) return { type: "boolean" };
+    type SimpleType = typeof SIMPLE_TYPES[number];
+    if (SIMPLE_TYPES.indexOf(schema.type as SimpleType) !== -1) {
+        return { type: schema.type as SimpleType };
+    }
 
     // Handle nullable.
-    if (schema instanceof z.ZodNullable || schema instanceof z.ZodOptional) {
+    if (schema.type === "nullable" || schema.type === "optional") {
         return {
             type: "nullable",
-            inner: getZodSignature(schema._def.innerType, enums, objects, uniqueNames, getName),
+            inner: getValibotSignature(
+                (schema as NullableSchema<any, any> | OptionalSchema<any, any>).wrapped, enums, objects,
+                uniqueNames, getName,
+            ),
         };
     }
 
     // Handle arrays.
-    if (schema instanceof z.ZodArray) {
+    if (schema.type === "array") {
         return {
             type: "array",
-            inner: getZodSignature(schema._def.type, enums, objects, uniqueNames, getName),
+            inner: getValibotSignature(
+                (schema as ArraySchema<any, any>).item, enums, objects, uniqueNames, getName,
+            ),
         };
     }
 
     // Handle unions.
-    if (schema instanceof z.ZodUnion) {
-        const options: z.ZodType<any, any, any>[] = [];
-        function parseOptions(union: z.ZodUnion<any>) {
+    if (schema.type === "union") {
+        const options: BaseSchema<any, any, any>[] = [];
+        function parseOptions(union: UnionSchema<any, any>) {
             for (const option of union.options) {
-                if (option instanceof z.ZodUnion) {
+                if (option.type === "union") {
                     parseOptions(option);
                 } else {
                     options.push(option);
                 }
             }
         }
-        parseOptions(schema);
+        parseOptions(schema as UnionSchema<any, any>);
         return {
             type: "union",
             inner: options.map(
-                (option, index) => getZodSignature(
+                (option, index) => getValibotSignature(
                     option, enums, objects, uniqueNames, () => `${getName()}Variant${index}`),
             ),
         };
     }
 
     // Handle maps.
-    if (schema instanceof z.ZodRecord || schema instanceof z.ZodMap) {
+    if (schema.type === "map") {
         return {
             type: "map",
-            key: getZodSignature(schema._def.keyType, enums, objects, uniqueNames, getName),
-            value: getZodSignature(schema._def.valueType, enums, objects, uniqueNames, getName),
+            key: getValibotSignature((schema as MapSchema<any, any, any>).key, enums, objects, uniqueNames, getName),
+            value: getValibotSignature((schema as MapSchema<any, any, any>).value, enums, objects, uniqueNames, getName),
         };
     }
 
     // Handle custom objects.
-    if (schema instanceof z.ZodObject) {
+    if (schema.type === "object") {
         // Build out the fields.
         const fields: { [key: string]: Signature } = {};
-        for (const [shapeKey, shapeValue] of Object.entries(schema.shape)) {
-            fields[shapeKey] = getZodSignature(
-                shapeValue as z.ZodType<any, any, any>, enums, objects, uniqueNames,
+        for (const [shapeKey, shapeValue] of Object.entries((schema as ObjectSchema<any, any>).entries)) {
+            fields[shapeKey] = getValibotSignature(
+                shapeValue as BaseSchema<any, any, any>, enums, objects, uniqueNames,
                 () => `${getName()}${shapeKey[0].toUpperCase()}${shapeKey.slice(1)}`,
             );
         }
@@ -98,8 +108,8 @@ export function getZodSignature(
     }
 
     // Handle enums.
-    if (schema instanceof z.ZodEnum) {
-        const e = schema.Enum;
+    if (schema.type === "enum") {
+        const e = (schema as EnumSchema<any, any>).enum;
         const keys = Object.keys(e);
         const newEnum = new Map<any, any>();
         for (const key of keys) {
@@ -146,11 +156,8 @@ export function getZodSignature(
     }
 
     // Handle literals.
-    if (schema instanceof z.ZodNull || schema instanceof z.ZodUndefined) {
-        return { type: "literal", value: null };
-    }
-    if (schema instanceof z.ZodLiteral) {
-        return { type: "literal", value: schema.value };
+    if (schema.type === "literal") {
+        return { type: "literal", value: (schema as LiteralSchema<any, any>).literal };
     }
 
     // Throw an error if we don't know how to handle the type.

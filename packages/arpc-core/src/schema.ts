@@ -1,9 +1,9 @@
-import z from "zod";
+import type { BaseSchema, InferOutput } from "valibot";
 
 // Defines a unauthenticated RPC request handler.
 export type UnauthenticatedRequestHandler<
-    InputSchema extends z.ZodType<any, any, any>,
-    OutputSchema extends z.ZodType<any, any, any>,
+    InputSchema extends BaseSchema<any, any, any>,
+    OutputSchema extends BaseSchema<any, any, any>,
 > = {
     /**
      * Defines if this request handler does a mutation. If this is unset, defaults to true.
@@ -26,17 +26,17 @@ export type UnauthenticatedRequestHandler<
     output: OutputSchema;
 
     /** Defines the method that will be called when this handler is invoked. */
-    method: (input: z.infer<InputSchema>) => Promise<z.infer<OutputSchema>>;
+    method: (input: InferOutput<InputSchema>) => Promise<InferOutput<OutputSchema>>;
 };
 
 /** Handle authenticated requests. */
 export type AuthenticatedRequestHandler<
     User,
-    InputSchema extends z.ZodType<any, any, any>,
-    OutputSchema extends z.ZodType<any, any, any>,
+    InputSchema extends BaseSchema<any, any, any>,
+    OutputSchema extends BaseSchema<any, any, any>,
 > = Omit<UnauthenticatedRequestHandler<InputSchema, OutputSchema>, "method"> & ({
     /** Defines the method that will be called when this handler is invoked. */
-    method: (input: z.infer<InputSchema>, user: User) => Promise<z.infer<OutputSchema>>;
+    method: (input: InferOutput<InputSchema>, user: User) => Promise<InferOutput<OutputSchema>>;
 
     /**
      * Defines if the user must be authenticated to use this handler. If this is unset,
@@ -45,7 +45,7 @@ export type AuthenticatedRequestHandler<
     authenticated?: true;
 } | {
     /** Defines the method that will be called when this handler is invoked. */
-    method: (input: z.infer<InputSchema>, user: User | null) => Promise<z.infer<OutputSchema>>;
+    method: (input: InferOutput<InputSchema>, user: User | null) => Promise<InferOutput<OutputSchema>>;
 
     /** Defines if the user must be authenticated to use this handler. If this is unset, defaults to true. */
     authenticated: false;

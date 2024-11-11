@@ -10,17 +10,17 @@ import { error, success } from "../utils/console";
 import { argumentWithParser } from "../utils/argumentWithParser";
 import { regenerateNextState } from "../utils/regenerateNextState";
 
-const authRoutePlaceholder = `import z from "zod";
+const authRoutePlaceholder = `import * as v from "valibot";
 import { UserExport } from "@/rpc/authentication";
 
 // Defines the schema for the input.
-export const input = z.object({});
+export const input = v.object({});
 
 // Defines the schema for the output.
-export const output = z.string();
+export const output = v.string();
 
 // Defines the method that will be called.
-export async function method(arg: z.infer<typeof input>, user: UserExport): Promise<z.infer<typeof output>> {
+export async function method(arg: v.InferOutput<typeof input>, user: UserExport): Promise<z.InferOutput<typeof output>> {
     return "Hello, world!";
 }
 
@@ -34,16 +34,16 @@ export const parallel = false;
 export const authenticated = true;
 `;
 
-const noAuthRoutePlaceholder = `import z from "zod";
+const noAuthRoutePlaceholder = `import * as v from "valibot";
 
 // Defines the schema for the input.
-export const input = z.object({});
+export const input = v.object({});
 
 // Defines the schema for the output.
-export const output = z.string();
+export const output = v.string();
 
 // Defines the method that will be called.
-export async function method(arg: z.infer<typeof input>): Promise<z.infer<typeof output>> {
+export async function method(arg: z.InferOutput<typeof input>): Promise<z.InferOutput<typeof output>> {
     return "Hello, world!";
 }
 

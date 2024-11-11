@@ -11,9 +11,9 @@ import {
     isMethodDeclaration, isStringLiteral, isTypeAliasDeclaration,
     isVariableStatement, isFunctionDeclaration,
 } from "typescript";
-import * as z from "zod";
+import type { BaseSchema } from "valibot";
 import { builtinExceptions } from "./builtinExceptions";
-import { getZodSignature } from "./getZodSignature";
+import { getValibotSignature } from "./getValibotSignature";
 import { dequotify } from "./helpers";
 
 type AuthenticationType = {
@@ -180,8 +180,8 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
     // Defines a super slim partial of what a routers routes look like.
     type RoutesRoutesPartial = {
         [key: string]: {
-            input: z.ZodType<any, any, any>;
-            output: z.ZodType<any, any, any>;
+            input: BaseSchema<any, any, any>;
+            output: BaseSchema<any, any, any>;
             mutation?: boolean;
         } | RoutesRoutesPartial;
     };
@@ -199,18 +199,19 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
     function createMethod(src: SourceFile, path: string[], version: string): Method {
         // Find the route in the current router.
         let currentPathItem = (routerRoutes || {})[version];
-        let inputSchema: z.ZodType<any, any, any> | null = null;
-        let outputSchema: z.ZodType<any, any, any> | null = null;
+        let inputSchema: BaseSchema<any, any, any> | null = null;
+        let outputSchema: BaseSchema<any, any, any> | null = null;
         let mutation: boolean | undefined = undefined;
         let pathIndex = 0;
         while (currentPathItem) {            
             // Get the next path item.
             const nextItem = currentPathItem[path[pathIndex]];
 
-            // If this contains a Zod schema, we are at the end of the path.
-            if (nextItem.input && nextItem.input instanceof z.ZodType) {
-                inputSchema = nextItem.input;
-                outputSchema = nextItem.output as z.ZodType<any, any, any>;
+            // If this contains a compliant schema, we are at the end of the path.
+            // @ts-expect-error: This is technically not valid TS, but the worst result will be undefined.
+            if (typeof nextItem.input?.["~standard"] === "number") {
+                inputSchema = nextItem.input as BaseSchema<any, any, any>;
+                outputSchema = nextItem.output as BaseSchema<any, any, any>;
                 mutation = nextItem.mutation as boolean;
                 break;
             }
@@ -299,17 +300,17 @@ export async function generateSchema(router: RPCRouter<any, any, any, any, any, 
             }
         }
 
-        // Process the Zod schema to get the input type.
+        // Process the input schema to get the input type.
         const input = {
             name: arg.name.getText(),
-            signature: getZodSignature(
+            signature: getValibotSignature(
                 inputSchema, enums, objects, uniqueNames, () => inputTypeName || (path.map(
                     (x) => x[0].toUpperCase() + x.slice(1)).join("") + "Opts"),
             ),
         };
 
-        // Process the Zod schema to get the output type.
-        const output = getZodSignature(
+        // Process the output schema to get the output type.
+        const output = getValibotSignature(
             outputSchema, enums, objects, uniqueNames, () => path.map(
                 (x) => x[0].toUpperCase() + x.slice(1)).join("") + "Response",
         );
