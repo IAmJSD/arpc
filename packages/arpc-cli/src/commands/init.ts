@@ -10,7 +10,7 @@ import { error, success } from "../utils/console";
 import { runShellScript } from "../utils/runShellScript";
 import { createGithubAction } from "../utils/createGithubAction";
 
-async function handleDependency(dependencies: { [key: string]: any }, env: string, name: string) {
+async function handleDependency(dependencies: { [key: string]: any }, env: string, name: string, betaUnlessPrefix?: RegExp) {
     if (dependencies[name]) {
         // Dependency already exists.
         return;
@@ -31,8 +31,29 @@ async function handleDependency(dependencies: { [key: string]: any }, env: strin
     const versions: { [key: string]: any } = response.data.versions;
     const sorted = Object.keys(versions).sort().filter((v) => !v.includes("-"));
 
+    let currentVersion = sorted[sorted.length - 1];
+    if (betaUnlessPrefix && !betaUnlessPrefix.exec(currentVersion)) {
+        // Find the nearest beta.
+        const highestBetas = new Map<string, number>();
+        const keys = Object.keys(versions).filter((v) => v.includes("-"));
+        for (const k of keys) {
+            const s = k.split("-beta.");
+            if (s.length === 1) {
+                continue;
+            }
+            const [version, beta] = s;
+            if (Number(beta) > (highestBetas.get(version) || 0)) {
+                highestBetas.set(version, Number(beta));
+            }
+        }
+
+        // Sort the versions.
+        const sorted = [...highestBetas.keys()].sort();
+        currentVersion = `${sorted[sorted.length - 1]}-beta.${highestBetas.get(sorted[sorted.length - 1])}`;
+    }
+
     // Add the dependency.
-    dependencies[name] = "^" + sorted[sorted.length - 1];
+    dependencies[name] = "^" + currentVersion;
 }
 
 function figureOutSpacing(str: string): string {
@@ -271,7 +292,7 @@ async function cmdAction() {
             handleDependency(dependencies, "ARPC_SCHEMA_GEN_VERSION", "@arpc-packages/schema-gen"),
             handleDependency(dependencies, "ARPC_SCHEMA_VIEWER_VERSION", "@arpc-packages/schema-viewer"),
             handleDependency(dependencies, "MSGPACK_VERSION", "@msgpack/msgpack"),
-            handleDependency(dependencies, "VALIBOT_VERSION", "valibot"),
+            handleDependency(dependencies, "VALIBOT_VERSION", "valibot", /^[1-9][0-9]*\./),
             handleDependency(devDependencies, "ARPC_VERSION", "arpc"),
             handleDependency(devDependencies, "CONCURRENTLY_VERSION", "concurrently"),
         ]);
