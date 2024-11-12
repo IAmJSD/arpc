@@ -61,9 +61,9 @@ export function generate(cmd: Command) {
         }
 
         cmd.action(async (hostname: URL, output: string, options: {[key: string]: any}) => {
-            const { rpcPath } = requiresRpcInit();
+            const { repoFolderStructure } = requiresRpcInit();
             await generateClient(
-                key, rpcPath, output, hostname.protocol.slice(0, -1),
+                key, repoFolderStructure.framework.folder, output, hostname.protocol.slice(0, -1),
                 `${hostname.hostname}${hostname.port === "" ? "" : `:${hostname.port}`}`,
                 options,
             );

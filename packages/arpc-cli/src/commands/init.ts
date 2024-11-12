@@ -75,10 +75,10 @@ function figureOutSpacing(str: string): string {
     return "    ";
 }
 
-async function makeClientPlaceholder(frameworkFolder: string) {
+async function makeClientPlaceholder(srcFolder: string) {
     const client = "// This file is a placeholder for the client.\n";
-    await mkdir(join(frameworkFolder, "clients"), { recursive: true });
-    await writeFile(join(frameworkFolder, "clients", "rpc.ts"), client);
+    await mkdir(join(srcFolder, "clients"), { recursive: true });
+    await writeFile(join(srcFolder, "clients", "rpc.ts"), client);
 }
 
 async function writeGitHubAction(folderStructure: RepoFolderStructure) {
@@ -254,7 +254,7 @@ async function cmdAction() {
             folderStructure.gitFolder, folderStructure.framework.folder,
         ),
 
-        makeClientPlaceholder(folderStructure.framework.folder),
+        makeClientPlaceholder(join(rpcFolder, "..")),
 
         writeGitHubAction(folderStructure),
     ]);

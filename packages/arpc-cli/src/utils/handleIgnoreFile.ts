@@ -9,22 +9,11 @@ const IGNORES = [
 
 async function processFile(fp: string, prefix: string, file: string) {
     const split = file.trim().split("\n");
+    if (split.length === 1 && split[0] === "") {
+        split.pop();
+    }
     for (const ignore of IGNORES) {
-        const path = prefix + ignore;
-        let found = false;
-        for (const s of split) {
-            if (path.startsWith(s)) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            if (split.length !== 0) {
-                // Make a new gap.
-                split.push("");
-            }
-            split.push(path);
-        }
+        split.push(`${prefix}${ignore}`);
     }
     split.push("");
     await writeFile(fp, split.join("\n"));

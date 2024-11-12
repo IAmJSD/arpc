@@ -21,10 +21,10 @@ export const generators: Generators = {
 } as const;
 
 export async function generateClient<Key extends keyof typeof generators>(
-    generator: Key, rpcPath: string, filePath: string, protocol: string, hostname: string,
+    generator: Key, frameworkPath: string, filePath: string, protocol: string, hostname: string,
     options: {[key: string]: any}, justThrow?: boolean,
 ) {
-    const buildData = await getBuildData(join(rpcPath, ".."));
+    const buildData = await getBuildData(frameworkPath);
     for (const c of buildData.clients) {
         c.defaultProtocol = protocol;
         c.defaultHostname = hostname;
