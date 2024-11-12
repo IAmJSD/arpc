@@ -1,6 +1,7 @@
 import { join } from "path";
 import { readdirSync } from "fs";
 import { checkIfNext } from "./next";
+import { checkIfSolidStart } from "./solidstart";
 
 export type Framework = {
     titledName: string;
@@ -9,7 +10,7 @@ export type Framework = {
 };
 
 const frameworkCheckers: ((folder: string, files: string[]) => Framework | null)[] = [
-    checkIfNext,
+    checkIfNext, checkIfSolidStart,
 ];
 
 export function findFramework() {

@@ -3,13 +3,14 @@ import { readFileSync } from "fs";
 import { Lockfile, parse } from "@arpc-packages/lockfile";
 import { error } from "./console";
 import { findRepoFolderStructure } from "./findRepoFolderStructure";
+import { findRpcFolderSync } from "./findRpcFolderSync";
 
 export function requiresRpcInit() {
     const repoFolderStructure = findRepoFolderStructure();
     if (!repoFolderStructure) {
         error("Could not find a project in a compatible framework.");
     }
-    const rpc = join(repoFolderStructure.framework.folder, "rpc");
+    const rpc = findRpcFolderSync(repoFolderStructure.framework.folder);
 
     let lockfileText: string;
     try {

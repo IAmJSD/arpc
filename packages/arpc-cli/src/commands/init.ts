@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import { statSync, readFileSync, writeFileSync, mkdirSync } from "fs";
-import { readFile, writeFile, mkdir } from "fs/promises";
-import { join, sep } from "path";
+import { writeFile, mkdir } from "fs/promises";
+import { join } from "path";
 import axios from "axios";
 import type { BuildData } from "@arpc-packages/client-gen";
 import { stringify } from "@arpc-packages/lockfile";
@@ -9,6 +9,8 @@ import { RepoFolderStructure, findRepoFolderStructure } from "../utils/findRepoF
 import { error, success } from "../utils/console";
 import { runShellScript } from "../utils/runShellScript";
 import { createGithubAction } from "../utils/createGithubAction";
+import { findRpcFolderSync } from "../utils/findRpcFolderSync";
+import { handleIgnoreFile } from "../utils/handleIgnoreFile";
 
 async function handleDependency(dependencies: { [key: string]: any }, env: string, name: string, betaUnlessPrefix?: RegExp) {
     if (dependencies[name]) {
@@ -73,92 +75,6 @@ function figureOutSpacing(str: string): string {
     return "    ";
 }
 
-function getRpcIndexRelPath(basePath: string, childPath: string) {
-    let relative = childPath.slice(basePath.length);
-    if (relative.startsWith(sep)) {
-        relative = relative.slice(1);
-    }
-    relative = relative.replace(new RegExp("\\" + sep, "g"), "/");
-    if (!relative.endsWith("/")) {
-        relative += "/";
-    }
-    relative += "rpc/index.ts";
-    return relative;
-}
-
-function addUniqueToIgnoreFile(ignore: string, rel: string) {
-    const lines = ignore.trim().split("\n");
-    for (let i = 0; i < lines.length; i++) {
-        if (lines[i].trim() === rel) {
-            return ignore;
-        }
-    }
-    lines.push(rel);
-    return lines.join("\n") + "\n";
-}
-
-async function handlePrettierIgnore(gitFolder: string | null, frameworkFolder: string) {
-    // Check if the .prettierignore file exists in the Git folder.
-    if (gitFolder) {
-        let ignore = "";
-        try {
-            ignore = await readFile(join(gitFolder, ".prettierignore"), "utf8");
-        } catch {
-            // If we error here, continue on.
-        }
-
-        if (ignore) {
-            const rel = getRpcIndexRelPath(gitFolder, frameworkFolder);
-            ignore = addUniqueToIgnoreFile(ignore, rel);
-            await writeFile(join(gitFolder, ".prettierignore"), ignore);
-            return;
-        }
-    }
-
-    // Try to get the .prettierignore from the framework folder. If we can't, don't worry,
-    // we will just create a new one.
-    let ignore = "";
-    try {
-        ignore = await readFile(join(frameworkFolder, ".prettierignore"), "utf8");
-    } catch {
-        // If we error here, continue on.
-    }
-    const rels = ["rpc/index.ts", "rpc/build_data.json"];
-    for (const rel of rels) ignore = addUniqueToIgnoreFile(ignore, rel);
-    await writeFile(join(frameworkFolder, ".prettierignore"), ignore);
-}
-
-async function handleEslintIgnore(gitFolder: string | null, frameworkFolder: string) {
-    // Check if the .eslintignore file exists in the Git folder.
-    if (gitFolder) {
-        let ignore: string | null = null;
-        try {
-            ignore = await readFile(join(gitFolder, ".eslintignore"), "utf8");
-        } catch {
-            // If we error here, continue on.
-        }
-
-        if (ignore) {
-            const rel = getRpcIndexRelPath(gitFolder, frameworkFolder);
-            ignore = addUniqueToIgnoreFile(ignore, rel);
-            await writeFile(join(gitFolder, ".eslintignore"), ignore);
-            return;
-        }
-    }
-
-    // Try to get the .eslintignore from the framework folder. If we can't, don't worry,
-    // we will just create a new one.
-    let ignore = "";
-    try {
-        ignore = await readFile(join(frameworkFolder, ".eslintignore"), "utf8");
-    } catch {
-        // If we error here, continue on.
-    }
-    const rels = ["rpc/index.ts", "rpc/build_data.json"];
-    for (const rel of rels) ignore = addUniqueToIgnoreFile(ignore, rel);
-    await writeFile(join(frameworkFolder, ".eslintignore"), ignore);
-}
-
 async function makeClientPlaceholder(frameworkFolder: string) {
     const client = "// This file is a placeholder for the client.\n";
     await mkdir(join(frameworkFolder, "clients"), { recursive: true });
@@ -191,7 +107,7 @@ async function cmdAction() {
 
     // Check if we are already initialized.
     try {
-        const rpc = statSync(join(folderStructure.framework.folder, "rpc"));
+        const rpc = statSync(findRpcFolderSync(folderStructure.framework.folder));
         if (rpc.isDirectory()) {
             error("arpc (or something with a rpc folder) has already been initialized.");
         }
@@ -285,7 +201,17 @@ async function cmdAction() {
     runShellScript(folderStructure.packageManager, ["install"], folderStructure.framework.folder);
 
     // Build the rpc folder.
-    mkdirSync(join(folderStructure.framework.folder, "rpc", "routes"), { recursive: true });
+    let rpcFolder = join(folderStructure.framework.folder, "rpc");
+    try {
+        const src = join(folderStructure.framework.folder, "src");
+        if (statSync(src).isDirectory()) {
+            // In which case, the RPC folder should be in here.
+            rpcFolder = join(src, "rpc");
+        }
+    } catch {
+        // Just use the root.
+    }
+    mkdirSync(join(rpcFolder, "routes"), { recursive: true });
 
     // In parallel, write all the RPC entrypoints.
     const index = stringify({
@@ -296,12 +222,12 @@ async function cmdAction() {
     });
     await Promise.all([
         writeFile(
-            join(folderStructure.framework.folder, "rpc", "index.ts"),
+            join(rpcFolder, "index.ts"),
             index,
         ),
 
         writeFile(
-            join(folderStructure.framework.folder, "rpc", "build_data.json"),
+            join(rpcFolder, "build_data.json"),
             JSON.stringify({
                 enums: [],
                 objects: [],
@@ -312,17 +238,19 @@ async function cmdAction() {
         ),
 
         writeFile(
-            join(folderStructure.framework.folder, "rpc", "routes", ".keep"),
+            join(rpcFolder, "routes", ".keep"),
             "",
         ),
 
         folderStructure.framework.createStructure(),
 
-        handlePrettierIgnore(
+        handleIgnoreFile(
+            ".prettierignore",
             folderStructure.gitFolder, folderStructure.framework.folder,
         ),
 
-        handleEslintIgnore(
+        handleIgnoreFile(
+            ".eslintignore",
             folderStructure.gitFolder, folderStructure.framework.folder,
         ),
 

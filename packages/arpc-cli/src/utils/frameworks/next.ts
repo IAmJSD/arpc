@@ -1,9 +1,21 @@
 import { join } from "path";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, writeFile, stat } from "fs/promises";
 import type { Framework } from ".";
 
 async function writeEntrypoints(nextFolder: string) {
-    const apiDir = join(nextFolder, "app", "api", "rpc");
+    // If "src" exists and is a folder, that is our source folder.
+    let srcFolder = nextFolder;
+    try {
+        const withSrc = join(nextFolder, "src");
+        if ((await stat(withSrc)).isDirectory()) {
+            srcFolder = withSrc;
+        }
+    } catch {
+        // nvm
+    }
+
+    // Write to the source folder.
+    const apiDir = join(srcFolder, "app", "api", "rpc");
     await mkdir(apiDir, { recursive: true }).then(() => {
         return writeFile(
             join(apiDir, "route.ts"),
@@ -16,7 +28,7 @@ export const POST = httpHandler;
         );
     });
 
-    const pagesDir = join(nextFolder, "pages");
+    const pagesDir = join(srcFolder, "pages");
     await mkdir(pagesDir, { recursive: true }).then(() => {
         return writeFile(
             join(pagesDir, "arpc.tsx"),

@@ -4,6 +4,7 @@ import { mkdtemp, rm, writeFile, readFile } from "fs/promises";
 import type { BuildData } from "@arpc-packages/client-gen";
 import { error } from "./console";
 import { spawn } from "child_process";
+import { findRpcFolderSync } from "./findRpcFolderSync";
 
 export async function getBuildData(frameworkFolder: string) {
     // Create a temporary folder.
@@ -19,11 +20,12 @@ export async function getBuildData(frameworkFolder: string) {
     // Defines the RPC outfile.
     const outfile = join(tmpFolder, "rpc.cjs");
 
+    const rpcFolder = findRpcFolderSync(frameworkFolder);
     try {
         // Build the RPC.
         await esbuild.build({
             absWorkingDir: frameworkFolder,
-            entryPoints: [join(frameworkFolder, "rpc/index.ts")],
+            entryPoints: [join(rpcFolder, "index.ts")],
             target: "node18",
             platform: "node",
             bundle: true,
