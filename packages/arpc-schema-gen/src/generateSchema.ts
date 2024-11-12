@@ -1,4 +1,4 @@
-import { readFile } from "fs/promises";
+import { readFile, stat } from "fs/promises";
 import { join } from "path";
 import { parse } from "@arpc-packages/lockfile";
 import type {
@@ -57,7 +57,11 @@ function isTokenType(value: string | undefined): string | undefined {
 */
 export async function generateSchema(router: RPCRouter<any, any, any, any, any, any>): Promise<BuildData> {
     // Get the lockfile.
-    const base = join(process.cwd(), "rpc");
+    let base = join(process.cwd(), "rpc");
+    try {
+        const srcRpc = join(process.cwd(), "src", "rpc");
+        if ((await stat(srcRpc)).isDirectory()) base = srcRpc;
+    } catch {}
     const lockfile = parse(await readFile(join(base, "index.ts"), "utf-8"));
 
     // Defines the TS program.
