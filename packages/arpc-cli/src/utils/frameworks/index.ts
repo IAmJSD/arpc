@@ -4,6 +4,7 @@ import { checkIfNext } from "./next";
 import { checkIfSolidStart } from "./solidstart";
 
 export type Framework = {
+    importPrefix: string;
     titledName: string;
     folder: string;
     createStructure: () => Promise<void>;

@@ -10,8 +10,8 @@ import { error, success } from "../utils/console";
 import { argumentWithParser } from "../utils/argumentWithParser";
 import { regenerateFrameworkState } from "../utils/regenerateFrameworkState";
 
-const authRoutePlaceholder = `import * as v from "valibot";
-import { UserExport } from "@/rpc/authentication";
+const authRoutePlaceholder = (prefix: string) => `import * as v from "valibot";
+import { UserExport } from "${prefix}rpc/authentication";
 
 // Defines the schema for the input.
 export const input = v.object({});
@@ -101,7 +101,7 @@ async function create(namespace: string[], versionInit: RPCVersionWithCache | un
             return writeFile(
                 absPath,
                 lockfile.hasAuthentication ?
-                    authRoutePlaceholder :
+                    authRoutePlaceholder(repoFolderStructure.framework.importPrefix) :
                     noAuthRoutePlaceholder,
             );
         }),

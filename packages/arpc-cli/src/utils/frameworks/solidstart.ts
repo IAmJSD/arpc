@@ -11,7 +11,7 @@ async function writeEntrypoints(solidFolder: string) {
         writeFile(
             join(apiDir, "rpc.ts"),
             `import type { APIEvent } from "@solidjs/start/server";
-import { httpHandler } from "@/rpc";
+import { httpHandler } from "~/rpc";
 
 function solidWrap({ request }: APIEvent) {
     return httpHandler(request);
@@ -32,12 +32,12 @@ export function checkIfSolidStart(folder: string, files: string[]) {
         if (APP_CONFIG_REGEX.test(f)) {
             const joined = join(folder, f);
             try {
-                const data = readFileSync(joined, { encoding: "utf8" });
+                const data = readFileSync(joined, "utf-8");
                 if (data.includes("solidjs")) {
                     // Probably Solid.
                     return {
-                        titledName: "SolidStart",
-                        folder,
+                        importPrefix: "~/",
+                        titledName: "SolidStart", folder,
                         createStructure: () => writeEntrypoints(folder),
                     } satisfies Framework;
                 }

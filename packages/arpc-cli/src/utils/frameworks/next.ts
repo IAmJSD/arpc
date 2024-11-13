@@ -61,7 +61,7 @@ export function checkIfNext(folder: string, files: string[]) {
     for (const f of files) {
         if (NEXT_CONFIG_REGEX.test(f)) {
             return {
-                titledName: "Next", folder,
+                importPrefix: "@/", titledName: "Next", folder,
                 createStructure: () => writeEntrypoints(folder),
             } satisfies Framework;
         }

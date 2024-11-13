@@ -52,23 +52,33 @@ export function findRepoFolderStructure() {
 
         // Go up a folder.
         folder = join(folder, "..");
+        if (folder === "/") {
+            // No git
+            break;
+        }
     }
 
     // Task 3: Find the package manager.
     let packageManager = findPackageManager(framework.folder);
     let monorepo = false;
     if (!packageManager) {
-        // No package lock information found in the next folder. If there isn't a Git
-        // folder, we are cooked.
-        if (!gitFolder) return null;
+        // No package lock information found in the framework folder.
+        // If there's a git folder, check that.
+        if (gitFolder) {
+            // Try and check the package manager of the Git folder.
+            packageManager = findPackageManager(gitFolder);
+            if (!packageManager) {
+                // There is no package manager in the repo. Presume npm.
+                packageManager = "npm";
+            }
 
-        // Try and check the package manager.
-        packageManager = findPackageManager(gitFolder);
-        if (!packageManager) {
-            // There is no package manager in the repo. This is super odd.
-            return null;
+            // We also presume this is a monorepo because the package lock is in a
+            // parent folder.
+            monorepo = true;
+        } else {
+            // We have to presume npm.
+            packageManager = "npm";
         }
-        monorepo = true;
     }
 
     // Return the result.
