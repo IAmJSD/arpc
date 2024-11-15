@@ -22,7 +22,10 @@ export const GET = solidWrap;
 export const POST = solidWrap;
 `,
         ),
-    ]))
+
+        // Write /arpc
+        
+    ]));
 }
 
 const APP_CONFIG_REGEX = /^app\.config\.[mc]?[tj]sx?$/;
