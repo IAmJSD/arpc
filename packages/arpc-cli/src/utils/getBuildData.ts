@@ -7,6 +7,15 @@ import { spawn } from "child_process";
 import { findRpcFolderSync } from "./findRpcFolderSync";
 
 export async function getBuildData(frameworkFolder: string) {
+    // Handle Bun.
+    if ("Bun" in globalThis) {
+        const rpcFolder = findRpcFolderSync(frameworkFolder);
+        const importPath = join(rpcFolder, "index.ts");
+        return import(importPath).then((rpc: { generateSchema: () => Promise<BuildData> }) => {
+            return rpc.generateSchema();
+        });
+    }
+
     // Create a temporary folder.
     const tmpFolder = await mkdtemp(join(frameworkFolder, "node_modules", ".arpc-"));
     async function tidy() {
