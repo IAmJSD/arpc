@@ -198,8 +198,8 @@ function validateAssignment(assignment: any): AtomicValidationError | string {
     ) {
         return {
             success: false,
-            code: "INVALID_PICK",
-            message: "The pick is invalid.",
+            code: "INVALID_PLUCK",
+            message: "The pluck is invalid.",
         };
     }
     return variable;

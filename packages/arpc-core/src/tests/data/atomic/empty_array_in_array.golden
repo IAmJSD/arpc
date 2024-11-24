@@ -1,0 +1,5 @@
+{
+    "success": false,
+    "code": "INVALID_ITEM",
+    "message": "The item is invalid."
+}

@@ -1,0 +1,5 @@
+{
+    "success": false,
+    "code": "INVALID_ASSIGNMENT",
+    "message": "The assignment is invalid. Must be a [string, string[]] or a string."
+}

@@ -1,0 +1,39 @@
+{
+    "success": true,
+    "items": [
+        [
+            "skibidi.toilet",
+            "hello",
+            [
+                "rizz",
+                [
+                    "abc",
+                    "def"
+                ]
+            ]
+        ]
+    ],
+    "handlers": [
+        [
+            "skibidi.toilet",
+            {
+                "input": {
+                    "kind": "schema",
+                    "type": "string",
+                    "expects": "string",
+                    "async": false,
+                    "~standard": 1,
+                    "~vendor": "valibot"
+                },
+                "output": {
+                    "kind": "schema",
+                    "type": "string",
+                    "expects": "string",
+                    "async": false,
+                    "~standard": 1,
+                    "~vendor": "valibot"
+                }
+            }
+        ]
+    ]
+}

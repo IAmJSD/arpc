@@ -1,0 +1,5 @@
+{
+    "success": false,
+    "code": "INVALID_ITEM",
+    "message": "Each item in the array must be an array."
+}

@@ -16,13 +16,15 @@
         "@msgpack/msgpack": "^2.8.0"
     },
     "devDependencies": {
-        "valibot": "^1.0.0-beta.3",
-        "tinybench": "^2.8.0",
+        "@vitest/coverage-v8": "^2.1.5",
         "tsup": "^8.0.2",
-        "typescript": "^5.4.5"
+        "typescript": "^5.4.5",
+        "valibot": "^1.0.0-beta.3",
+        "vitest": "^2.1.5"
     },
     "scripts": {
-        "benchmark": "node benchmarks/index.mjs",
+        "test": "vitest run --coverage",
+        "golden-update": "GOLDEN_UPDATE=1 npm run test",
         "build": "tsup",
         "lint": "tsc --noEmit",
         "prepublish": "npm run build"

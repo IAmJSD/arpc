@@ -1,0 +1,5 @@
+{
+    "success": false,
+    "code": "INVALID_ROUTE",
+    "message": "The route is not a string."
+}

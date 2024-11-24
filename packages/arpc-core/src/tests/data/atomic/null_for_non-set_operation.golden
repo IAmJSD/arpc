@@ -1,0 +1,5 @@
+{
+    "success": false,
+    "code": "INVALID_OPERATION",
+    "message": "The operation is not an array."
+}

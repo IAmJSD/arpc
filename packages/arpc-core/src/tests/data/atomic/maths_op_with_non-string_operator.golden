@@ -1,0 +1,5 @@
+{
+    "success": false,
+    "code": "INVALID_MATHS_OPERATION",
+    "message": "The maths operation is invalid."
+}

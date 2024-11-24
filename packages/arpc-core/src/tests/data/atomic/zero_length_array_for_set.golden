@@ -1,0 +1,5 @@
+{
+    "success": false,
+    "code": "INVALID_SET_OPERATION",
+    "message": "The set operation is invalid."
+}

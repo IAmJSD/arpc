@@ -1,0 +1,40 @@
+{
+    "success": true,
+    "items": [
+        [
+            [
+                "var",
+                1
+            ]
+        ],
+        [
+            [
+                "var"
+            ],
+            "skibidi.toilet"
+        ]
+    ],
+    "handlers": [
+        [
+            "skibidi.toilet",
+            {
+                "input": {
+                    "kind": "schema",
+                    "type": "string",
+                    "expects": "string",
+                    "async": false,
+                    "~standard": 1,
+                    "~vendor": "valibot"
+                },
+                "output": {
+                    "kind": "schema",
+                    "type": "string",
+                    "expects": "string",
+                    "async": false,
+                    "~standard": 1,
+                    "~vendor": "valibot"
+                }
+            }
+        ]
+    ]
+}

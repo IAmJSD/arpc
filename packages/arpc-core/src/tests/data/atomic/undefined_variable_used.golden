@@ -1,0 +1,5 @@
+{
+    "success": false,
+    "code": "INVALID_VARIABLE",
+    "message": "The variable \"var\" is invalid."
+}

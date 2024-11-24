@@ -1,0 +1,5 @@
+{
+    "success": false,
+    "code": "INVALID_ARRAY",
+    "message": "The array of atomic operations is empty or not an array."
+}

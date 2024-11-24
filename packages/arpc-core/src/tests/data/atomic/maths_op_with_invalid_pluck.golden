@@ -1,0 +1,5 @@
+{
+    "success": false,
+    "code": "INVALID_PLUCK",
+    "message": "The pluck is invalid."
+}
