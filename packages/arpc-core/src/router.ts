@@ -78,7 +78,7 @@ export class RPCRouter<
 
     /** Build the handler for web requests. */
     buildHttpHandler(): (req: Request) => Promise<Response> {
-        return request(this._routes, this._auth, this._exceptions, this._ratelimiting);
+        return request(this._routes || {}, this._auth, this._exceptions || {}, this._ratelimiting);
     }
 
     /** 
