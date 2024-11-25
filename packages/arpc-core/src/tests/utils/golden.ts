@@ -2,14 +2,14 @@ import { it, expect } from "vitest";
 import { readFile, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 
-type GoldenItem<TInput> = {
+export type GoldenItem<TInput> = {
     input: TInput;
     testName: string;
 };
 
 export function runGoldenTests<TInput>(
     dir: string, filename: string, goldenItems: GoldenItem<TInput>[],
-    handler: (input: TInput) => Promise<any>,
+    handler: (input: TInput) => Promise<any>, noJsonify?: boolean,
 ) {
     const folderUnderscore = filename.split("/").pop()!.split(".")[0].replace(/ /g, "_");
     const isGoldenUpdate = process.env.GOLDEN_UPDATE === "1";
@@ -31,7 +31,7 @@ export function runGoldenTests<TInput>(
 
             // Call the handler.
             const res = await handler(item.input);
-            const json = JSON.stringify(res, null, 4) + "\n";
+            const json = noJsonify ? res : JSON.stringify(res, null, 4) + "\n";
 
             if (isGoldenUpdate) {
                 // Update the golden file.

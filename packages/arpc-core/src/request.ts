@@ -363,6 +363,7 @@ export default function<
                             },
                         });
                     }
+                    queue.length = 0;
                     return null;
                 };
 
@@ -481,6 +482,17 @@ export default function<
                             }
                         }
                     }
+                }
+
+                // Flush the last time.
+                const r = await flush();
+                if (r) return r;
+
+                // Set the response as expected.
+                if (allNulls) {
+                    resp = null;
+                } else {
+                    resp = results;
                 }
             } else {
                 // Get the handler.

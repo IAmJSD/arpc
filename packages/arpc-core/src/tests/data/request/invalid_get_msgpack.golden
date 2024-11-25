@@ -1,0 +1,14 @@
+=== STATUS 400 - HEADERS ===
+
+content-type: application/msgpack
+x-is-arpc: true
+
+=== MSGPACK BODY ===
+
+{
+    "builtIn": true,
+    "name": "BadRequest",
+    "code": "INVALID_ARG",
+    "message": "The argument specified failed to decode",
+    "body": null
+}
