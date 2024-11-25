@@ -6,6 +6,7 @@ import type {
 } from "./schema";
 import { Assignment, validateAtomicItems } from "./atomic";
 import { findRoute } from "./requestUtils";
+import { parseAsync } from "valibot";
 
 // Defines the magic key for request.
 export const _requestMagicKey = Symbol("arpcRequest");
@@ -285,7 +286,7 @@ export default function<
                     // Call the route input schema.
                     let parsedArg: any;
                     try {
-                        parsedArg = await handler.input.parseAsync(arg);
+                        parsedArg = await parseAsync(handler.input, arg);
                     } catch (err) {
                         errors.push(
                             bulkBuiltInError(
@@ -508,14 +509,14 @@ export default function<
 
                 // Call the route input schema.
                 try {
-                    arg = await route.input.parseAsync(arg);
+                    arg = await parseAsync(route.input, arg);
                 } catch (err) {
                     return builtInError("BadRequest", "INVALID_ARG", "The argument specified failed validation.", (err as any).errors);
                 }
 
                 // Call the route method.
                 try {
-                    resp = await route.output.parseAsync(await route.method(arg, user));
+                    resp = await parseAsync(route.output, await route.method(arg, user));
                 } catch (err) {
                     // Run all of the rollback functions.
                     const [, rollbackFns] = ctx.get(_txMagicKey) || [null, []];

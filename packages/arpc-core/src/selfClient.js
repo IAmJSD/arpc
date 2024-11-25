@@ -1,3 +1,5 @@
+import { parseAsync } from "valibot";
+
 const _magicObj = {};
 
 class ProxyCursor {
@@ -21,14 +23,11 @@ function buildProxy(user, routes) {
                     m = (...args) => route.method(...args, user);
                 }
 
-                // Check if there's a schema and if there is wrap the method.
-                if (route.input) {
-                    return async (arg) => {
-                        const res = await route.input.parseAsync(arg);
-                        return await route.output.parseAsync(await m(res));
-                    };
-                }
-                return m;
+                // Wrap the method.
+                return async (arg) => {
+                    const res = await parseAsync(route.input, arg);
+                    return await parseAsync(route.output, await m(res));
+                };
             }
             return buildProxy(user, route);
         },
