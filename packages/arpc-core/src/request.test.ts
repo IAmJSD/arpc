@@ -10,6 +10,8 @@ type GoldenInput = {
     headers: Record<string, string>;
     get: boolean;
     body: any;
+    before?: () => void;
+    after?: () => void;
 };
 
 // Defines a lookup table for URL encoding.
@@ -69,8 +71,13 @@ function unauthedRpcRouterGolden(
                 headers: input.headers,
                 body: bodyEnc,
             });
-            const res = await handler(req);
-            return rpcResponseToString(res);
+            try {
+                input.before?.();
+                const res = await handler(req);
+                return rpcResponseToString(res);
+            } finally {
+                input.after?.();
+            }
         }, true,
     );
 }
@@ -95,6 +102,13 @@ const basicUnauthedRpc = new RPCRouter().setRoutes({
                 input: Null(),
                 output: Null(),
                 method: async () => null,
+            },
+        },
+        throws: {
+            input: Null(),
+            output: Null(),
+            method: async () => {
+                throw new Error("This is a test error");
             },
         },
     },
@@ -175,6 +189,82 @@ unauthedRpcRouterGolden(
                 headers: {},
                 get: false,
                 body: _invalidMsgpack,
+            },
+        },
+        {
+            testName: "get internal server error",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=throws",
+                headers: {},
+                get: true,
+                body: null,
+                before: () => {
+                    global.setTimeout1 = global.setTimeout;
+                    global.timeoutCount = 0;
+                    // @ts-expect-error: This is fine.
+                    global.setTimeout = (cb: () => void, ms: number) => {
+                        if (ms !== 0) {
+                            throw new Error("setTimeout was called with a non-zero delay");
+                        }
+                        let err: Error | undefined;
+                        try {
+                            cb();
+                        } catch (err2) {
+                            err = err2 as Error;
+                        }
+                        if (!err) {
+                            throw new Error("setTimeout did not throw an error");
+                        }
+                        global.timeoutCount++;
+                    };
+                },
+                after: () => {
+                    global.setTimeout = global.setTimeout1;
+                    delete global.setTimeout1;
+                    const count = global.timeoutCount;
+                    delete global.timeoutCount;
+                    if (count !== 1) {
+                        throw new Error("setTimeout was called the wrong number of times");
+                    }
+                },
+            },
+        },
+        {
+            testName: "post internal server error",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=throws",
+                headers: {},
+                get: true,
+                body: null,
+                before: () => {
+                    global.setTimeout1 = global.setTimeout;
+                    global.timeoutCount = 0;
+                    // @ts-expect-error: This is fine.
+                    global.setTimeout = (cb: () => void, ms: number) => {
+                        if (ms !== 0) {
+                            throw new Error("setTimeout was called with a non-zero delay");
+                        }
+                        let err: Error | undefined;
+                        try {
+                            cb();
+                        } catch (err2) {
+                            err = err2 as Error;
+                        }
+                        if (!err) {
+                            throw new Error("setTimeout did not throw an error");
+                        }
+                        global.timeoutCount++;
+                    };
+                },
+                after: () => {
+                    global.setTimeout = global.setTimeout1;
+                    delete global.setTimeout1;
+                    const count = global.timeoutCount;
+                    delete global.timeoutCount;
+                    if (count !== 1) {
+                        throw new Error("setTimeout was called the wrong number of times");
+                    }
+                },
             },
         },
 
