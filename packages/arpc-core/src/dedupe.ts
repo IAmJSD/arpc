@@ -1,10 +1,25 @@
 import { workerContext } from "./workerContext";
 
+const underlyingFnSymbol = Symbol("underlyingFn");
+
+/** Get the underlying function from a dedupe proxy. This will remove the proxy from it. */
+export function getUnderlyingDedupeFunction<
+    T extends (...args: any[]) => Promise<any>,
+>(fn: T): T {
+    const res = (fn as any)[underlyingFnSymbol] as T | undefined;
+    if (!res) return fn;
+    return res;
+}
+
 /** Wraps the function in a proxy to dedupe the result of function calls within each network call. */
 export function dedupe<
     T extends (...args: any[]) => Promise<any>,
 >(fn: T): T {
     return new Proxy(fn, {
+        get(target, prop) {
+            if (prop === underlyingFnSymbol) return fn;
+            return (target as any)[prop];
+        },
         apply(target, thisArg, args) {
             const ctx = workerContext();
             if (ctx) {
@@ -50,7 +65,7 @@ export function alreadyDeduped<
     if (!ctx) return false;
 
     // Get the function cache from the context.
-    let a: [any[], any][] = ctx.get(fn);
+    let a: [any[], any][] = ctx.get(getUnderlyingDedupeFunction(fn));
     if (!a) {
         return false;
     }
