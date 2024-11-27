@@ -1,0 +1,12 @@
+=== STATUS 400 - HEADERS ===
+
+content-type: application/msgpack
+x-is-arpc: true
+
+=== MSGPACK BODY ===
+
+{
+    "builtIn": false,
+    "name": "CustomError",
+    "body": null
+}

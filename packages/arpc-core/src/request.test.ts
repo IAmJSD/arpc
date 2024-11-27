@@ -4,8 +4,8 @@ import { GoldenItem, runGoldenTests } from "./tests/utils/golden";
 import { UnauthenticatedRequestHandler } from "./schema";
 import { null as Null, nullable, string } from "valibot";
 import { useRequest } from "./helpers";
-import { useCommit } from "./transactions";
-import { test } from "vitest";
+import { useCommit, useRollback } from "./transactions";
+import { test, describe } from "vitest";
 
 type GoldenInput = {
     url: string;
@@ -46,7 +46,7 @@ const _invalidEncoding = Symbol("invalid encoding");
 
 function unauthedRpcRouterGolden(
     rpc: RPCRouter<UnauthenticatedRequestHandler<any, any>, any, any, any>,
-    tests: GoldenItem<GoldenInput>[],
+    tests: GoldenItem<GoldenInput>[], useIt?: boolean,
 ) {
     const handler = rpc.buildHttpHandler();
     return runGoldenTests(
@@ -80,7 +80,7 @@ function unauthedRpcRouterGolden(
             } finally {
                 input.after?.();
             }
-        }, true, test,
+        }, true, useIt ? undefined : test,
     );
 }
 
@@ -147,6 +147,26 @@ const basicUnauthedRpc = new RPCRouter().setRoutes({
                 if (global.commitCount !== 0) {
                     throw new Error("commitCount was not 0");
                 }
+                return null;
+            },
+        },
+        rollback: {
+            input: Null(),
+            output: Null(),
+            method: async () => {
+                useRollback(async () => {
+                    global.rollbackCount++;
+                });
+                throw new Error("This is a test error");
+            },
+        },
+        rollbackThrows: {
+            input: Null(),
+            output: Null(),
+            method: async () => {
+                useRollback(async () => {
+                    throw new Error("This is a test error");
+                });
                 return null;
             },
         },
@@ -514,6 +534,116 @@ unauthedRpcRouterGolden(
                 },
             },
         },
+        {
+            testName: "non-atomic rollback works",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=rollback",
+                headers: {},
+                get: false,
+                body: null,
+                before: () => {
+                    global.setTimeout1 = global.setTimeout;
+                    global.rollbackCount = 0;
+                    global.timeoutCount = 0;
+                    // @ts-expect-error: This is fine.
+                    global.setTimeout = (cb: () => void, ms: number) => {
+                        if (ms !== 0) {
+                            throw new Error("setTimeout was called with a non-zero delay");
+                        }
+                        let err: Error | undefined;
+                        try {
+                            cb();
+                        } catch (err2) {
+                            err = err2 as Error;
+                        }
+                        if (!err) {
+                            throw new Error("setTimeout did not throw an error");
+                        }
+                        global.timeoutCount++;
+                    };
+                },
+                after: () => {
+                    global.setTimeout = global.setTimeout1;
+                    delete global.setTimeout1;
+                    const timeoutCount = global.timeoutCount;
+                    delete global.timeoutCount;
+                    if (timeoutCount !== 1) {
+                        throw new Error("setTimeout was called the wrong number of times");
+                    }
+                    const rollbackCount = global.rollbackCount;
+                    delete global.rollbackCount;
+                    if (rollbackCount !== 1) {
+                        throw new Error("rollbackCount was not 1");
+                    }
+                },
+            },
+        },
+        {
+            testName: "atomic rollback works",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["rollback", null],
+                ],
+                before: () => {
+                    global.setTimeout1 = global.setTimeout;
+                    global.rollbackCount = 0;
+                    global.timeoutCount = 0;
+                    // @ts-expect-error: This is fine.
+                    global.setTimeout = (cb: () => void, ms: number) => {
+                        if (ms !== 0) {
+                            throw new Error("setTimeout was called with a non-zero delay");
+                        }
+                        let err: Error | undefined;
+                        try {
+                            cb();
+                        } catch (err2) {
+                            err = err2 as Error;
+                        }
+                        if (!err) {
+                            throw new Error("setTimeout did not throw an error");
+                        }
+                        global.timeoutCount++;
+                    };
+                },
+                after: () => {
+                    global.setTimeout = global.setTimeout1;
+                    delete global.setTimeout1;
+                    const timeoutCount = global.timeoutCount;
+                    delete global.timeoutCount;
+                    if (timeoutCount !== 1) {
+                        throw new Error("setTimeout was called the wrong number of times");
+                    }
+                    const rollbackCount = global.rollbackCount;
+                    delete global.rollbackCount;
+                    if (rollbackCount !== 1) {
+                        throw new Error("rollbackCount was not 1");
+                    }
+                },
+            },
+        },
+        {
+            testName: "atomic rollback throws",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["rollbackThrows", null],
+                ],
+            },
+        },
+        {
+            testName: "non-atomic rollback throws",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=rollbackThrows",
+                headers: {},
+                get: false,
+                body: null,
+            },
+        },
 
         // Success cases
 
@@ -634,3 +764,162 @@ unauthedRpcRouterGolden(
         },
     ],
 );
+
+class CustomError extends Error {
+    body: any;
+
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+describe("custom exceptions", async () => {
+    const router = new RPCRouter().setRoutes({
+        v1: {
+            custom: {
+                input: Null(),
+                output: Null(),
+                method: async () => {
+                    throw new CustomError("This is a test error");
+                },
+            },
+            customWithError: {
+                input: Null(),
+                output: Null(),
+                method: async () => {
+                    const e = new CustomError("This is a test error");
+                    e.body = "This is a test error body";
+                    throw e;
+                },
+            },
+            standard: {
+                input: Null(),
+                output: Null(),
+                method: async () => {
+                    throw new Error("This is a test error");
+                },
+            },
+        },
+    }).setExceptions({ CustomError });
+
+    unauthedRpcRouterGolden(router, [
+        {
+            testName: "non-atomic standard error still internal with custom exception",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=standard",
+                headers: {},
+                get: false,
+                body: null,
+                before: () => {
+                    global.setTimeout1 = global.setTimeout;
+                    global.timeoutCount = 0;
+                    // @ts-expect-error: This is fine.
+                    global.setTimeout = (cb: () => void, ms: number) => {
+                        if (ms !== 0) {
+                            throw new Error("setTimeout was called with a non-zero delay");
+                        }
+                        let err: Error | undefined;
+                        try {
+                            cb();
+                        } catch (err2) {
+                            err = err2 as Error;
+                        }
+                        if (!err) {
+                            throw new Error("setTimeout did not throw an error");
+                        }
+                        global.timeoutCount++;
+                    };
+                },
+                after: () => {
+                    global.setTimeout = global.setTimeout1;
+                    delete global.setTimeout1;
+                    const count = global.timeoutCount;
+                    delete global.timeoutCount;
+                    if (count !== 1) {
+                        throw new Error("setTimeout was called the wrong number of times");
+                    }
+                },
+            },
+        },
+        {
+            testName: "atomic standard error still internal with custom exception",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["standard", null],
+                ],
+                before: () => {
+                    global.setTimeout1 = global.setTimeout;
+                    global.timeoutCount = 0;
+                    // @ts-expect-error: This is fine.
+                    global.setTimeout = (cb: () => void, ms: number) => {
+                        if (ms !== 0) {
+                            throw new Error("setTimeout was called with a non-zero delay");
+                        }
+                        let err: Error | undefined;
+                        try {
+                            cb();
+                        } catch (err2) {
+                            err = err2 as Error;
+                        }
+                        if (!err) {
+                            throw new Error("setTimeout did not throw an error");
+                        }
+                        global.timeoutCount++;
+                    };
+                },
+                after: () => {
+                    global.setTimeout = global.setTimeout1;
+                    delete global.setTimeout1;
+                    const count = global.timeoutCount;
+                    delete global.timeoutCount;
+                    if (count !== 1) {
+                        throw new Error("setTimeout was called the wrong number of times");
+                    }
+                },
+            },
+        },
+        {
+            testName: "non-atomic custom error",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=custom",
+                headers: {},
+                get: false,
+                body: null,
+            },
+        },
+        {
+            testName: "atomic custom error",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["custom", null],
+                ],
+            },
+        },
+        {
+            testName: "non-atomic custom error with body",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=customWithError",
+                headers: {},
+                get: false,
+                body: null,
+            },
+        },
+        {
+            testName: "atomic custom error with body",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["customWithError", null],
+                ],
+            },
+        },
+    ], true);
+});
