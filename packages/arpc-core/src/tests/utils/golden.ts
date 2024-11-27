@@ -10,12 +10,13 @@ export type GoldenItem<TInput> = {
 export function runGoldenTests<TInput>(
     dir: string, filename: string, goldenItems: GoldenItem<TInput>[],
     handler: (input: TInput) => Promise<any>, noJsonify?: boolean,
+    wrapper?: (testName: string, fn: () => Promise<void>) => void,
 ) {
     const folderUnderscore = filename.split("/").pop()!.split(".")[0].replace(/ /g, "_");
     const isGoldenUpdate = process.env.GOLDEN_UPDATE === "1";
     for (const item of goldenItems) {
         const filename = `${item.testName.replace(/ /g, "_")}.golden`;
-        it(item.testName, async () => {
+        (wrapper || it)(item.testName, async () => {
             // Read the golden file.
             let file = "";
             try {

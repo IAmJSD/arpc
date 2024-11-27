@@ -554,6 +554,7 @@ export default function<
                 }
             } catch (err) {
                 // Handle the exception that caused this.
+                console.log("PENIS");
                 return handleNonBulkExceptions(err as Error);
             }
 

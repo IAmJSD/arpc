@@ -4,6 +4,8 @@ import { GoldenItem, runGoldenTests } from "./tests/utils/golden";
 import { UnauthenticatedRequestHandler } from "./schema";
 import { null as Null, nullable, string } from "valibot";
 import { useRequest } from "./helpers";
+import { useCommit } from "./transactions";
+import { test } from "vitest";
 
 type GoldenInput = {
     url: string;
@@ -78,7 +80,7 @@ function unauthedRpcRouterGolden(
             } finally {
                 input.after?.();
             }
-        }, true,
+        }, true, test,
     );
 }
 
@@ -109,6 +111,35 @@ const basicUnauthedRpc = new RPCRouter().setRoutes({
             output: Null(),
             method: async () => {
                 throw new Error("This is a test error");
+            },
+        },
+        commit: {
+            input: Null(),
+            output: Null(),
+            method: async () => {
+                useCommit(async () => {
+                    global.commitCount++;
+                });
+                if (global.commitCount !== 0) {
+                    throw new Error("commitCount was not 0");
+                }
+                return null;
+            },
+        },
+        throwInCommit: {
+            input: Null(),
+            output: Null(),
+            method: async () => {
+                useCommit(async () => {
+                    throw new Error("This is a test error");
+                });
+                useCommit(async () => {
+                    global.commitCount++;
+                });
+                if (global.commitCount !== 0) {
+                    throw new Error("commitCount was not 0");
+                }
+                return null;
             },
         },
     },
@@ -267,6 +298,50 @@ unauthedRpcRouterGolden(
                 },
             },
         },
+        {
+            testName: "throw in commit",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=throwInCommit",
+                headers: {},
+                get: false,
+                body: null,
+                before: () => {
+                    global.setTimeout1 = global.setTimeout;
+                    global.commitCount = 0;
+                    global.timeoutCount = 0;
+                    // @ts-expect-error: This is fine.
+                    global.setTimeout = (cb: () => void, ms: number) => {
+                        if (ms !== 0) {
+                            throw new Error("setTimeout was called with a non-zero delay");
+                        }
+                        let err: Error | undefined;
+                        try {
+                            cb();
+                        } catch (err2) {
+                            err = err2 as Error;
+                        }
+                        if (!err) {
+                            throw new Error("setTimeout did not throw an error");
+                        }
+                        global.timeoutCount++;
+                    };
+                },
+                after: () => {
+                    global.setTimeout = global.setTimeout1;
+                    delete global.setTimeout1;
+                    const timeoutCount = global.timeoutCount;
+                    delete global.timeoutCount;
+                    if (timeoutCount !== 1) {
+                        throw new Error("setTimeout was called the wrong number of times");
+                    }
+                    const commitCount = global.commitCount;
+                    delete global.commitCount;
+                    if (commitCount !== 0) {
+                        throw new Error("commitCount was not 0");
+                    }
+                },
+            },
+        },
 
         // Success cases
 
@@ -343,6 +418,46 @@ unauthedRpcRouterGolden(
                     [["arg", null]],
                     [["arg"], "echo.null"],
                 ],
+            },
+        },
+        {
+            testName: "non-atomic commits",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=commit",
+                headers: {},
+                get: false,
+                body: null,
+                before: () => {
+                    global.commitCount = 0;
+                },
+                after: () => {
+                    const count = global.commitCount;
+                    delete global.commitCount;
+                    if (count !== 1) {
+                        throw new Error("commitCount was not 1");
+                    }
+                },
+            },
+        },
+        {
+            testName: "atomic commits",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["commit", null],
+                ],
+                before: () => {
+                    global.commitCount = 0;
+                },
+                after: () => {
+                    const count = global.commitCount;
+                    delete global.commitCount;
+                    if (count !== 1) {
+                        throw new Error("commitCount was not 1");
+                    }
+                },
             },
         },
     ],
