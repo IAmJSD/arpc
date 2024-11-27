@@ -1,0 +1,16 @@
+=== STATUS 400 - HEADERS ===
+
+content-type: application/msgpack
+x-is-arpc: true
+
+=== MSGPACK BODY ===
+
+{
+    "builtIn": true,
+    "name": "Ratelimited",
+    "code": "RATELIMITED",
+    "message": "You are ratelimited",
+    "body": {
+        "nickelback": true
+    }
+}

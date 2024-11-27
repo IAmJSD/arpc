@@ -6,6 +6,7 @@ import { null as Null, nullable, string } from "valibot";
 import { useRequest } from "./helpers";
 import { useCommit, useRollback } from "./transactions";
 import { test, describe } from "vitest";
+import { Ratelimited } from "./ratelimiting";
 
 type GoldenInput = {
     url: string;
@@ -644,6 +645,15 @@ unauthedRpcRouterGolden(
                 body: null,
             },
         },
+        {
+            testName: "bad atomic request",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: "hello",
+            },
+        },
 
         // Success cases
 
@@ -773,7 +783,7 @@ class CustomError extends Error {
     }
 }
 
-describe("custom exceptions", async () => {
+describe("custom exceptions", () => {
     const router = new RPCRouter().setRoutes({
         v1: {
             custom: {
@@ -922,4 +932,196 @@ describe("custom exceptions", async () => {
             },
         },
     ], true);
+});
+
+let value = "";
+
+let rlThrows = false;
+let ratelimited = false;
+let rlCalls = 0;
+
+async function rlMiddleware(methodName: string, arg: any) {
+    if (value !== arg) {
+        throw new Error("arg mismatch");
+    }
+    if (methodName !== "ratelimiting.turnOn" && methodName !== "ratelimiting.test") {
+        throw new Error("method name mismatch");
+    }
+    rlCalls++;
+    if (rlThrows) {
+        throw new Error("rlThrows");
+    }
+    if (ratelimited) {
+        throw new Ratelimited("You are ratelimited", {
+            nickelback: true,
+        });
+    }
+}
+
+const rlRoutes = {
+    v1: {
+        ratelimiting: {
+            turnOn: {
+                input: Null(),
+                output: Null(),
+                method: async () => {
+                    ratelimited = true;
+                    return null;
+                },
+            },
+            test: {
+                input: string(),
+                output: Null(),
+                method: async () => {
+                    return null;
+                },
+            },
+        },
+    },
+} as const;
+
+const rlRouter = new RPCRouter()
+    .setRoutes(rlRoutes)
+    .setRateLimiting(rlMiddleware);
+
+describe("ratelimiting", () => {
+    unauthedRpcRouterGolden(rlRouter, [
+        // Error cases
+
+        {
+            testName: "non-atomic get ratelimited",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=ratelimiting.test",
+                headers: {},
+                get: false,
+                before: () => {
+                    ratelimited = true;
+                },
+                body: "",
+                after: () => {
+                    if (rlCalls !== 1) {
+                        throw new Error("rlCalls was not 1");
+                    }
+                },
+            },
+        },
+        {
+            testName: "non-atomic post ratelimited",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=ratelimiting.test",
+                headers: {},
+                get: false,
+                before: () => {
+                    rlCalls = 0;
+                    ratelimited = true;
+                },
+                body: "",
+                after: () => {
+                    if (rlCalls !== 1) {
+                        throw new Error("rlCalls was not 1");
+                    }
+                },
+            },
+        },
+        {
+            testName: "atomic ratelimited",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["ratelimiting.turnOn", ""],
+                    ["ratelimiting.test", ""],
+                ],
+            },
+        },
+        {
+            testName: "non-atomic ratelimiter throws",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=ratelimiting.test",
+                headers: {},
+                get: false,
+                body: "",
+                before: () => {
+                    rlThrows = true;
+                    global.timeoutCount = 0;
+                    global.setTimeout1 = global.setTimeout;
+                    // @ts-expect-error: This is fine.
+                    global.setTimeout = () => {
+                        global.timeoutCount++;
+                    };
+                },
+                after: () => {
+                    const count = global.timeoutCount;
+                    delete global.timeoutCount;
+                    if (count !== 1) {
+                        throw new Error("setTimeout was called the wrong number of times");
+                    }
+                    global.setTimeout = global.setTimeout1;
+                    delete global.setTimeout1;
+                    rlThrows = false;
+                },
+            },
+        },
+        {
+            testName: "atomic ratelimiter throws",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["ratelimiting.test", ""],
+                ],
+                before: () => {
+                    rlThrows = true;
+                    global.timeoutCount = 0;
+                    global.setTimeout1 = global.setTimeout;
+                    // @ts-expect-error: This is fine.
+                    global.setTimeout = () => {
+                        global.timeoutCount++;
+                    };
+                },
+                after: () => {
+                    const count = global.timeoutCount;
+                    delete global.timeoutCount;
+                    if (count !== 1) {
+                        throw new Error("setTimeout was called the wrong number of times");
+                    }
+                    global.setTimeout = global.setTimeout1;
+                    delete global.setTimeout1;
+                    rlThrows = false;
+                },
+            },
+        },
+
+        // Success cases
+
+        {
+            testName: "successful non-atomic get ratelimiting call",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=ratelimiting.test",
+                headers: {},
+                get: true,
+                body: "",
+            },
+        },
+        {
+            testName: "successful non-atomic post ratelimiting call",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=ratelimiting.test",
+                headers: {},
+                get: false,
+                before: () => {
+                    rlCalls = 0;
+                    value = "hello";
+                },
+                body: "hello",
+                after: () => {
+                    if (rlCalls !== 1) {
+                        throw new Error("rlCalls was not 1");
+                    }
+                },
+            },
+        },
+    ]);
 });
