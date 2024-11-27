@@ -1,0 +1,23 @@
+=== STATUS 500 - HEADERS ===
+
+content-type: application/msgpack
+x-is-arpc: true
+
+=== MSGPACK BODY ===
+
+[
+    {
+        "builtIn": true,
+        "name": "InternalServerError",
+        "code": "INTERNAL_ERROR",
+        "message": "An internal error occurred",
+        "body": null
+    },
+    {
+        "builtIn": true,
+        "name": "InternalServerError",
+        "code": "INTERNAL_ERROR",
+        "message": "An internal error occurred",
+        "body": null
+    }
+]
