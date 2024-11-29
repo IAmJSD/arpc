@@ -665,6 +665,26 @@ rpcRouterGolden(
                 body: "hello",
             },
         },
+        {
+            testName: "non-atomic invalid argument type",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=echo.string",
+                headers: {},
+                get: false,
+                body: 123,
+            },
+        },
+        {
+            testName: "atomic invalid argument type",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["echo.string", 123],
+                ],
+            },
+        },
 
         // Success cases
 
