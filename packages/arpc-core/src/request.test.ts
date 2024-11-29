@@ -1,7 +1,6 @@
 import { decode, encode } from "@msgpack/msgpack";
 import { RPCRouter } from "./router";
 import { GoldenItem, runGoldenTests } from "./tests/utils/golden";
-import { UnauthenticatedRequestHandler } from "./schema";
 import { null as Null, nullable, string } from "valibot";
 import { useRequest } from "./helpers";
 import { useCommit, useRollback } from "./transactions";
@@ -44,16 +43,17 @@ async function rpcResponseToString(res: Response) {
 
 const _invalidMsgpack = Symbol("invalid msgpack");
 const _invalidEncoding = Symbol("invalid encoding");
+const _missingArg = Symbol("missing arg");
 
-function unauthedRpcRouterGolden(
-    rpc: RPCRouter<UnauthenticatedRequestHandler<any, any>, any, any, any>,
+function rpcRouterGolden<User, AuthSet>(
+    rpc: RPCRouter<any, any, any, any, User, AuthSet>,
     tests: GoldenItem<GoldenInput>[], useIt?: boolean,
 ) {
     const handler = rpc.buildHttpHandler();
     return runGoldenTests(
         __dirname, __filename, tests,
         async (input) => {
-            let bodyEnc: Uint8Array | undefined = [_invalidMsgpack, _invalidEncoding].includes(input.body) ?
+            let bodyEnc: Uint8Array | undefined = [_invalidMsgpack, _invalidEncoding, _missingArg].includes(input.body) ?
                 new Uint8Array([0x69, 0x21, 0x69, 0x21]) :
                 encode(input.body);
             if (input.get) {
@@ -65,7 +65,9 @@ function unauthedRpcRouterGolden(
                 bodyEnc = undefined;
 
                 // Add it to the URL.
-                input.url += "&arg=" + e;
+                if (input.body !== _missingArg) {
+                    input.url += "&arg=" + e;
+                }
             }
 
             // Make the request.
@@ -174,11 +176,20 @@ const basicUnauthedRpc = new RPCRouter().setRoutes({
     },
 });
 
-unauthedRpcRouterGolden(
+rpcRouterGolden(
     basicUnauthedRpc,
     [
         // Error cases
 
+        {
+            testName: "missing arg",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=echo.string",
+                headers: {},
+                get: true,
+                body: _missingArg,
+            },
+        },
         {
             testName: "missing route",
             input: {
@@ -812,7 +823,7 @@ describe("custom exceptions", () => {
         },
     }).setExceptions({ CustomError });
 
-    unauthedRpcRouterGolden(router, [
+    rpcRouterGolden(router, [
         {
             testName: "non-atomic standard error still internal with custom exception",
             input: {
@@ -985,7 +996,7 @@ const rlRouter = new RPCRouter()
     .setRateLimiting(rlMiddleware);
 
 describe("ratelimiting", () => {
-    unauthedRpcRouterGolden(rlRouter, [
+    rpcRouterGolden(rlRouter, [
         // Error cases
 
         {
@@ -1124,4 +1135,240 @@ describe("ratelimiting", () => {
             },
         },
     ]);
+});
+
+enum TokenTypes {
+    BEARER = "Bearer",
+}
+
+let authThrows = false;
+
+const authedRouter = new RPCRouter().setAuthHandler({
+    TokenTypes,
+    defaultTokenType: TokenTypes.BEARER,
+    validate: async (token: string) => {
+        if (authThrows) {
+            throw new Error("authThrows");
+        }
+        if (token !== "valid") {
+            return null;
+        }
+        return { skibidi: "much rizz" } as const;
+    },
+}).setRoutes({
+    v1: {
+        echo: {
+            input: string(),
+            output: string(),
+            method: async (arg: string, user: { skibidi: string }) => {
+                if (user.skibidi !== "much rizz") {
+                    throw new Error("user mismatch");
+                }
+                return arg;
+            },
+        },
+    },
+});
+
+describe("authentication", () => {
+    rpcRouterGolden(authedRouter, [
+        // Error cases
+
+        {
+            testName: "non-atomic empty authorization header",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=echo",
+                headers: {},
+                get: false,
+                body: "hello",
+            },
+        },
+        {
+            testName: "atomic empty authorization header",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["echo", "hello"],
+                ],
+            },
+        },
+        {
+            testName: "invalid token type",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=echo",
+                headers: {
+                    "Authorization": "Abc invalid",
+                },
+                get: false,
+                body: "hello",
+            },
+        },
+        {
+            testName: "blank token",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=echo",
+                headers: {
+                    "Authorization": "Abc",
+                },
+                get: false,
+                body: "hello",
+            },
+        },
+        {
+            testName: "auth throws",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=echo",
+                headers: {
+                    "Authorization": "Bearer valid",
+                },
+                get: false,
+                body: "hello",
+                before: () => {
+                    authThrows = true;
+                    global.timeoutCount = 0;
+                    global.setTimeout1 = global.setTimeout;
+                    // @ts-expect-error: This is fine.
+                    global.setTimeout = () => {
+                        global.timeoutCount++;
+                    };
+                },
+                after: () => {
+                    const count = global.timeoutCount;
+                    delete global.timeoutCount;
+                    if (count !== 1) {
+                        throw new Error("setTimeout was called the wrong number of times");
+                    }
+                    global.setTimeout = global.setTimeout1;
+                    delete global.setTimeout1;
+                    authThrows = false;
+                },
+            },
+        },
+        {
+            testName: "non-atomic invalid token",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=echo",
+                headers: {
+                    "Authorization": "Bearer invalid",
+                },
+                get: false,
+                body: "hello",
+            },
+        },
+        {
+            testName: "atomic invalid token",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {
+                    "Authorization": "Bearer invalid",
+                },
+                get: false,
+                body: [
+                    ["echo", "hello"],
+                ],
+            },
+        },
+
+        // Success cases
+
+        {
+            testName: "successful non-atomic authenticated route",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=echo",
+                headers: {
+                    "Authorization": "Bearer valid",
+                },
+                get: false,
+                body: "hello",
+            },
+        },
+        {
+            testName: "successful atomic authenticated route",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {
+                    "Authorization": "Bearer valid",
+                },
+                get: false,
+                body: [
+                    ["echo", "hello"],
+                ],
+            },
+        },
+    ], true);
+
+    describe("with ratelimiter", () => {
+        let userSet = false;
+
+        const ratelimiter = authedRouter.setRateLimiting(async (methodName, arg, user) => {
+            if (methodName !== "echo") {
+                throw new Error("method name mismatch");
+            }
+            if (arg !== "hello") {
+                throw new Error("arg mismatch");
+            }
+            if (userSet) {
+                if (!user || user.skibidi !== "much rizz") {
+                    throw new Error("user mismatch");
+                }
+            } else if (user) {
+                throw new Error("user set unexpectedly");
+            }
+        });
+
+        rpcRouterGolden(ratelimiter, [
+            {
+                testName: "non-atomic non-authenticated with rate limiting",
+                input: {
+                    url: "https://example.com/api/rpc?version=v1&route=echo",
+                    headers: {},
+                    get: false,
+                    body: "hello",
+                },
+            },
+            {
+                testName: "non-atomic authenticated with rate limiting",
+                input: {
+                    url: "https://example.com/api/rpc?version=v1&route=echo",
+                    headers: {
+                        "Authorization": "Bearer valid",
+                    },
+                    get: false,
+                    body: "hello",
+                    before: () => {
+                        userSet = true;
+                    },
+                },
+            },
+            {
+                testName: "atomic authenticated with rate limiting",
+                input: {
+                    url: "https://example.com/api/rpc?version=v1&route=atomic",
+                    headers: {
+                        "Authorization": "Bearer valid",
+                    },
+                    get: false,
+                    body: [
+                        ["echo", "hello"],
+                    ],
+                },
+            },
+            {
+                testName: "atomic un-authenticated with rate limiting",
+                input: {
+                    url: "https://example.com/api/rpc?version=v1&route=atomic",
+                    headers: {},
+                    get: false,
+                    body: [
+                        ["echo", "hello"],
+                    ],
+                    before: () => {
+                        userSet = false;
+                    },
+                },
+            },
+        ]);
+    });
 });

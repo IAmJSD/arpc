@@ -5,7 +5,8 @@ export default defineConfig({
         coverage: {
             exclude: [
                 ...(configDefaults.coverage?.exclude ?? []),
-                "**/src/tests/utils/*",
+                "**/src/tests/utils/*", // Utils to make tests, not part of the public API
+                "**/src/index.ts", // Literally just exports
             ],
         },
     },
