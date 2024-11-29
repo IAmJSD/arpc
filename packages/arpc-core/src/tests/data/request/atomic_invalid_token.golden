@@ -1,0 +1,14 @@
+=== STATUS 400 - HEADERS ===
+
+content-type: application/msgpack
+x-is-arpc: true
+
+=== MSGPACK BODY ===
+
+{
+    "builtIn": true,
+    "name": "Unauthorized",
+    "code": "INVALID_TOKEN",
+    "message": "Invalid token",
+    "body": null
+}
