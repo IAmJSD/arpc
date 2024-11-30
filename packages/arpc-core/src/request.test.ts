@@ -735,6 +735,18 @@ rpcRouterGolden(
                 body: [["object", null, ["result", ["oneDeep", "array", "pluck"]]]],
             },
         },
+        {
+            testName: "pluck of constructor attribute",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    // If this is a 200, it is VERY bad. We should not be able to pluck the constructor attribute.
+                    ["object", null, ["result", ["oneDeep", "constructor"]]],
+                ],
+            },
+        },
 
         // Success cases
 

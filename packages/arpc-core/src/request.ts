@@ -316,6 +316,12 @@ export default function<
                             const [variable, pluck] = assignment;
                             let val = res;
                             for (const attr of pluck) {
+                                if (attr === "constructor") {
+                                    errors.push(
+                                        bulkBuiltInError("BadRequest", "INVALID_PLUCK", "Cannot pluck the constructor attribute", null),
+                                    );
+                                    return;
+                                }
                                 if (typeof val !== "object" || val === null || Array.isArray(val)) {
                                     errors.push(
                                         bulkBuiltInError("BadRequest", "INVALID_VARIABLE", `Variable ${variable} is not an object`, null),
