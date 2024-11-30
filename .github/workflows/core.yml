@@ -33,3 +33,16 @@ jobs:
               working-directory: ./packages/arpc-core
             - run: bun test
               working-directory: ./packages/arpc-core
+
+    browser-test:
+        name: "Run browser smoke test"
+        runs-on: ubuntu-22.04
+        steps:
+            - uses: actions/checkout@v4
+            - run: npm ci
+              working-directory: ./packages/arpc-core
+            - name: Install playwright browsers
+              run: npx playwright install --with-deps
+              working-directory: ./packages/arpc-core
+            - run: npm run smoke:browser
+              working-directory: ./packages/arpc-core
