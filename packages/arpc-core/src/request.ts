@@ -428,12 +428,12 @@ export default function<
                                 const [useVarOrConst, variable, constant, op, pluck] = nonSet;
 
                                 // Process the variable.
-                                let varToCompare = variables.get(variable);
-                                if (varToCompare === undefined) {
-                                    return builtInError("BadRequest", "MISSING_VARIABLE", `Missing variable ${variable}`, null);
-                                }
+                                let varToCompare = variables.get(variable)!;
                                 for (const attr of pluck || []) {
-                                    if (typeof varToCompare !== "object" || varToCompare === null) {
+                                    if (attr === "constructor") {
+                                        return builtInError("BadRequest", "INVALID_PLUCK", "Cannot pluck the constructor attribute", null);
+                                    }
+                                    if (typeof varToCompare !== "object" || varToCompare === null || Array.isArray(varToCompare)) {
                                         return builtInError("BadRequest", "INVALID_VARIABLE", `Variable ${variable} is not an object`, null);
                                     }
                                     varToCompare = varToCompare[attr];
@@ -460,11 +460,7 @@ export default function<
                                     // Handle processing the variable if this is true.
                                     let resolvedVal: any;
                                     if (typeof useVarOrConst === "string") {
-                                        const val = variables.get(useVarOrConst);
-                                        if (val === undefined) {
-                                            return builtInError("BadRequest", "MISSING_VARIABLE", `Missing variable ${useVarOrConst}`, null);
-                                        }
-                                        resolvedVal = val;
+                                        resolvedVal = variables.get(useVarOrConst)!;
                                     } else {
                                         resolvedVal = useVarOrConst[0];
                                     }

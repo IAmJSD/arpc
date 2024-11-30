@@ -15,5 +15,5 @@ x-is-arpc: true
             "number": 2
         }
     },
-    "hello"
+    null
 ]

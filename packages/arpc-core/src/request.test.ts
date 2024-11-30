@@ -1,7 +1,7 @@
 import { decode, encode } from "@msgpack/msgpack";
 import { RPCRouter } from "./router";
 import { GoldenItem, runGoldenTests } from "./tests/utils/golden";
-import { array, null as Null, nullable, object, string } from "valibot";
+import { array, null as Null, nullable, number, object, string } from "valibot";
 import { useRequest } from "./helpers";
 import { useCommit, useRollback } from "./transactions";
 import { test, describe } from "vitest";
@@ -103,6 +103,11 @@ const basicUnauthedRpc = new RPCRouter().setRoutes({
                 output: string(),
                 method: async (input: string) => input,
             },
+            number: {
+                input: number(),
+                output: number(),
+                method: async (input: number) => input,
+            },
             null: {
                 input: Null(),
                 output: Null(),
@@ -179,9 +184,15 @@ const basicUnauthedRpc = new RPCRouter().setRoutes({
                 oneDeep: object({
                     string: string(),
                     array: array(string()),
+                    number: number(),
                 }),
             }),
-            method: async () => ({ oneDeep: { string: "hello", array: ["world"] } }),
+            method: async () => ({ oneDeep: { string: "hello", array: ["world"], number: 2 } }),
+        },
+        number: {
+            input: Null(),
+            output: number(),
+            method: async () => 2,
         },
     },
 });
@@ -949,6 +960,111 @@ rpcRouterGolden(
         },
     ],
 );
+
+function mathOpTest(op: string, trueOp: number, falseOp: number) {
+    const handler = basicUnauthedRpc.buildHttpHandler();
+    return runGoldenTests(
+        __dirname, __filename, [
+            {
+                testName: `${op} returns true`,
+                input: {
+                    url: "https://example.com/api/rpc?version=v1&route=atomic",
+                    headers: {},
+                    get: false,
+                    body: [
+                        ["number", null, "result"],
+                        [["result", "result", trueOp, op], "echo.number"],
+                    ],
+                },
+            },
+            {
+                testName: `${op} returns false`,
+                input: {
+                    url: "https://example.com/api/rpc?version=v1&route=atomic",
+                    headers: {},
+                    get: false,
+                    body: [
+                        ["number", null, "result"],
+                        [["result", "result", falseOp, op], "echo.number"],
+                    ],
+                },
+            },
+            {
+                testName: `${op} with constant as passthrough`,
+                input: {
+                    url: "https://example.com/api/rpc?version=v1&route=atomic",
+                    headers: {},
+                    get: false,
+                    body: [
+                        ["number", null, "result"],
+                        [[[69], "result", trueOp, op], "echo.number"],
+                    ],
+                },
+            },
+            {
+                testName: `${op} with true pluck`,
+                input: {
+                    url: "https://example.com/api/rpc?version=v1&route=atomic",
+                    headers: {},
+                    get: false,
+                    body: [
+                        ["object", null, "result"],
+                        [[[69], "result", trueOp, op, ["oneDeep", "number"]], "echo.number"],
+                    ],
+                },
+            },
+            {
+                testName: `${op} with false pluck`,
+                input: {
+                    url: "https://example.com/api/rpc?version=v1&route=atomic",
+                    headers: {},
+                    get: false,
+                    body: [
+                        ["object", null, "result"],
+                        [[[69], "result", falseOp, op, ["oneDeep", "number"]], "echo.number"],
+                    ],
+                },
+            },
+            {
+                testName: `${op} with constructor pluck`,
+                input: {
+                    url: "https://example.com/api/rpc?version=v1&route=atomic",
+                    headers: {},
+                    get: false,
+                    body: [
+                        ["object", null, "result"],
+                        [[[69], "result", trueOp, op, ["oneDeep", "constructor"]], "echo.number"],
+                    ],
+                },
+            },
+            {
+                testName: `${op} with invalid pluck during iteration`,
+                input: {
+                    url: "https://example.com/api/rpc?version=v1&route=atomic",
+                    headers: {},
+                    get: false,
+                    body: [
+                        ["object", null, "result"],
+                        [[[69], "result", trueOp, op, ["oneDeep", "attr", "a"]], "echo.number"],
+                    ],
+                },
+            },
+        ], async (input) => {
+            const req = new Request(input.url, {
+                method: input.get ? "GET" : "POST",
+                headers: input.headers,
+                body: encode(input.body),
+            });
+            const res = await handler(req);
+            return rpcResponseToString(res);
+        }, true, test,
+    );
+}
+
+mathOpTest(">", 1, 3);
+mathOpTest(">=", 1, 3);
+mathOpTest("=", 2, 3);
+mathOpTest("!", 3, 2);
 
 class CustomError extends Error {
     body: any;

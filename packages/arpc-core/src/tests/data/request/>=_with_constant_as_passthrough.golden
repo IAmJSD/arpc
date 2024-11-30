@@ -1,0 +1,11 @@
+=== STATUS 200 - HEADERS ===
+
+content-type: application/msgpack
+x-is-arpc: true
+
+=== MSGPACK BODY ===
+
+[
+    2,
+    69
+]
