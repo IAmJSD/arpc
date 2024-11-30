@@ -1,7 +1,7 @@
 import { decode, encode } from "@msgpack/msgpack";
 import { RPCRouter } from "./router";
 import { GoldenItem, runGoldenTests } from "./tests/utils/golden";
-import { null as Null, nullable, string } from "valibot";
+import { array, null as Null, nullable, object, string } from "valibot";
 import { useRequest } from "./helpers";
 import { useCommit, useRollback } from "./transactions";
 import { test, describe } from "vitest";
@@ -172,6 +172,16 @@ const basicUnauthedRpc = new RPCRouter().setRoutes({
                 });
                 return null;
             },
+        },
+        object: {
+            input: Null(),
+            output: object({
+                oneDeep: object({
+                    string: string(),
+                    array: array(string()),
+                }),
+            }),
+            method: async () => ({ oneDeep: { string: "hello", array: ["world"] } }),
         },
     },
 });
@@ -685,6 +695,46 @@ rpcRouterGolden(
                 ],
             },
         },
+        {
+            testName: "pluck of wrong type",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["echo.string", "hello", ["result", ["attr"]]],
+                ],
+            },
+        },
+        {
+            testName: "pluck of null",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["echo.null", null, ["result", ["attr"]]],
+                ],
+            },
+        },
+        {
+            testName: "pluck of invalid sub-attribute",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [["object", null, ["result", ["oneDeep", "x"]]]],
+            },
+        },
+        {
+            testName: "pluck of array constructor attribute",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [["object", null, ["result", ["oneDeep", "array", "pluck"]]]],
+            },
+        },
 
         // Success cases
 
@@ -801,6 +851,30 @@ rpcRouterGolden(
                         throw new Error("commitCount was not 1");
                     }
                 },
+            },
+        },
+        {
+            testName: "assign result to variable",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["echo.string", "hello", "result"],
+                    [["result"], "echo.string"],
+                ],
+            },
+        },
+        {
+            testName: "successful pluck to variable",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["object", null, ["result", ["oneDeep", "string"]]],
+                    [["result"], "echo.string"],
+                ],
             },
         },
     ],

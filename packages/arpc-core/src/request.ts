@@ -314,21 +314,21 @@ export default function<
                         } else {
                             // Do some plucking.
                             const [variable, pluck] = assignment;
-                            let val = variables.get(variable);
-                            if (val === undefined) {
-                                errors.push(
-                                    bulkBuiltInError("BadRequest", "MISSING_VARIABLE", `Missing variable ${variable}`, null),
-                                );
-                                return;
-                            }
+                            let val = res;
                             for (const attr of pluck) {
-                                if (typeof val !== "object" || val === null) {
+                                if (typeof val !== "object" || val === null || Array.isArray(val)) {
                                     errors.push(
                                         bulkBuiltInError("BadRequest", "INVALID_VARIABLE", `Variable ${variable} is not an object`, null),
                                     );
                                     return;
                                 }
                                 val = val[attr];
+                            }
+                            if (val === undefined) {
+                                errors.push(
+                                    bulkBuiltInError("BadRequest", "INVALID_VARIABLE", `Variable ${variable} is not a valid attribute`, null),
+                                );
+                                return;
                             }
                             variables.set(variable, val);
                         }
