@@ -1,0 +1,18 @@
+name: "Handle @arpc-packages/client-gen checks"
+
+on:
+    push:
+        paths:
+            - "packages/arpc-client-gen/**"
+            - ".github/workflows/client_gen.yml"
+
+jobs:
+    test:
+        name: "Run tests"
+        runs-on: ubuntu-22.04
+        steps:
+            - uses: actions/checkout@v4
+            - run: npm ci
+              working-directory: ./packages/arpc-client-gen
+            - run: npm run test
+              working-directory: ./packages/arpc-client-gen
