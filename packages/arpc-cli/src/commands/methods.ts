@@ -215,7 +215,7 @@ async function drop(namespace: string[], versionInit: RPCVersionWithCache | unde
 
 function namespaceParser(namespace: string) {
     const lower = namespace.trim().toLowerCase();
-    if (lower === "batch" || lower === "batcher") {
+    if (lower === "atomic" || lower === "constructor") {
         throw new InvalidArgumentError(`${lower} is a reserved name.`);
     }
 
