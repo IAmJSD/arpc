@@ -421,10 +421,7 @@ export default function<
                                 // Operation with a variable.
 
                                 const [variable] = nonSet;
-                                const val = variables.get(variable);
-                                if (val === undefined) {
-                                    return builtInError("BadRequest", "MISSING_VARIABLE", `Missing variable ${variable}`, null);
-                                }
+                                const val = variables.get(variable)!;
                                 queue.push([item[1], hn, val, item[2]]);
                             } else {
                                 // Atomic maths operation.

@@ -170,7 +170,7 @@ const basicUnauthedRpc = new RPCRouter().setRoutes({
                 useRollback(async () => {
                     throw new Error("This is a test error");
                 });
-                return null;
+                throw new Error("This is a test error");
             },
         },
         object: {
@@ -655,6 +655,35 @@ rpcRouterGolden(
                 body: [
                     ["rollbackThrows", null],
                 ],
+                before: () => {
+                    global.setTimeout1 = global.setTimeout;
+                    global.timeoutCount = 0;
+                    // @ts-expect-error: This is fine.
+                    global.setTimeout = (cb: () => void, ms: number) => {
+                        if (ms !== 0) {
+                            throw new Error("setTimeout was called with a non-zero delay");
+                        }
+                        let err: Error | undefined;
+                        try {
+                            cb();
+                        } catch (err2) {
+                            err = err2 as Error;
+                        }
+                        if (!err) {
+                            throw new Error("setTimeout did not throw an error");
+                        }
+                        global.timeoutCount++;
+                    };
+                },
+                after: () => {
+                    global.setTimeout = global.setTimeout1;
+                    delete global.setTimeout1;
+                    const count = global.timeoutCount;
+                    delete global.timeoutCount;
+                    if (count !== 1) {
+                        throw new Error("setTimeout was called the wrong number of times");
+                    }
+                },
             },
         },
         {
@@ -664,6 +693,35 @@ rpcRouterGolden(
                 headers: {},
                 get: false,
                 body: null,
+                before: () => {
+                    global.setTimeout1 = global.setTimeout;
+                    global.timeoutCount = 0;
+                    // @ts-expect-error: This is fine.
+                    global.setTimeout = (cb: () => void, ms: number) => {
+                        if (ms !== 0) {
+                            throw new Error("setTimeout was called with a non-zero delay");
+                        }
+                        let err: Error | undefined;
+                        try {
+                            cb();
+                        } catch (err2) {
+                            err = err2 as Error;
+                        }
+                        if (!err) {
+                            throw new Error("setTimeout did not throw an error");
+                        }
+                        global.timeoutCount++;
+                    };
+                },
+                after: () => {
+                    global.setTimeout = global.setTimeout1;
+                    delete global.setTimeout1;
+                    const count = global.timeoutCount;
+                    delete global.timeoutCount;
+                    if (count !== 1) {
+                        throw new Error("setTimeout was called the wrong number of times");
+                    }
+                },
             },
         },
         {
