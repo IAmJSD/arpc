@@ -77,8 +77,20 @@ function figureOutSpacing(str: string): string {
 
 async function makeClientPlaceholder(srcFolder: string) {
     const client = "// This file is a placeholder for the client.\n";
-    await mkdir(join(srcFolder, "clients"), { recursive: true });
-    await writeFile(join(srcFolder, "clients", "rpc.ts"), client);
+    let hasLib = false;
+    let dir = srcFolder;
+    try {
+        const lib = join(srcFolder, "lib");
+        if (statSync(lib).isDirectory()) {
+            hasLib = true;
+            dir = lib;
+        }
+    } catch {
+        // Just use the root.
+    }
+    await mkdir(join(dir, "clients"), { recursive: true });
+    await writeFile(join(dir, "clients", "rpc.ts"), client);
+    return hasLib;
 }
 
 async function writeGitHubAction(folderStructure: RepoFolderStructure) {
@@ -223,7 +235,9 @@ async function cmdAction() {
         exceptions: {},
         routes: {},
     });
-    await Promise.all([
+    const [usingLib] = await Promise.all([        
+        makeClientPlaceholder(join(rpcFolder, "..")),
+
         writeFile(
             join(rpcFolder, "index.ts"),
             index,
@@ -257,16 +271,15 @@ async function cmdAction() {
             folderStructure.gitFolder, folderStructure.framework.folder,
         ),
 
-        makeClientPlaceholder(join(rpcFolder, "..")),
-
         writeGitHubAction(folderStructure),
     ]);
+    const clientsFolder = usingLib ? `${folderStructure.framework.importPrefix}lib/clients` : `${folderStructure.framework.importPrefix}clients`;
 
     // Send the success message.
     console.log(`
 \x1b[32m✔  arpc has been successfully installed and mounted into ${fw}!\x1b[0m
 
-You can access the client that your consumers will use within their client-side (or their server-side) JS by importing ${folderStructure.framework.importPrefix}clients/rpc. If you need the RPC routes on the ${fw} server (for example in a Server Action), you can use the self export in ${folderStructure.framework.importPrefix}rpc.
+You can access the client that your consumers will use within their client-side (or their server-side) JS by importing ${clientsFolder}/rpc. If you need the RPC routes on the ${fw} server (for example in a Server Action), you can use the self export in ${folderStructure.framework.importPrefix}rpc.
 
 To get started, you should make a new API revision. You can do this by running \x1b[36marpc versions bump\x1b[0m. If you wish to setup ratelimiting, you can run \x1b[36marpc scaffold ratelimiting\x1b[0m, or authentication with \x1b[36marpc scaffold authentication\x1b[0m.
 

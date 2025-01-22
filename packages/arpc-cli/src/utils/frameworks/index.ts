@@ -2,6 +2,7 @@ import { join } from "path";
 import { readdirSync } from "fs";
 import { checkIfNext } from "./next";
 import { checkIfSolidStart } from "./solidstart";
+import { checkIfSvelteKit } from "./sveltekit";
 
 export type Framework = {
     importPrefix: string;
@@ -11,7 +12,7 @@ export type Framework = {
 };
 
 const frameworkCheckers: ((folder: string, files: string[]) => Framework | null)[] = [
-    checkIfNext, checkIfSolidStart,
+    checkIfNext, checkIfSolidStart, checkIfSvelteKit,
 ];
 
 export function findFramework() {

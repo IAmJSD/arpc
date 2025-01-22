@@ -10,7 +10,13 @@ export async function regenerateFrameworkState(repoFolderStructure: RepoFolderSt
         if (statSync(src).isDirectory()) srcFolder = src;
     } catch {}
 
-    const clientsFolder = join(srcFolder, "clients");
+    let clientsFolder = join(srcFolder, "clients");
+    try {
+        const lib = join(srcFolder, "lib");
+        if (statSync(lib).isDirectory()) {
+            clientsFolder = join(lib, "clients");
+        }
+    } catch {}
     mkdirSync(clientsFolder, { recursive: true });
     const folder = repoFolderStructure.framework.folder;
     const buildData = await generateClient("typescript", folder, join(clientsFolder, "rpc.ts"), "", "", {});
