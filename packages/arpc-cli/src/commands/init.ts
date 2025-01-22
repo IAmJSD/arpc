@@ -173,7 +173,7 @@ async function cmdAction() {
         await Promise.all([
             handleDependency(dependencies, "ARPC_CORE_VERSION", "@arpc-packages/core"),
             handleDependency(dependencies, "ARPC_SCHEMA_GEN_VERSION", "@arpc-packages/schema-gen"),
-            handleDependency(dependencies, "ARPC_SCHEMA_VIEWER_VERSION", "@arpc-packages/schema-viewer"),
+            handleDependency(dependencies, "ARPC_SCHEMA_UI_VERSION", "@arpc-packages/schema-ui"),
             handleDependency(dependencies, "MSGPACK_VERSION", "@msgpack/msgpack"),
             handleDependency(dependencies, "VALIBOT_VERSION", "valibot", /^[1-9][0-9]*\./),
             handleDependency(devDependencies, "ARPC_VERSION", "arpc"),

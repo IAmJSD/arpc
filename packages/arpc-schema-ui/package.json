@@ -25,6 +25,7 @@
         "build:client-scripts": "rspack build --config webpack.config.client.js && tsx ./scripts/makeClientScriptsOutput.ts",
         "build:server": "NODE_ENV=production parcel build",
         "build": "npm run build:client-scripts && npm run build:server",
-        "postinstall": "npm run build:client-scripts"
+        "postinstall": "npm run build:client-scripts",
+        "prepublish": "npm run build"
     }
 }
