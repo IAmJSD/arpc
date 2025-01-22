@@ -18,8 +18,8 @@
     },
     "targets": {
         "main": {
-			"optimize": true
-		}
+            "optimize": true
+        }
     },
     "scripts": {
         "build:client-scripts": "rspack build --config webpack.config.client.js && tsx ./scripts/makeClientScriptsOutput.ts",
