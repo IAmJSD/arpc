@@ -15,10 +15,10 @@ async function writeEntrypoints(nextFolder: string) {
     }
 
     // Write to the source folder.
-    const apiDir = join(srcFolder, "app", "api", "rpc");
+    const apiDir = join(srcFolder, "app", "api", "rpc", "docs");
     await mkdir(apiDir, { recursive: true }).then(() => {
         return writeFile(
-            join(apiDir, "route.ts"),
+            join(apiDir, "..", "route.ts"),
             `import { httpHandler } from "@/rpc";
 
 export const GET = httpHandler;
@@ -28,12 +28,11 @@ export const POST = httpHandler;
         );
     });
 
-    const pagesDir = join(srcFolder, "pages");
-    await mkdir(pagesDir, { recursive: true }).then(() => {
-        return writeFile(
-            join(pagesDir, "arpc.tsx"),
-            `import schema from "@/rpc/build_data.json";
-import { SchemaViewer } from "@arpc-packages/schema-viewer";
+    await writeFile(
+        join(apiDir, "route.ts"),
+        `import schema from "@/rpc/build_data.json";
+import { render } from "@arpc-packages/schema-ui";
+import type { BuildData } from "@arpc-packages/client-gen";
 
 // Defines the title that is used for the page.
 const title: string = "API Documentation";
@@ -41,18 +40,15 @@ const title: string = "API Documentation";
 // Defines the description that is used for the page.
 const description: string = "This is the arpc API documentation for this service.";
 
-// Load in the CSS for the viewer.
-import "@arpc-packages/schema-viewer/styles.css";
+// Tell Next this is a static page.
+export const dynamic = "force-static";
 
-// Export the schema viewer and template used for the main page.
-export default SchemaViewer;
-
-// Load in the static props so this statically builds. Do not touch this, it isn't type checked.
-export async function getStaticProps() {
-    return { props: { schema, title, description } };
+// Export the schema viewer.
+export function GET() {
+    const html = render(title, description, schema as BuildData);
+    return new Response(html, { headers: { "Content-Type": "text/html" } });
 }
 `);
-    });
 }
 
 const NEXT_CONFIG_REGEX = /^next\.config\.[mc]?[tj]sx?$/;
