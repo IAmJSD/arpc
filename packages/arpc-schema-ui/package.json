@@ -1,12 +1,16 @@
 {
     "name": "@arpc-packages/schema-ui",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "source": "server/index.ts",
     "main": "dist/server.mjs",
+    "types": "dist/server.d.ts",
     "devDependencies": {
         "@arpc-packages/client-gen": "*",
         "@rspack/cli": "^1.1.8",
         "@parcel/transformer-inline-string": "^2.13.3",
+        "@parcel/packager-ts": "^2.13.3",
+        "@parcel/transformer-typescript-types": "^2.13.3",
+        "typescript": "^5.7.3",
         "autoprefixer": "^10.4.20",
         "css-loader": "^7.1.2",
         "parcel": "^2.13.3",
