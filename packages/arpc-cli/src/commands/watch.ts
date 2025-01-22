@@ -3,6 +3,9 @@ import chokidar from "chokidar";
 import { requiresRpcInit } from "../utils/requiresRpcInit";
 import { success } from "../utils/console";
 import { regenerateFrameworkState } from "../utils/regenerateFrameworkState";
+import { setThrowWith } from "../utils/exitOrThrow";
+
+const customThrow = Symbol("customThrow");
 
 function cmdAction() {
     const { repoFolderStructure, rpcPath } = requiresRpcInit();
@@ -13,13 +16,17 @@ function cmdAction() {
         hundredMillisPassed = true;
     }, 100);
 
+    setThrowWith(customThrow);
+
     chokidar.watch(rpcPath).on("all", (_, path) => {
         if (!hundredMillisPassed) return;
         if (path.endsWith("build_data.json")) return;
         regenerateFrameworkState(repoFolderStructure, rpcPath)
             .catch((err) => {
-                const text = (err as Error).message;
-                console.error(`\x1b[31m✖  Failed to generate local JS client: ${text}\x1b[0m`);
+                if (err !== customThrow) {
+                    const text = (err as Error).message;
+                    console.error(`\x1b[31m✖  Failed to generate local JS client: ${text}\x1b[0m`);
+                }
             })
             .then(() => {
                 success("Generated local JS client.");

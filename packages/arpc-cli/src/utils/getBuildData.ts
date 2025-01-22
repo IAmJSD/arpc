@@ -5,6 +5,7 @@ import type { BuildData } from "@arpc-packages/client-gen";
 import { error } from "./console";
 import { spawn } from "child_process";
 import { findRpcFolderSync } from "./findRpcFolderSync";
+import { exitOrThrow } from "./exitOrThrow";
 
 export async function getBuildData(frameworkFolder: string) {
     // Handle Bun.
@@ -45,7 +46,7 @@ export async function getBuildData(frameworkFolder: string) {
     } catch {
         // esbuild logs out anyway why it errored.
         await tidy();
-        process.exit(1);
+        exitOrThrow();
     }
 
     // Defines the environment the bootstrapper will run in.

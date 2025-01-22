@@ -1,6 +1,8 @@
+import { exitOrThrow } from "./exitOrThrow";
+
 export function error(text: string): never {
     console.error(`\x1b[31m✖  ${text}\x1b[0m`);
-    process.exit(1);
+    exitOrThrow();
 }
 
 export function success(text: string): void {
