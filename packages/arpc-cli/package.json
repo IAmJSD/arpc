@@ -1,6 +1,6 @@
 {
     "name": "arpc",
-    "version": "1.6.9",
+    "version": "1.6.10",
     "main": "dist/index.js",
     "bin": {
         "arpc": "./dist/index.js"
