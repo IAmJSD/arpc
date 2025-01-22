@@ -5,11 +5,11 @@ import type { Framework } from ".";
 
 async function writeEntrypoints(solidFolder: string) {
     const routesDir = join(solidFolder, "src", "routes");
-    const apiDir = join(routesDir, "api");
-    await mkdir(apiDir, { recursive: true }).then(() => Promise.all([
+    const apiRpcDir = join(routesDir, "api", "rpc");
+    await mkdir(apiRpcDir, { recursive: true }).then(() => Promise.all([
         // Write /api/rpc
         writeFile(
-            join(apiDir, "rpc.ts"),
+            join(apiRpcDir, "..", "rpc.ts"),
             `import type { APIEvent } from "@solidjs/start/server";
 import { httpHandler } from "~/rpc";
 
@@ -23,8 +23,26 @@ export const POST = solidWrap;
 `,
         ),
 
-        // Write /arpc
-        
+        // Write /api/rpc/docs
+        writeFile(
+            join(apiRpcDir, "docs.ts"),
+            `import schema from "~/rpc/build_data.json";
+import { render } from "@arpc-packages/schema-ui";
+import type { BuildData } from "@arpc-packages/client-gen";
+
+// Defines the title that is used for the page.
+const title: string = "API Documentation";
+
+// Defines the description that is used for the page.
+const description: string = "This is the arpc API documentation for this service.";
+
+// Export the schema viewer.
+export function GET() {
+    const html = render(title, description, schema as BuildData);
+    return new Response(html, { headers: { "Content-Type": "text/html" } });
+}
+`,
+        ),
     ]));
 }
 
