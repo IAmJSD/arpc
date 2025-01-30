@@ -15,7 +15,7 @@ function findPackageManager(folder: string): PackageManager | null {
     const files = new Set(readdirSync(folder));
     if (files.has("yarn.lock")) return "yarn";
     if (files.has("pnpm-lock.yaml")) return "pnpm";
-    if (files.has("bun.lockb")) return "bun";
+    if (files.has("bun.lockb") || files.has("bun.lock")) return "bun";
     if (files.has("package-lock.json")) return "npm";
     return null;
 }

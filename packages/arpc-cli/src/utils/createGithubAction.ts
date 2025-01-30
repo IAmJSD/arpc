@@ -57,7 +57,12 @@ export async function createGithubAction(repoFolderStructure: RepoFolderStructur
         if (repoFolderStructure.gitFolder) {
             try {
                 // Check if the file exists.
-                await stat(join(repoFolderStructure.framework.folder, "bun.lockb"));
+                try {
+                    await stat(join(repoFolderStructure.framework.folder, "bun.lockb"));
+                } catch {
+                    // Check if its Bun's new lockfile format.
+                    await stat(join(repoFolderStructure.framework.folder, "bun.lock"));
+                }
     
                 // Get the difference between the two folders.
                 let diff = repoFolderStructure.framework.folder.slice(repoFolderStructure.gitFolder.length);
