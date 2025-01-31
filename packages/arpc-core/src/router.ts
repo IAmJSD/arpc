@@ -9,7 +9,7 @@ import selfClient from "./selfClient";
 type ExtractUser<Auth> = Exclude<Auth extends AuthHandler<infer User, any> ? User : never, null>;
 type BodyErrorConstructor = new (body: any) => Error;
 
-// Defines a router for creating RPC handlers.
+/** Defines a router for creating RPC handlers. */
 export class RPCRouter<
     Handler extends UnauthenticatedRequestHandler<any, any> | AuthenticatedRequestHandler<any, any, any>,
     Routes extends { [key: string]: HandlerMapping<Handler> } = {},

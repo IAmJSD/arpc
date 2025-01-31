@@ -1,7 +1,7 @@
 import { _txMagicKey } from "./request";
 import { workerContext } from "./workerContext";
 
-// Defines a function to commit a transaction across a batch of requests (or single).
+/** Defines a function to commit a transaction across a batch of requests (or single). */
 export function useCommit(fn: () => Promise<void>) {
     const ctx = workerContext();
     if (!ctx) {
@@ -15,7 +15,7 @@ export function useCommit(fn: () => Promise<void>) {
     a[0].push(fn);
 }
 
-// Defines a function to rollback a transaction across a batch of requests (or single).
+/** Defines a function to rollback a transaction across a batch of requests (or single). */
 export function useRollback(fn: () => Promise<void>) {
     const ctx = workerContext();
     if (!ctx) {
@@ -36,7 +36,7 @@ interface DBTransaction {
 
 const _dbTxMagicKey = Symbol("arpcDBTx");
 
-// Handle creating the proxy, hooking the transaction, and returning it.
+/** Handles creating the proxy, hooking the transaction, and returning it. */
 function finalizeTx(m: Map<any, any>, creator: any, tx: any): any {
     // Make a async caller that handles manual commits and rollbacks.
     function caller(key: string) {
@@ -84,9 +84,11 @@ function finalizeTx(m: Map<any, any>, creator: any, tx: any): any {
     return txProxy;
 }
 
-// Defines a function to start a database transaction, or fetch the current one if the transaction creation
-// function was passed in before within the current request (either single or within a batch). Note for this,
-// it is important you pass in the same function reference in each call.
+/**
+ * Defines a function to start a database transaction, or fetch the current one if the transaction creation
+ * function was passed in before within the current request (either single or within a batch). Note for this,
+ * it is important you pass in the same function reference in each call.
+ */
 export function useDatabaseTransaction<
     Tx extends DBTransaction, TxReturn extends Promise<Tx> | Tx,
 >(creator: () => TxReturn): TxReturn {
