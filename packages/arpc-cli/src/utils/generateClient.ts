@@ -1,8 +1,7 @@
-import { join } from "path";
 import * as ClientGen from "@arpc-packages/client-gen";
 import { writeFile } from "fs/promises";
-import { getBuildData } from "./getBuildData";
 import { error } from "./console";
+import type { BuildData } from "@arpc-packages/client-gen";
 
 type Generators = {
     [key: string]: [any, {
@@ -21,10 +20,9 @@ export const generators: Generators = {
 } as const;
 
 export async function generateClient<Key extends keyof typeof generators>(
-    generator: Key, frameworkPath: string, filePath: string, protocol: string, hostname: string,
+    generator: Key, buildData: BuildData, filePath: string, protocol: string, hostname: string,
     options: {[key: string]: any}, justThrow?: boolean,
 ) {
-    const buildData = await getBuildData(frameworkPath);
     for (const c of buildData.clients) {
         c.defaultProtocol = protocol;
         c.defaultHostname = hostname;
@@ -48,6 +46,4 @@ export async function generateClient<Key extends keyof typeof generators>(
         }
         error(`Failed to write client to ${filePath}: ${(err as Error).message}`);
     }
-
-    return buildData;
 }

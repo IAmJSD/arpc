@@ -2,6 +2,7 @@ import { join } from "path";
 import { mkdirSync, writeFileSync, statSync } from "fs";
 import { RepoFolderStructure } from "./findRepoFolderStructure";
 import { generateClient } from "./generateClient";
+import { getBuildData } from "./getBuildData";
 
 export async function regenerateFrameworkState(repoFolderStructure: RepoFolderStructure, rpcPath: string) {
     let srcFolder = repoFolderStructure.framework.folder;
@@ -18,7 +19,7 @@ export async function regenerateFrameworkState(repoFolderStructure: RepoFolderSt
         }
     } catch {}
     mkdirSync(clientsFolder, { recursive: true });
-    const folder = repoFolderStructure.framework.folder;
-    const buildData = await generateClient("typescript", folder, join(clientsFolder, "rpc.ts"), "", "", {});
+    const buildData = await getBuildData(repoFolderStructure.framework.folder);
+    await generateClient("typescript", buildData, join(clientsFolder, "rpc.ts"), "", "", {});
     writeFileSync(join(rpcPath, "build_data.json"), JSON.stringify(buildData, null, "\t"));
 }

@@ -1,6 +1,6 @@
 {
     "name": "arpc",
-    "version": "1.7.0",
+    "version": "1.9.3",
     "main": "dist/index.js",
     "bin": {
         "arpc": "./dist/index.js"
@@ -15,7 +15,8 @@
         "axios": "^1.6.8",
         "chokidar": "^3.6.0",
         "commander": "^12.0.0",
-        "esbuild": "^0.21.3"
+        "esbuild": "^0.21.3",
+        "node-html-parser": "^7.0.1"
     },
     "devDependencies": {
         "tsup": "^8.0.2"
