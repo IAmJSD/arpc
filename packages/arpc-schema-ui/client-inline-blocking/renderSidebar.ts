@@ -1,14 +1,16 @@
-import { API_VERSION_SELECTOR, SIDEBAR_CONTAINER } from "./consts";
+import { SIDEBAR_CONTAINER } from "./consts";
 
 function recurseChildren(node: HTMLElement, callback: (node: HTMLElement) => void) {
     callback(node);
     for (const child of node.children) {
-        recurseChildren(child as HTMLElement, callback);
+        if (!child.classList.contains("hidden")) {
+            recurseChildren(child as HTMLElement, callback);
+        }
     }
 }
 
 export function renderSidebar() {
-    const domEl = document.getElementById(`_arpc_version_${API_VERSION_SELECTOR.value}`)!;
+    const domEl = document.getElementById("_arpc_holder")!;
     SIDEBAR_CONTAINER.innerHTML = "";
     recurseChildren(domEl, (node) => {
         if (node.tagName.startsWith("H")) {
@@ -19,12 +21,13 @@ export function renderSidebar() {
                 indentLength = 0;
             }
             const p = document.createElement("p");
-            p.textContent = node.textContent;
+            p.textContent = node.querySelector("[data-txt]")!.textContent;
             p.style.marginLeft = `${indentLength * 0.5}rem`;
             if (node.offsetHeight > 0) {
                 p.style.fontWeight = "bold";
             }
             p.tabIndex = -1;
+            p.style.userSelect = "none";
             SIDEBAR_CONTAINER.appendChild(p);
         }
     });

@@ -1,6 +1,6 @@
 {
     "name": "@arpc-packages/schema-ui",
-    "version": "0.1.2",
+    "version": "0.1.18",
     "source": "server/index.ts",
     "main": "dist/server.mjs",
     "types": "dist/server.d.ts",

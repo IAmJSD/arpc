@@ -7,17 +7,17 @@ import * as stylesCss from "bundle-text:../styles.css";
 function sortVersions(versions: string[], versionTypeS: Set<boolean>) {
     return versions.map((version) => new Semver(version)).sort((a, b) => a.compare(b, (t) => {
         versionTypeS.add(t !== null);
-    })).map((semver) => semver.toString());
+    })).map((semver) => semver.toString()).reverse();
 }
 
 function renderSelector(versions: string[], renderCheckbox: boolean) {
-    return `<form onsubmit="event.preventDefault();">
+    return /* html */`<form onsubmit="event.preventDefault();">
     <label for="_arpc_api_version_selector">API Version:</label>
-    <select name="version" id="_arpc_api_version_selector">
-        ${versions.map((version) => `<option value="${version}">${version}</option>`).join("")}
+    <select name="version" id="_arpc_api_version_selector" class="dark:text-white dark:bg-black">
+        ${versions.map((version) => /* html */`<option value="${version}">${version}</option>`).join("")}
     </select>
-    <label for="_arpc_stable_versions_only">Only show stable versions</label>
-    ${renderCheckbox ? `<input type="checkbox" name="stable_only" id="_arpc_stable_versions_only" />` : ""}
+    ${renderCheckbox ? /* html */`<label for="_arpc_stable_versions_only">Only show stable versions</label>
+<input type="checkbox" name="stable_only" id="_arpc_stable_versions_only" />` : ""}
 </form>`;
 }
 
@@ -55,12 +55,12 @@ export default (title: string, description: string, versions: string[], htmlCont
             </header>
             <main class="mt-4">
                 <div class="flex gap-x-4">
-                    <div className="flex-col print:hidden max-md:hidden mt-[-1em]" aria-hidden="true">
+                    <div className="flex-col print:hidden max-md:hidden mt-[-1em]" aria-hidden="true" inert>
                         <nav className="top-0 left-0 select-none w-36 overflow-scroll sticky">
                             <div id="_arpc_sidebar_container" className="mt-[1em]"></div>
                         </nav>
                     </div>
-                    <div class="flex-col">
+                    <div class="flex-col" id="_arpc_holder">
                         ${versions.length > 0 ? htmlContent(versions[0]) : ""}
                     </div>
                 </div>

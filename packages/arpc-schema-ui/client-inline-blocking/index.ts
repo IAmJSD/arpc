@@ -6,25 +6,25 @@ import { displayCorrectVersion } from "./displayCorrectVersion";
 import { renderSidebar } from "./renderSidebar";
 import { ALL_VERSIONS, API_VERSION_SELECTOR, STABLE_VERSIONS_ONLY } from "./consts";
 
-// Handle window hashes.
-const hashSplit = window.location.hash.slice(1).split("_");
-if (hashSplit.length !== 1) {
-    const [version] = hashSplit;
-    if (ALL_VERSIONS.includes(version)) {
-        if (version.includes("a") || version.includes("b")) {
-            // Make sure the checkbox is unchecked.
-            (STABLE_VERSIONS_ONLY as HTMLInputElement || {}).checked = false;
-        }
-        API_VERSION_SELECTOR.value = version;
-    }
-}
-
 // The type is a little bit of a lie, but for sharing its fine. The lie is that this can be null if there are no versions.
 // If there aren't, nothing will be rendered anyway.
 if (API_VERSION_SELECTOR) {
     // Render the select element initially. We need to start with them all there because the client needs to know which
     // versions are available.
     renderSelect();
+
+    // Handle window hashes.
+    const hashSplit = window.location.hash.slice(1).split("_");
+    if (hashSplit.length !== 1) {
+        const [version] = hashSplit;
+        if (ALL_VERSIONS.includes(version)) {
+            if (version.includes("a") || version.includes("b")) {
+                // Make sure the checkbox is unchecked.
+                (STABLE_VERSIONS_ONLY as HTMLInputElement || {}).checked = false;
+            }
+            API_VERSION_SELECTOR.value = version;
+        }
+    }
 
     // Render the content now in case the first item was a unstable version.
     displayCorrectVersion();
