@@ -1,0 +1,7 @@
+{
+    "name": "@arpc-packages/client-base",
+    "version": "0.0.0",
+    "dependencies": {
+        "@msgpack/msgpack": "^3.0.1"
+    }
+}
