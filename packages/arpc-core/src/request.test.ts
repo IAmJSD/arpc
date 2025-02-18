@@ -958,6 +958,17 @@ rpcRouterGolden(
                 ],
             },
         },
+        {
+            testName: "successful pluck to output",
+            input: {
+                url: "https://example.com/api/rpc?version=v1&route=atomic",
+                headers: {},
+                get: false,
+                body: [
+                    ["object", null, [null, ["oneDeep", "string"]]],
+                ],
+            },
+        },
     ],
 );
 

@@ -61,9 +61,9 @@ describe("validateAtomicItems", () => runGoldenTests(
             ],
         },
         {
-            testName: "invalid assignment with null array",
+            testName: "invalid assignment with false array",
             input: [
-                ["skibidi.toilet", "hello", [null, null]],
+                ["skibidi.toilet", "hello", [false, null]],
             ],
         },
         {
@@ -332,6 +332,12 @@ describe("validateAtomicItems", () => runGoldenTests(
                 [["var", 1]],
                 [["var2", 1]],
                 [[[1], "var2", 1, "=", ["abc", "def"]], "skibidi.toilet"],
+            ] satisfies AtomicItem[],
+        },
+        {
+            testName: "pluck and return not to variable",
+            input: [
+                ["skibidi.toilet", "hello", [null, ["abc", "def"]]],
             ] satisfies AtomicItem[],
         },
     ],

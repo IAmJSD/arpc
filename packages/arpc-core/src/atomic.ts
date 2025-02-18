@@ -36,7 +36,7 @@ type AtomicMathsOperation = MathsBase | [...MathsBase, PluckAttributeTree];
 type AtomicNonSetOperation = AtomicGetOperation | AtomicMathsOperation;
 
 /** Defines a variable assignment. */
-export type Assignment = Variable | [Variable, PluckAttributeTree];
+export type Assignment = Variable | [Variable | null, PluckAttributeTree];
 
 /** Defines an atomic set operation. */
 type AtomicSetOperation = [Variable, ConstantArgument];
@@ -185,7 +185,7 @@ function validateAssignment(assignment: any): AtomicValidationError | string {
         };
     }
     const [variable, pluck] = assignment;
-    if (typeof variable !== "string" || variable === "") {
+    if ((typeof variable !== "string" && variable !== null) || variable === "") {
         return {
             success: false,
             code: "INVALID_VARIABLE",
@@ -316,7 +316,7 @@ export function validateAtomicItems<
                 const res = validateAssignment(item[2]);
                 if (typeof res === "string") {
                     usedVariables.add(res);
-                } else {
+                } else if (res !== null) {
                     return res;
                 }
             }
@@ -333,7 +333,7 @@ export function validateAtomicItems<
     // Return the success.
     return {
         success: true,
-        items: items as AtomicItem[],
+        items: items satisfies AtomicItem[],
         handlers,
     };
 }

@@ -336,7 +336,13 @@ export default function<
                                 );
                                 return;
                             }
-                            variables.set(variable, val);
+                            if (variable) {
+                                // Store the result in the variable.
+                                variables.set(variable, val);
+                            } else {
+                                // Replace the last result with the plucked value.
+                                results[results.length - 1] = val;
+                            }
                         }
                     }
                 };
